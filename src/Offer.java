@@ -4,7 +4,10 @@ public class Offer {
 	// Aggregiertes Lastprofil über alle Lastprofile
 	Loadprofile aggLoadprofile;
 	// Alle beteiligten Lastprofile
-	ArrayList<Loadprofile> allLoadprofiles;
+	ArrayList<Loadprofile> allLoadprofiles = new ArrayList<Loadprofile>();
+	
+	// gibt an, ob Angebot noch gültig
+	boolean status;
 	
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der Börse ist
 	double price;
@@ -40,6 +43,7 @@ public class Offer {
 		this.allConsumers.add(consumer);
 		
 		this.price = price;
+		this.status = true;
 	}
 	
 	public Loadprofile getAggLoadprofile() {
@@ -60,5 +64,13 @@ public class Offer {
 	
 	public double getPrice() {
 		return price;
+	}
+	
+	public boolean getStatus() {
+		return status;
+	}
+	
+	public void setStatus(boolean newStatus) {
+		status = newStatus;
 	}
 }

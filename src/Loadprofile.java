@@ -15,7 +15,7 @@ public class Loadprofile {
 		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil zur vollen Stunde startet
 		if (consumer.getNumSlots() != 4 || values.length != 4
 			|| date.getMinutes() != 0) {
-			return;
+			// TODO
 		}
 		numSlots = consumer.getNumSlots();
 		value1 = values[0];
@@ -25,7 +25,7 @@ public class Loadprofile {
 		this.date = date;
 	}
 	
-	// Erstellt aus beiden Lastprofilen Aggregiertes Lastprofil
+	// Erstellt aus beiden Lastprofilen ein neues, aggregiertes Lastprofil
 	public Loadprofile (Loadprofile loadprofile1, Loadprofile loadprofile2) {
 		if (loadprofile1.getDate() != loadprofile2.getDate()) {
 			return;

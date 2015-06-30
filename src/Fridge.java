@@ -1,8 +1,12 @@
 
 
 
-public class Fridge extends Consumer {
+public class Fridge implements Device {
+	// Fahrplan, den der Consumer gerade aushandelt
 	double[][] scheduleMinutes;
+	
+	// Fahrpläne, die schon ausgehandelt sind und fest stehen
+	
 		
 	double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
 	// Wie viel Grad pro Minute erwärmt bzw. kühlt der Kühlschrank?
@@ -11,6 +15,16 @@ public class Fridge extends Consumer {
 	double consCooling;
 	
 	public Fridge(double maxTemp1, double maxTemp2, double minTemp1, double minTemp2, double fallCooling, double riseWarming, double consCooling, double currTemp) {
+		//Prüfe Angaben auf Korrektheit
+		boolean correct = maxTemp1 <= maxTemp2;
+		correct = correct && minTemp1 >= minTemp2;
+		correct = correct && maxTemp1 > minTemp1;
+		correct = correct && fallCooling < 0;
+		correct = correct && riseWarming > 0;
+		correct = correct && consCooling > 0;
+		if (!correct) {
+			// TODO
+		}
 		this.maxTemp1 = maxTemp1;
 		this.minTemp1 = minTemp1;
 		this.maxTemp2 = maxTemp2;
@@ -78,13 +92,30 @@ public class Fridge extends Consumer {
 					cooling = true;
 				}
 			}
-		}
-		
+		}	
 	}
 	
-	// Berechnet das Lastprofil für die Angebote (1h in 15 Minuten Slots)
-	public double[] chargeValuesLoadprofile() {
-		return chargeValuesLoadprofile(scheduleMinutes[0]);
+	// Berechnet die Werte für das Lastprofil (1h in 15 Minuten Slots)
+	public double[] createValuesLoadprofile() {
+		double[] valuesLoadprofile = new double[numSlots];
+		double summeMin = 0;
+		double summeHour = 0;
+		int j = 0;
+		
+		for (int i=0; i<numSlots*15; i++) {
+			summeMin = summeMin + scheduleMinutes[0][i];
+			if((i+1)%15 == 0 && i!=0) {
+				valuesLoadprofile[j] = summeMin;
+				summeHour = summeHour+valuesLoadprofile[j];
+				j++;
+				summeMin = 0;
+			}
+		}
+		return valuesLoadprofile;
+	}
+	
+	public void getStatus() {
+		// Wie lang geplant, aktuelle Temperatur, ...
 	}
 }
 
