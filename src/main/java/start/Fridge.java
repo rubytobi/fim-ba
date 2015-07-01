@@ -51,11 +51,6 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 	}
 
-	private void setMaxTemp1(double maxTemp12) {
-		// TODO Auto-generated method stub
-
-	}
-
 	public double getCurrTemp() {
 		return currTemp;
 	}
