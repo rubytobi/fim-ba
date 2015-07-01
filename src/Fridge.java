@@ -1,13 +1,16 @@
-
+import java.util.*;
 
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
 	double[][] scheduleMinutes;
+	// Zeitpunkt, ab dem scheduleMinutes gilt
+	GregorianCalendar timeFixed;
 	
 	// Fahrpläne, die schon ausgehandelt sind und fest stehen
 	
-		
+	
+	// currTemp: Temperatur, bei der der letzte aktuelle Fahrplan endet	
 	double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
 	// Wie viel Grad pro Minute erwärmt bzw. kühlt der Kühlschrank?
 	double fallCooling, riseWarming;
@@ -67,17 +70,19 @@ public class Fridge implements Device {
 		return consCooling;
 	}
 	
-	// Berechnet das Lastprofil im Minutentakt für eine Stunde
-	public void chargeScheduleMinutes() {
+	// Berechnet das Lastprofil im Minutentakt für int minutes Minuten
+	private void chargeScheduleMinutes(int minutes) {
+		// TODO Nehme jeweilige Zeit in Plan auf (Start: timeFixed)
+		
 		// Erstelle Array mit geplantem Verbrauch (0) und geplanter Temperatur (1) pro Minute
-		scheduleMinutes = new double[2][numSlots*15];
+		scheduleMinutes = new double[2][minutes];
 		
 		boolean cooling = currTemp>=maxTemp1;
 		
 		scheduleMinutes[0][0] = 0.0;
 		scheduleMinutes[1][0] = currTemp;
-		
-		for (int i=1; i<numSlots*15; i++) {
+
+		for (int i=1; i<minutes; i++) {
 			if (cooling) {
 				scheduleMinutes[0][i] = consCooling;
 				scheduleMinutes[1][i] = fallCooling + scheduleMinutes[1][i-1];
@@ -92,7 +97,8 @@ public class Fridge implements Device {
 					cooling = true;
 				}
 			}
-		}	
+		}
+		currTemp = scheduleMinutes[1][minutes-1];
 	}
 	
 	// Berechnet die Werte für das Lastprofil (1h in 15 Minuten Slots)
@@ -116,6 +122,32 @@ public class Fridge implements Device {
 	
 	public void getStatus() {
 		// Wie lang geplant, aktuelle Temperatur, ...
+	}
+	
+	public void sendLoadprofile() {
+		double[] values;
+		
+		// Prüfe, ob dateFixed gesetzt, wenn nicht setze neu
+		if (timeFixed == null) {
+			// Wenn noch nicht gesetzt, erstelle Fahrplan für bis zur nächsten Stunde
+			timeFixed = new GregorianCalendar();
+			int minutes = timeFixed.get(Calendar.MINUTE);
+			minutes = 60-minutes;
+			chargeScheduleMinutes(minutes);
+			
+			
+			// TODO lege Fahrplan in festgelegte Fahrpläne ab
+			timeFixed.set(Calendar.MINUTE, 0);
+			sendLoadprofile();
+		}
+		else {
+			// Wenn schon gesetzt, zähle timeFixed um eine Stunde hoch
+			timeFixed.add(Calendar.HOUR_OF_DAY, 1);
+			chargeScheduleMinutes(numSlots*15);
+			values = createValuesLoadprofile();
+			
+			// TODO Schicke values + Startzeit an Consumer
+		}
 	}
 }
 

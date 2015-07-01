@@ -4,4 +4,5 @@ public interface Device {
 	
 	public double[] createValuesLoadprofile();
 	public void getStatus();
+	public void sendLoadprofile();
 }

@@ -1,6 +1,6 @@
 import java.util.*;
 
-public class Consumer {
+public class Consumer {	
 	// Aktuelles Angebot an der Börse
 	Offer offer;
 	
