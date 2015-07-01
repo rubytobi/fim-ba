@@ -6,11 +6,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import Event.DeviceNotFound;
 import Event.IllegalDeviceCreation;
-import Requests.DevicePutRequest;
+import Event.UnsupportedDeviceType;
 
 @RestController
 public class DeviceController {
@@ -20,22 +21,9 @@ public class DeviceController {
 	}
 
 	@RequestMapping(value = "/devices", method = RequestMethod.POST)
-	public boolean addDevice(@RequestBody DevicePutRequest request) {
-		String className = request.getClassName();
-
-		Object object;
-		try {
-			object = Class.forName(className);
-		} catch (ClassNotFoundException e) {
-			throw new IllegalDeviceCreation();
-		}
-
-		if (object != null && object instanceof Device) {
-			DeviceContainer.instance().add((Device) object);
-			return true;
-		} else {
-			throw new IllegalDeviceCreation();
-		}
+	public @ResponseBody UUID addDevice(@RequestBody Fridge fridge) {
+		DeviceContainer.instance().add(fridge);
+		return fridge.getUUID();
 	}
 
 	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.GET)
@@ -47,6 +35,12 @@ public class DeviceController {
 		}
 
 		return device;
+	}
+
+	@RequestMapping(value = "/devices/{uuid}/ping", method = RequestMethod.GET)
+	public void pingDevice(@PathVariable UUID uuid) {
+		Device device = DeviceContainer.instance().get(uuid);
+		device.ping();
 	}
 
 	@RequestMapping(value = "/devices/{id}", method = RequestMethod.DELETE)

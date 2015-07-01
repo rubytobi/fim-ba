@@ -1,22 +1,24 @@
 package start;
 
+import java.util.Map;
 import java.util.UUID;
 
-public class Device {
-	protected int numSlots = 4;
+public interface Device {
+	int numSlots = 4;
 
-	private final UUID uuid;
+	public double[] createValuesLoadprofile();
 
-	protected Device() {
-		uuid = UUID.randomUUID();
-	}
+	public void sendLoadprofile();
 
-	public UUID getUUID() {
-		return uuid;
-	}
+	public UUID getUUID();
 
-	public double[] chargeValuesLoadprofile(double[] toBeReduced) {
-		// TODO
-		return new double[4];
-	}
+	public String getName();
+
+	public double[] chargeValuesLoadprofile(double[] toBeReduced);
+
+	public void initialize(Map<String, Object> init);
+
+	public DeviceStatus getStatus();
+
+	public void ping();
 }
