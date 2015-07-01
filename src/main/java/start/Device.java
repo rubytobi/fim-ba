@@ -3,20 +3,20 @@ package start;
 import java.util.UUID;
 
 public class Device {
+	protected int numSlots = 4;
 
-	private final UUID id;
-	private final String content;
+	private final UUID uuid;
 
-	public Device(String content) {
-		this.id = UUID.randomUUID();
-		this.content = content;
+	protected Device() {
+		uuid = UUID.randomUUID();
 	}
 
-	public UUID getId() {
-		return id;
+	public UUID getUUID() {
+		return uuid;
 	}
 
-	public String getContent() {
-		return content;
+	public double[] chargeValuesLoadprofile(double[] toBeReduced) {
+		// TODO
+		return new double[4];
 	}
 }

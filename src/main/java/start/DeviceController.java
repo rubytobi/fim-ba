@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import Exceptions.DeviceNotFoundException;
+import Event.DeviceNotFound;
+import Event.IllegalDeviceCreation;
 import Requests.DevicePutRequest;
 
 @RestController
@@ -20,9 +21,21 @@ public class DeviceController {
 
 	@RequestMapping(value = "/devices", method = RequestMethod.POST)
 	public boolean addDevice(@RequestBody DevicePutRequest request) {
-		Device device = new Device(request.getName());
-		DeviceContainer.instance().add(device);
-		return true;
+		String className = request.getClassName();
+
+		Object object;
+		try {
+			object = Class.forName(className);
+		} catch (ClassNotFoundException e) {
+			throw new IllegalDeviceCreation();
+		}
+
+		if (object != null && object instanceof Device) {
+			DeviceContainer.instance().add((Device) object);
+			return true;
+		} else {
+			throw new IllegalDeviceCreation();
+		}
 	}
 
 	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.GET)
@@ -30,7 +43,7 @@ public class DeviceController {
 		Device device = DeviceContainer.instance().get(uuid);
 
 		if (device == null) {
-			throw new DeviceNotFoundException();
+			throw new DeviceNotFound();
 		}
 
 		return device;

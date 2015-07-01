@@ -1,18 +1,19 @@
+package start;
 import java.util.*;
 
 public class Loadprofile {		
 	// Anzahl an 15 Minuten Slots
 	double numSlots;
 	
-	// 4 Werte für 15 Minuten Slots
+	// 4 Werte fï¿½r 15 Minuten Slots
 	double value1, value2, value3, value4;
 	
 	// Zeitpunkt, ab wann das Lastprofil gelten soll
 	Date date;
 	
-	// Erstellt aus übergebenem Array neues Lastprofil
+	// Erstellt aus ï¿½bergebenem Array neues Lastprofil
 	public Loadprofile (double[] values, Consumer consumer, Date date) {
-		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil zur vollen Stunde startet
+		// Prï¿½fe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil zur vollen Stunde startet
 		if (consumer.getNumSlots() != 4 || values.length != 4
 			|| date.getMinutes() != 0) {
 			return;

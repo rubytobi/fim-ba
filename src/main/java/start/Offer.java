@@ -1,12 +1,13 @@
+package start;
 import java.util.*;
 
 public class Offer {
-	// Aggregiertes Lastprofil über alle Lastprofile
+	// Aggregiertes Lastprofil ï¿½ber alle Lastprofile
 	Loadprofile aggLoadprofile;
 	// Alle beteiligten Lastprofile
 	ArrayList<Loadprofile> allLoadprofiles;
 	
-	// Preis, zu dem das aggregierte Lastprofil aktuell an der Börse ist
+	// Preis, zu dem das aggregierte Lastprofil aktuell an der Bï¿½rse ist
 	double price;
 	
 	// Consumer, von dem man das Angebot erhalten hat
@@ -26,16 +27,16 @@ public class Offer {
 	}
 	
 	public Offer (Loadprofile aggLoadprofile, Loadprofile loadprofile, Consumer consumer, Offer offer, double price) {
-		// Consumer hat aggregiertes Lastprofil für neues Lastprofil übergeben
+		// Consumer hat aggregiertes Lastprofil fï¿½r neues Lastprofil ï¿½bergeben
 		this.aggLoadprofile = aggLoadprofile;
 		
-		// Zu allen Lastprofilen werden die Lastprofile vom vorherigen Angebot aufgenommen und das Lastprofil des neuen Consumers hinzugefügt
+		// Zu allen Lastprofilen werden die Lastprofile vom vorherigen Angebot aufgenommen und das Lastprofil des neuen Consumers hinzugefï¿½gt
 		this.allLoadprofiles = offer.getAllLoadprofiles();
 		this.allLoadprofiles.add(loadprofile);
 		
-		// Übergebener Consumer ist neuer Versender des Angebots
+		// ï¿½bergebener Consumer ist neuer Versender des Angebots
 		consumerFrom = consumer;
-		// Zu allen Consumern werden die Consumer vom vorherigen Angebot aufgenommen und das Lastprofil des neuen Consumers hinzugefügt
+		// Zu allen Consumern werden die Consumer vom vorherigen Angebot aufgenommen und das Lastprofil des neuen Consumers hinzugefï¿½gt
 		this.allConsumers = offer.getAllConsumers();
 		this.allConsumers.add(consumer);
 		

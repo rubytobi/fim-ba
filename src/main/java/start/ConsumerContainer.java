@@ -28,6 +28,6 @@ public class ConsumerContainer {
 	}
 
 	public void add(Consumer consumer) {
-		consumers.put(consumer.getId(), consumer);
+		consumers.put(consumer.getUUID(), consumer);
 	}
 }

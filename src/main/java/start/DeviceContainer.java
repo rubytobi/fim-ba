@@ -14,7 +14,6 @@ public class DeviceContainer {
 	public static DeviceContainer instance() {
 		if (instance == null) {
 			instance = new DeviceContainer();
-			instance.add(new Device("asd"));
 		}
 
 		return instance;
@@ -29,7 +28,7 @@ public class DeviceContainer {
 	}
 
 	public void add(Device device) {
-		devices.put(device.getId(), device);
+		devices.put(device.getUUID(), device);
 	}
 
 	public void delete(UUID uuid) {
