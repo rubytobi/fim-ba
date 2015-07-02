@@ -3,6 +3,9 @@ package start;
 import java.util.Map;
 import java.util.UUID;
 
+import Packet.ChangeRequest;
+import Util.DeviceStatus;
+
 public interface Device {
 	int numSlots = 4;
 
@@ -12,8 +15,6 @@ public interface Device {
 
 	public UUID getUUID();
 
-	public String getName();
-
 	public double[] chargeValuesLoadprofile(double[] toBeReduced);
 
 	public void initialize(Map<String, Object> init);
@@ -21,4 +22,6 @@ public interface Device {
 	public DeviceStatus getStatus();
 
 	public void ping();
+
+	public void changeLoadprofile(ChangeRequest cr);
 }

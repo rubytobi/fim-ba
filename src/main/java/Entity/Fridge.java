@@ -1,13 +1,20 @@
-package start;
+package Entity;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonView;
+
+import Packet.ChangeRequest;
 import Util.DateTime;
+import Util.DeviceStatus;
+import start.Device;
+import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
 	double[][] scheduleMinutes;
 	// Zeitpunkt, ab dem scheduleMinutes gilt
+	@JsonView(View.Summary.class)
 	GregorianCalendar timeFixed;
 
 	// Fahrpläne, die schon ausgehandelt sind und fest stehen
@@ -18,9 +25,12 @@ public class Fridge implements Device {
 	double fallCooling, riseWarming;
 	// Verbrauch zum Kühlen pro Minute in Wh
 	double consCooling;
+	@JsonView(View.Summary.class)
 	private DeviceStatus status;
-	private String name;
+	@JsonView(View.Summary.class)
 	private UUID uuid;
+	@JsonView(View.Summary.class)
+	private UUID consumerUUID;
 
 	public Fridge() {
 		status = DeviceStatus.CREATED;
@@ -168,11 +178,6 @@ public class Fridge implements Device {
 	}
 
 	@Override
-	public String getName() {
-		return name;
-	}
-
-	@Override
 	public double[] chargeValuesLoadprofile(double[] toBeReduced) {
 		// TODO Auto-generated method stub
 		return null;
@@ -186,7 +191,17 @@ public class Fridge implements Device {
 
 	@Override
 	public void ping() {
-		System.out.println("ping: " + name + "@" + uuid + " " + DateTime.timestamp());
+		System.out.println("ping@" + uuid + " " + DateTime.timestamp());
 		// TODO berechnungen
+	}
+
+	public void setConsumer(UUID uuid) {
+		consumerUUID = uuid;
+	}
+
+	@Override
+	public void changeLoadprofile(ChangeRequest cr) {
+		// TODO Auto-generated method stub
+
 	}
 }

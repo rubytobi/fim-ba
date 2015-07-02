@@ -1,4 +1,4 @@
-package start;
+package Util;
 
 public enum DeviceStatus {
 	CREATED, INITIALIZED;

@@ -1,8 +1,10 @@
-package start;
+package Container;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import start.Device;
 
 public class DeviceContainer {
 	private Map<UUID, Device> devices = new HashMap<UUID, Device>();

@@ -8,6 +8,9 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.web.HttpMapperProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,14 +24,23 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import Entity.Consumer;
+import Entity.Fridge;
+
 @SpringBootApplication
 @EnableScheduling
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
 	private static int countFridges = 0;
 	private static final int maxFridges = 10;
+	private static RestTemplate rest = new RestTemplate();
 
 	public static void main(String[] args) {
+		ObjectMapper jacksonMapper = new ObjectMapper();
+		jacksonMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 		SpringApplication.run(Application.class, args);
 	}
 
@@ -38,6 +50,10 @@ public class Application {
 			RestTemplate rest = new RestTemplate();
 
 			Fridge fridge = new Fridge(5, 5, 5, 5, 5, 5, 5, 5);
+			Consumer consumer = new Consumer();
+
+			fridge.setConsumer(consumer.getUUID());
+			consumer.setDevice(fridge.getUUID());
 
 			// Prepare acceptable media type
 			List<MediaType> acceptableMediaTypes = new ArrayList<MediaType>();

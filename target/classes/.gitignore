@@ -1,6 +1,7 @@
+/Controller/
 /start/
-/Exceptions/
-/Requests/
-/Event/
-/Util/
+/view/
+/Entity/
 /META-INF/
+/Util/
+/Packet/

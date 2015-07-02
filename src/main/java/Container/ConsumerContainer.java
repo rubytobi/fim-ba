@@ -1,8 +1,10 @@
-package start;
+package Container;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+
+import Entity.Consumer;
 
 public class ConsumerContainer {
 	private Map<UUID, Consumer> consumers = new HashMap<UUID, Consumer>();

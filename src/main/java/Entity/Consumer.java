@@ -1,11 +1,16 @@
-package start;
+package Entity;
 
 import java.util.*;
+
+import Packet.OfferNotification;
+import start.Loadprofile;
 
 public class Consumer {
 	// uuid für jeden consumer
 	private UUID uuid;
-	private String name;
+
+	// uuid für das verbundene device
+	private UUID deviceUUID;
 
 	// Aktuelles Angebot
 	Offer offer;
@@ -25,8 +30,8 @@ public class Consumer {
 		return uuid;
 	}
 
-	public Consumer(String name) {
-		this.name = name;
+	public Consumer() {
+		uuid = UUID.randomUUID();
 	}
 
 	public double[] chargeValuesLoadprofile(double[] scheduleMinutes) {
@@ -88,6 +93,26 @@ public class Consumer {
 		} else {
 			return false;
 		}
+	}
+
+	public void postOfferNotification(OfferNotification offerNotification) {
+	}
+
+	public Offer getOffer(UUID uuidOffer) {
+		return offer;
+	}
+
+	public boolean confirmOffer(UUID uuidOffer) {
+		// TODO Auto-generated method stub
+		return true;
+	}
+
+	public void cancelOffer(UUID uuidOffer) {
+		// TODO Auto-generated method stub
+	}
+
+	public void setDevice(UUID uuid) {
+		deviceUUID = uuid;
 	}
 
 }
