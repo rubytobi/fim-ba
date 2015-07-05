@@ -8,7 +8,7 @@ public class Fridge implements Device {
 	GregorianCalendar timeFixed;
 	
 	// Fahrpläne, die schon ausgehandelt sind und fest stehen
-	
+	Hashtable<Calendar, Double> schedulesFixed = new Hashtable();
 	
 	// currTemp: Temperatur, bei der der letzte aktuelle Fahrplan endet	
 	double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
@@ -137,6 +137,7 @@ public class Fridge implements Device {
 			
 			
 			// TODO lege Fahrplan in festgelegte Fahrpläne ab
+			saveSchedule(scheduleMinutes, timeFixed);
 			timeFixed.set(Calendar.MINUTE, 0);
 			sendLoadprofile();
 		}
@@ -148,6 +149,17 @@ public class Fridge implements Device {
 			
 			// TODO Schicke values + Startzeit an Consumer
 		}
+	}
+	
+	public void saveSchedule(double[][] schedule, Calendar date) {
+		int size = schedule[1].length;
+		
+		for (int i=0; i<size; i++) {
+			schedulesFixed.put(date, schedule[1][i]);
+			date.add(Calendar.MINUTE, 1);
+		}
+		System.out.println(schedulesFixed.size());
+		
 	}
 }
 
