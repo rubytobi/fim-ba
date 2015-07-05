@@ -36,7 +36,6 @@ public class Application {
 	private static String BASE_URI = "http://localhost:8080";
 	private static int countFridges = 0;
 	private static final int maxFridges = 10;
-	private static RestTemplate rest = new RestTemplate();
 
 	public static void main(String[] args) {
 		ObjectMapper jacksonMapper = new ObjectMapper();
@@ -55,21 +54,31 @@ public class Application {
 			fridge.setConsumer(consumer.getUUID());
 			consumer.setDevice(fridge.getUUID());
 
-			// Prepare acceptable media type
-			List<MediaType> acceptableMediaTypes = new ArrayList<MediaType>();
-			acceptableMediaTypes.add(MediaType.APPLICATION_JSON);
-
-			// Prepare header
-			HttpHeaders headers = new HttpHeaders();
-			headers.setAccept(acceptableMediaTypes);
-			// Pass the new person and header
-			HttpEntity<Fridge> entity = new HttpEntity<Fridge>(fridge, headers);
+			HttpEntity<Fridge> entityFridge = new HttpEntity<Fridge>(fridge, getRestHeader());
 
 			System.out.println(BASE_URI + "/devices" + " new Fridge: " + fridge.getUUID());
-			rest.exchange(BASE_URI + "/devices", HttpMethod.POST, entity, UUID.class);
+			rest.exchange(BASE_URI + "/devices", HttpMethod.POST, entityFridge, UUID.class);
+
+			HttpEntity<Consumer> entityConsumer = new HttpEntity<Consumer>(consumer, getRestHeader());
+
+			System.out.println(BASE_URI + "/consumers" + " new Consumer: " + consumer.getUUID());
+			rest.exchange(BASE_URI + "/consumers", HttpMethod.POST, entityConsumer, UUID.class);
 
 			countFridges++;
 		}
+	}
+
+	public static HttpHeaders getRestHeader() {
+		// Prepare acceptable media type
+		List<MediaType> acceptableMediaTypes = new ArrayList<MediaType>();
+		acceptableMediaTypes.add(MediaType.APPLICATION_JSON);
+
+		// Prepare header
+		HttpHeaders headers = new HttpHeaders();
+		headers.setAccept(acceptableMediaTypes);
+		// Pass the new person and header
+
+		return headers;
 	}
 
 	@Scheduled(fixedRate = 15000)

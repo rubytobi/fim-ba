@@ -2,17 +2,24 @@ package Entity;
 
 import java.util.*;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.web.client.RestTemplate;
+
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.ChangeRequest;
+import Packet.InitialLoadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
+import start.Application;
 import start.Device;
 import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
-	double[][] scheduleMinutes;
+	double[][] scheduleMinutes = new double[2][60];
+	
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
 	GregorianCalendar timeFixed;
@@ -31,6 +38,7 @@ public class Fridge implements Device {
 	private UUID uuid;
 	@JsonView(View.Summary.class)
 	private UUID consumerUUID;
+	private boolean send;
 
 	public Fridge() {
 		status = DeviceStatus.CREATED;
@@ -192,6 +200,11 @@ public class Fridge implements Device {
 	@Override
 	public void ping() {
 		System.out.println("ping@" + uuid + " " + DateTime.timestamp());
+
+		if (send == false) {
+			sendInitialLoadprofile();
+			send = true;
+		}
 		// TODO berechnungen
 	}
 
@@ -203,5 +216,16 @@ public class Fridge implements Device {
 	public void changeLoadprofile(ChangeRequest cr) {
 		// TODO Auto-generated method stub
 
+	}
+
+	private void sendInitialLoadprofile() {
+		RestTemplate rest = new RestTemplate();
+
+		InitialLoadprofile lp = new InitialLoadprofile(0.0, createValuesLoadprofile());
+		HttpEntity<InitialLoadprofile> entity = new HttpEntity<InitialLoadprofile>(lp, Application.getRestHeader());
+		System.out.println(entity.toString());
+
+		rest.exchange("http://localhost:8080/consumers/" + consumerUUID + "/offers", HttpMethod.POST, entity,
+				String.class);
 	}
 }

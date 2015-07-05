@@ -2,6 +2,7 @@ package Entity;
 
 import java.util.*;
 
+import Packet.InitialLoadprofile;
 import Packet.OfferNotification;
 import start.Loadprofile;
 
@@ -113,6 +114,10 @@ public class Consumer {
 
 	public void setDevice(UUID uuid) {
 		deviceUUID = uuid;
+	}
+
+	public void initialLoadprofile(InitialLoadprofile lp) {
+		System.out.println("InitialLoadprofile received...");
 	}
 
 }
