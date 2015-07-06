@@ -1,6 +1,7 @@
 package start;
 
 import java.util.UUID;
+import Util.DateTime;
 
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +34,8 @@ public class DeviceController {
 	public @ResponseBody UUID addDevice(@RequestBody Fridge fridge) {
 		DeviceContainer.instance().add(fridge);
 		System.out.println("#" +fridge.schedulesFixed);
+		System.out.println("#" +fridge.loadprofilesFixed);
+		System.out.println("#" +DateTime.ToString(fridge.timeFixed));
 		return fridge.getUUID();
 	}
 
