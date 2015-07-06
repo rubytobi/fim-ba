@@ -1,6 +1,7 @@
 package Entity;
 
 import java.util.*;
+import java.sql.Timestamp;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
@@ -54,7 +55,7 @@ public class Fridge implements Device {
 		correct = correct && riseWarming > 0;
 		correct = correct && consCooling > 0;
 		if (!correct) {
-			// TODO
+			// TODO throw new IllegalDeviceCreation
 		}
 		this.maxTemp1 = maxTemp1;
 		this.minTemp1 = minTemp1;
@@ -374,11 +375,7 @@ public class Fridge implements Device {
 	}
 
 	public String calendarToString(GregorianCalendar calendar) {
-		return (calendar.get(Calendar.HOUR_OF_DAY) + ":" + calendar.get(Calendar.MINUTE) + ":"
-				+ calendar.get(Calendar.SECOND) + ":" + calendar.get(Calendar.MILLISECOND) + " "
-				+ calendar.get(Calendar.DATE) + "." + (calendar.get(Calendar.MONTH) + 1) + "."
-				+ calendar.get(Calendar.YEAR));
-	}
+		return new Timestamp(calendar.getTime().getTime()).toString();	}
 
 	@Override
 	public UUID getUUID() {
