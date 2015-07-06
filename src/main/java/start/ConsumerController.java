@@ -16,7 +16,7 @@ import Container.DeviceContainer;
 import Entity.Consumer;
 import Entity.Offer;
 import Event.InvalidOffer;
-import Packet.Loadprofile;
+import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
 
 @RestController
@@ -39,8 +39,8 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.POST)
-	public void getSingleDevice(@PathVariable UUID uuid, @RequestBody Loadprofile lp) {
-		// ConsumerContainer.instance().get(uuid).initialLoadprofile(lp);
+	public void getSingleDevice(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
+		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)

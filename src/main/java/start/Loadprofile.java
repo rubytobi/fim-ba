@@ -3,6 +3,7 @@ package start;
 import java.util.*;
 
 import Entity.Consumer;
+import Packet.DeviceLoadprofile;
 
 public class Loadprofile {
 	// 4 Werte für 15 Minuten Slots
@@ -37,6 +38,14 @@ public class Loadprofile {
 		value2 = loadprofile1.getValue2() + loadprofile2.getValue2();
 		value3 = loadprofile1.getValue3() + loadprofile2.getValue3();
 		value4 = loadprofile1.getValue4() + loadprofile2.getValue4();
+	}
+
+	public Loadprofile(DeviceLoadprofile device) {
+		value1 = device.getValues()[0];
+		value2 = device.getValues()[1];
+		value3 = device.getValues()[2];
+		value4 = device.getValues()[3];
+		date = device.getDate();
 	}
 
 	public double getValue1() {

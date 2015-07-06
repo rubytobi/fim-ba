@@ -5,9 +5,11 @@ import java.sql.Timestamp;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonView;
 import Packet.ChangeRequest;
-import Packet.Loadprofile;
+import Packet.DeviceLoadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
 import start.Application;
@@ -20,6 +22,7 @@ public class Fridge implements Device {
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
+	@JsonFormat(pattern = "yyyy-MM-dd hh:mm:ss")
 	GregorianCalendar timeFixed;
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
 	public Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
@@ -420,8 +423,8 @@ public class Fridge implements Device {
 
 	private void sendInitialLoadprofile() {
 		RestTemplate rest = new RestTemplate();
-		Loadprofile lp = new Loadprofile(null, createValuesLoadprofile(scheduleMinutes[0]));
-		HttpEntity<Loadprofile> entity = new HttpEntity<Loadprofile>(lp, Application.getRestHeader());
+		DeviceLoadprofile lp = new DeviceLoadprofile(null, createValuesLoadprofile(scheduleMinutes[0]));
+		HttpEntity<DeviceLoadprofile> entity = new HttpEntity<DeviceLoadprofile>(lp, Application.getRestHeader());
 		System.out.println(entity.toString());
 		rest.exchange("http://localhost:8080/consumers/" + consumerUUID + "/offers", HttpMethod.POST, entity,
 				String.class);
