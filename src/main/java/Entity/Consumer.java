@@ -2,8 +2,19 @@ package Entity;
 
 import java.util.*;
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+
+import Event.InvalidOffer;
 import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
+import Util.Log;
+import start.Application;
+import start.Device;
 import start.Loadprofile;
 
 public class Consumer {
@@ -22,6 +33,7 @@ public class Consumer {
 	// Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
 	// Teilnehmern)
 	Loadprofile loadprofile;
+	DeviceLoadprofile deviceLoadprofile = null;
 
 	public int getNumSlots() {
 		return numSlots;
@@ -96,7 +108,13 @@ public class Consumer {
 		}
 	}
 
-	public void postOfferNotification(OfferNotification offerNotification) {
+	public void receiveOfferNotification(OfferNotification offerNotification) {
+		if (offerNotification.getReferenceOffer() == null) {
+			Log.d(uuid + " [consumer] received offer");
+			Log.d(offerNotification.toString());
+		} else {
+			throw new InvalidOffer();
+		}
 	}
 
 	public Offer getOffer(UUID uuidOffer) {
@@ -117,7 +135,39 @@ public class Consumer {
 	}
 
 	public void loadprofile(DeviceLoadprofile device) {
-		System.out.println("Consumer " + uuid + " received loadprofile from device");
+		Log.d(uuid + " [consumer] received loadprofile from device");
+		Log.d(device.toString());
+
 		this.loadprofile = new Loadprofile(device);
+
+		this.offer = new Offer(loadprofile, this, 0.0);
+		OfferNotification notification = new OfferNotification(
+				"http://localhost:8080/consumers/" + uuid + "/offers" + offer.getUUID(), null);
+
+		RestTemplate rest = new RestTemplate();
+
+		HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
+				Application.getRestHeader());
+
+		for (Device d : getAllDevices()) {
+			Log.d("#500 @ send offer: http://localhost:8080/consumers/" + d.getUUID() + "/offers");
+			rest.exchange("http://localhost:8080/consumers/" + d.getUUID() + "/offers", HttpMethod.POST, entity,
+					String.class);
+		}
+	}
+
+	private Fridge[] getAllDevices() {
+		RestTemplate rest = new RestTemplate();
+
+		ResponseEntity<Fridge[]> devices = rest.exchange("http://localhost:8080/devices", HttpMethod.GET, null,
+				Fridge[].class);
+
+		return devices.getBody();
+	}
+
+	public Map<String, Object> status() {
+		Map<String, Object> map = new HashMap<String, Object>();
+		// TODO
+		return map;
 	}
 }
