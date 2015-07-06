@@ -9,7 +9,7 @@ import Util.DeviceStatus;
 public interface Device {
 	int numSlots = 4;
 
-	public double[] createValuesLoadprofile();
+	public double[] createValuesLoadprofile(double[] values);
 
 	public void sendLoadprofile();
 

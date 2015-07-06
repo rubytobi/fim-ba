@@ -48,7 +48,7 @@ public class Application {
 		if (countFridges < maxFridges) {
 			RestTemplate rest = new RestTemplate();
 
-			Fridge fridge = new Fridge(5, 5, 5, 5, 5, 5, 5, 5);
+			Fridge fridge = new Fridge(8, 9, 4, 2, -0.5, 0.2, 1, 5);
 			Consumer consumer = new Consumer();
 
 			fridge.setConsumer(consumer.getUUID());

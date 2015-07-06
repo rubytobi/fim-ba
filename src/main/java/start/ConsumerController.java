@@ -40,7 +40,6 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.POST)
-	@Req
 	public void getSingleDevice(@PathVariable UUID uuid, @RequestBody InitialLoadprofile lp) {
 		ConsumerContainer.instance().get(uuid).initialLoadprofile(lp);
 	}
