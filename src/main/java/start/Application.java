@@ -35,7 +35,7 @@ import Entity.Fridge;
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
 	private static int countFridges = 0;
-	private static final int maxFridges = 10;
+	private static final int maxFridges = 3;
 
 	public static void main(String[] args) {
 		ObjectMapper jacksonMapper = new ObjectMapper();
@@ -43,9 +43,11 @@ public class Application {
 		SpringApplication.run(Application.class, args);
 	}
 
-	@Scheduled(fixedRate = 1000)
+	@Scheduled(fixedRate = 100)
 	public static void init() {
 		if (countFridges < maxFridges) {
+			System.out.println("Count Fridges: " +countFridges+ " Max Fridges: " +maxFridges);
+			countFridges++;
 			RestTemplate rest = new RestTemplate();
 
 			Fridge fridge = new Fridge(8, 9, 4, 2, -0.5, 0.2, 1, 5);
@@ -64,7 +66,7 @@ public class Application {
 			System.out.println(BASE_URI + "/consumers" + " new Consumer: " + consumer.getUUID());
 			rest.exchange(BASE_URI + "/consumers", HttpMethod.POST, entityConsumer, UUID.class);
 
-			countFridges++;
+			
 		}
 	}
 
@@ -81,7 +83,7 @@ public class Application {
 		return headers;
 	}
 
-	@Scheduled(fixedRate = 15000)
+	@Scheduled(fixedRate = 5000)
 	public static void pingAll() {
 		RestTemplate rest = new RestTemplate();
 

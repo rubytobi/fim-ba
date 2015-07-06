@@ -21,7 +21,7 @@ public class Fridge implements Device {
 	@JsonView(View.Summary.class)
 	GregorianCalendar timeFixed;
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
-	Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
+	public Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
 	Hashtable<String, double[]> loadprofilesFixed = new Hashtable<String, double[]>();
 
 	// currTemp: Temperatur, bei der der letzte aktuelle Fahrplan endet
@@ -38,7 +38,7 @@ public class Fridge implements Device {
 	private UUID consumerUUID;
 	private boolean send;
 
-	public Fridge() {
+	private Fridge() {
 		status = DeviceStatus.CREATED;
 		uuid = UUID.randomUUID();
 	}
@@ -66,6 +66,8 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 
 		sendLoadprofile();
+		
+		status = DeviceStatus.CREATED;
 	}
 
 	public double getCurrTemp() {
@@ -205,7 +207,7 @@ public class Fridge implements Device {
 
 			saveSchedule(scheduleMinutes, timeFixed);
 			loadprofilesFixed.put(calendarToString(timeFixed), values);
-			System.out.println("LoadprofilesFixed: " + loadprofilesFixed.toString());
+			//System.out.println("LoadprofilesFixed: " + loadprofilesFixed.toString());
 
 			sendLoadprofile();
 		} else {
@@ -400,10 +402,16 @@ public class Fridge implements Device {
 		GregorianCalendar currentTime = new GregorianCalendar();
 		currentTime.set(Calendar.SECOND, 0);
 		currentTime.set(Calendar.MILLISECOND, 0);
-		System.out.println(schedulesFixed.toString());
-		System.out.println(calendarToString(currentTime));
 		System.out.println(
-				"ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur: " + schedulesFixed.get(currentTime)[1]);
+				"ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur: " + schedulesFixed.get(calendarToString(currentTime))[1]);
+	}
+	
+	private static void mapToString(Hashtable<String, double[]> map) {
+		Set<String> set = map.keySet();
+
+		for (String s : set) {
+			System.out.println("##" + s +" "+Arrays.toString(map.get(s)));
+		}
 	}
 
 	public void setConsumer(UUID uuid) {
