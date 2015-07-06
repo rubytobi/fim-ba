@@ -7,7 +7,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.annotation.JsonView;
 import Packet.ChangeRequest;
-import Packet.InitialLoadprofile;
+import Packet.Loadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
 import start.Application;
@@ -67,7 +67,7 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 
 		sendLoadprofile();
-		
+
 		status = DeviceStatus.CREATED;
 	}
 
@@ -105,7 +105,7 @@ public class Fridge implements Device {
 
 	// Berechnet das Lastprofil im Minutentakt für int minutes Minuten
 	private void chargeScheduleMinutes() {
-		System.out.println("chargeScheduleMinutes, Start: " + calendarToString(timeFixed));
+		System.out.println("chargeScheduleMinutes, Start: " + DateTime.ToString(timeFixed));
 		// Erstelle Array mit geplantem Verbrauch (0) und geplanter Temperatur
 		// (1) pro Minute
 		scheduleMinutes = new double[2][15 * numSlots];
@@ -207,8 +207,9 @@ public class Fridge implements Device {
 					timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
 
 			saveSchedule(scheduleMinutes, timeFixed);
-			loadprofilesFixed.put(calendarToString(timeFixed), values);
-			//System.out.println("LoadprofilesFixed: " + loadprofilesFixed.toString());
+			loadprofilesFixed.put(DateTime.ToString(timeFixed), values);
+			// System.out.println("LoadprofilesFixed: " +
+			// loadprofilesFixed.toString());
 
 			sendLoadprofile();
 		} else {
@@ -238,9 +239,9 @@ public class Fridge implements Device {
 		double[][] newSchedule;
 		// start.set(Calendar.MINUTE, minutes);
 
-		System.out.println("generateNewSchedule, Aenderung: " + calendarToString(aenderung) + " newTemperature: "
+		System.out.println("generateNewSchedule, Aenderung: " + DateTime.ToString(aenderung) + " newTemperature: "
 				+ newTemperature + " Minute Änderung: " + minuteChange);
-		System.out.println("timeFixed: " + calendarToString(timeFixed));
+		System.out.println("timeFixed: " + DateTime.ToString(timeFixed));
 
 		GregorianCalendar start = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY),
 				aenderung.get(Calendar.DATE), aenderung.get(Calendar.MONTH), aenderung.get(Calendar.YEAR));
@@ -250,12 +251,12 @@ public class Fridge implements Device {
 		} else {
 			newSchedule = new double[2][15 * numSlots];
 			for (int i = 0; i < 15 * numSlots; i++) {
-				if (schedulesFixed.get(calendarToString(start)) == null) {
+				if (schedulesFixed.get(DateTime.ToString(start)) == null) {
 					newSchedule[0][i] = 0.0;
 					newSchedule[1][i] = 0;
 				} else {
-					newSchedule[0][i] = schedulesFixed.get(calendarToString(start))[0];
-					newSchedule[1][i] = schedulesFixed.get(calendarToString(start))[1];
+					newSchedule[0][i] = schedulesFixed.get(DateTime.ToString(start))[0];
+					newSchedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
 				}
 				start.add(Calendar.MINUTE, 1);
 				// System.out.println("Minute " +i+ " Verbrauch: "
@@ -287,7 +288,7 @@ public class Fridge implements Device {
 			tooWarm = (change > 0);
 			change = Math.abs(change);
 		}
-		System.out.println("Start Ende generate Schedule: " + calendarToString(start));
+		System.out.println("Start Ende generate Schedule: " + DateTime.ToString(start));
 		return newSchedule;
 	}
 
@@ -328,20 +329,20 @@ public class Fridge implements Device {
 				start.get(Calendar.DATE), start.get(Calendar.MONTH), start.get(Calendar.YEAR));
 		start.set(Calendar.SECOND, 0);
 		start.set(Calendar.MILLISECOND, 0);
-		System.out.println("Start: " + calendarToString(start));
+		System.out.println("Start: " + DateTime.ToString(start));
 		int minutes = 60 - start.get(Calendar.MINUTE);
 		boolean change;
 
 		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 1,
 				timeFixed.get(Calendar.DATE), timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
-		System.out.println("Time fixed: " + calendarToString(timeFixed));
-		System.out.println("Compare: " + calendarToString(compare));
+		System.out.println("Time fixed: " + DateTime.ToString(timeFixed));
+		System.out.println("Compare: " + DateTime.ToString(compare));
 		while (startLoadprofile != compare) {
 			double[][] newSchedule = generateNewSchedule(start, newTemperature, minutes);
 
 			double[] newValues = createValuesLoadprofile(newSchedule[0]);
-			double[] oldValues = loadprofilesFixed.get(calendarToString(start));
-			System.out.println("Start: " + calendarToString(start));
+			double[] oldValues = loadprofilesFixed.get(DateTime.ToString(start));
+			System.out.println("Start: " + DateTime.ToString(start));
 			System.out.println("Loadprofiles Fixed: " + loadprofilesFixed.toString());
 			double[] deltaValues = new double[4];
 			change = false;
@@ -363,19 +364,16 @@ public class Fridge implements Device {
 	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		int size = schedule[1].length;
 
-		System.out.println("Schedule gespeichert ab: " + calendarToString(start));
+		System.out.println("Schedule gespeichert ab: " + DateTime.ToString(start));
 
 		for (int i = 0; i < size; i++) {
 			double[] values = { schedule[0][i], schedule[1][i] };
-			schedulesFixed.put(calendarToString(start), values);
+			schedulesFixed.put(DateTime.ToString(start), values);
 			start.add(Calendar.MINUTE, 1);
 		}
-		System.out.println("Schedule gespeichert bis: " + calendarToString(start));
+		System.out.println("Schedule gespeichert bis: " + DateTime.ToString(start));
 		start.add(Calendar.HOUR_OF_DAY, -1);
 	}
-
-	public String calendarToString(GregorianCalendar calendar) {
-		return new Timestamp(calendar.getTime().getTime()).toString();	}
 
 	@Override
 	public UUID getUUID() {
@@ -399,15 +397,15 @@ public class Fridge implements Device {
 		GregorianCalendar currentTime = new GregorianCalendar();
 		currentTime.set(Calendar.SECOND, 0);
 		currentTime.set(Calendar.MILLISECOND, 0);
-		System.out.println(
-				"ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur: " + schedulesFixed.get(calendarToString(currentTime))[1]);
+		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur: "
+				+ schedulesFixed.get(DateTime.ToString(currentTime))[1]);
 	}
-	
+
 	private static void mapToString(Hashtable<String, double[]> map) {
 		Set<String> set = map.keySet();
 
 		for (String s : set) {
-			System.out.println("##" + s +" "+Arrays.toString(map.get(s)));
+			System.out.println("##" + s + " " + Arrays.toString(map.get(s)));
 		}
 	}
 
@@ -422,8 +420,8 @@ public class Fridge implements Device {
 
 	private void sendInitialLoadprofile() {
 		RestTemplate rest = new RestTemplate();
-		InitialLoadprofile lp = new InitialLoadprofile(0.0, createValuesLoadprofile(scheduleMinutes[0]));
-		HttpEntity<InitialLoadprofile> entity = new HttpEntity<InitialLoadprofile>(lp, Application.getRestHeader());
+		Loadprofile lp = new Loadprofile(null, createValuesLoadprofile(scheduleMinutes[0]));
+		HttpEntity<Loadprofile> entity = new HttpEntity<Loadprofile>(lp, Application.getRestHeader());
 		System.out.println(entity.toString());
 		rest.exchange("http://localhost:8080/consumers/" + consumerUUID + "/offers", HttpMethod.POST, entity,
 				String.class);
