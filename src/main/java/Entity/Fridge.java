@@ -71,9 +71,7 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 		this.currCooling = false;
 
-		sendLoadprofile();
-
-		status = DeviceStatus.CREATED;
+		status = DeviceStatus.INITIALIZED;
 	}
 
 	public double getCurrTemp() {
