@@ -1,11 +1,7 @@
 package Packet;
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.GregorianCalendar;
-
-import Util.DateTime;
-import Util.Log;
 
 public class DeviceLoadprofile {
 	private double[] values;
@@ -15,8 +11,6 @@ public class DeviceLoadprofile {
 		this.values = loadprofile;
 		this.calendar = calendar;
 	}
-
-	// TODO getter setter
 
 	public double[] getValues() {
 		return values;

@@ -1,5 +1,12 @@
 package Util;
 
 public enum DeviceStatus {
-	CREATED, INITIALIZED;
+	// Konstruktor ohne konkrete Werte aufgerufen
+	CREATED,
+
+	// Konsturktor mit Werten wie für maxCooling, minTemp1, ... aufgerufen
+	INITIALIZED,
+
+	// Consumer verknüpft, Kommunikation ist nun möglich
+	READY;
 }
