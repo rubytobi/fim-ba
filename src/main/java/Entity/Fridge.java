@@ -70,7 +70,7 @@ public class Fridge implements Device {
 		this.consCooling = consCooling;
 		this.currTemp = currTemp;
 		this.currCooling = false;
-		
+
 		System.out.println("Neuer Kühlschrank");
 		sendNewLoadprofile();
 
@@ -82,7 +82,7 @@ public class Fridge implements Device {
 	public DeviceStatus getStatus() {
 		return status;
 	}
-	
+
 	@Override
 	public UUID getUUID() {
 		return uuid;
@@ -94,7 +94,7 @@ public class Fridge implements Device {
 	 */
 	public void sendNewLoadprofile() {
 		double[] valuesLoadprofile;
-		
+
 		/*
 		 * Prüfe, ob dateFixed gesetzt, wenn nicht setze neu und erstelle
 		 * initiales Lastprofil
@@ -123,7 +123,6 @@ public class Fridge implements Device {
 		// TODO Schicke values + Startzeit (timeFixed) an Consumer
 	}
 
-	
 	/*
 	 * Berechnet einen neuen Fahrplan im Minutentakt für die volle Stunde, in
 	 * welcher timeFixed liegt und mit Temperatur currTempt zum Zeitpunkt
@@ -212,7 +211,6 @@ public class Fridge implements Device {
 		return valuesLoadprofile;
 	}
 
-
 	public GregorianCalendar generateStartLoadprofile(int hour, int date, int month, int year) {
 		GregorianCalendar start = new GregorianCalendar();
 		start.set(Calendar.HOUR_OF_DAY, hour);
@@ -225,7 +223,6 @@ public class Fridge implements Device {
 		return start;
 	}
 
-
 	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
 		System.out.println("sendDeltaLoadprofile aufgerufen. ");
 		GregorianCalendar startLoadprofile = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY),
@@ -234,7 +231,7 @@ public class Fridge implements Device {
 		aenderung.set(Calendar.MILLISECOND, 0);
 		boolean change;
 		boolean firstSchedule = true;
-		
+
 		// +3 wegen +1: nach timeFixed und +2 wegen Zeitzone
 		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 3,
 				timeFixed.get(Calendar.DATE), timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
@@ -248,9 +245,9 @@ public class Fridge implements Device {
 			// Berechne neuen Fahrplan
 			double[][] deltaSchedule = chargeDeltaSchedule(aenderung, newTemperature, firstSchedule);
 			saveSchedule(deltaSchedule, startLoadprofile, true);
-			
+
 			firstSchedule = false;
-			newTemperature = deltaSchedule[1][15*numSlots-1];
+			newTemperature = deltaSchedule[1][15 * numSlots - 1];
 
 			double[] newValues = createValuesLoadprofile(deltaSchedule[0]);
 			aenderung.set(Calendar.MINUTE, 0);
@@ -284,7 +281,6 @@ public class Fridge implements Device {
 		}
 	}
 
-	
 	/*
 	 * Generiert einen neuen Fahrplan bei Temperaturabweichungen
 	 * 
@@ -378,12 +374,10 @@ public class Fridge implements Device {
 		if (!firstSchedule) {
 			if (schedule[0][minuteChange] == consCooling) {
 				schedule[1][minuteChange] = newTemperature + fallCooling;
-			}
-			else {
+			} else {
 				schedule[1][minuteChange] = newTemperature + riseWarming;
 			}
-		}
-		else {
+		} else {
 			schedule[1][minuteChange] = newTemperature;
 		}
 
