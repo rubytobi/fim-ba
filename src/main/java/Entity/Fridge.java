@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.IllegalDeviceCreation;
+import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
 import Packet.DeviceLoadprofile;
 import Util.DateTime;
@@ -497,7 +498,12 @@ public class Fridge implements Device {
 	}
 
 	public void setConsumer(UUID uuid) {
-		consumerUUID = uuid;
+		if (status == DeviceStatus.INITIALIZED) {
+			status = DeviceStatus.READY;
+			consumerUUID = uuid;
+		} else {
+			throw new IllegalDeviceState();
+		}
 	}
 
 	@Override
