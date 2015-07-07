@@ -3,19 +3,15 @@ package Entity;
 import java.util.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonView;
-
-import Event.IllegalDeviceCreation;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
 import Packet.DeviceLoadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
-import Util.Log;
 import start.Application;
 import start.Device;
 import start.View;
@@ -63,11 +59,9 @@ public class Fridge implements Device {
 		correct = correct && fallCooling < 0;
 		correct = correct && riseWarming > 0;
 		correct = correct && consCooling > 0;
-
 		if (!correct) {
-			throw new IllegalDeviceCreation();
+			// TODO throw new IllegalDeviceCreation
 		}
-
 		this.maxTemp1 = maxTemp1;
 		this.minTemp1 = minTemp1;
 		this.maxTemp2 = maxTemp2;
@@ -78,7 +72,7 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 		this.currCooling = false;
 
-		status = DeviceStatus.CREATED;
+		status = DeviceStatus.INITIALIZED;
 	}
 
 	public double getCurrTemp() {
@@ -497,6 +491,14 @@ public class Fridge implements Device {
 		}
 	}
 
+	private static void mapToString(Hashtable<String, double[]> map) {
+		Set<String> set = map.keySet();
+
+		for (String s : set) {
+			System.out.println("##" + s + " " + Arrays.toString(map.get(s)));
+		}
+	}
+
 	public void setConsumer(UUID uuid) {
 		if (status == DeviceStatus.INITIALIZED) {
 			status = DeviceStatus.READY;
@@ -511,21 +513,13 @@ public class Fridge implements Device {
 		// TODO Auto-generated method stub
 	}
 
-	private void sendLoadprofileToConsumer(GregorianCalendar calendar, double[] values) {
-		DeviceLoadprofile loadprofile = new DeviceLoadprofile(calendar, values);
-
+	private void sendInitialLoadprofile() {
 		RestTemplate rest = new RestTemplate();
-
-		HttpEntity<DeviceLoadprofile> entity = new HttpEntity<DeviceLoadprofile>(loadprofile,
-				Application.getRestHeader());
-
-		try {
-			rest.exchange("http://localhost:8080/consumers/" + consumerUUID, HttpMethod.POST, entity, String.class);
-		} catch (Exception e) {
-			Log.d("#400 @ " + uuid + " [fridge] sending deviceloadprofile to http://localhost:8080/consumers/"
-					+ consumerUUID);
-			throw e;
-		}
+		DeviceLoadprofile lp = new DeviceLoadprofile(null, createValuesLoadprofile(scheduleMinutes[0]));
+		HttpEntity<DeviceLoadprofile> entity = new HttpEntity<DeviceLoadprofile>(lp, Application.getRestHeader());
+		System.out.println(entity.toString());
+		rest.exchange("http://localhost:8080/consumers/" + consumerUUID + "/offers", HttpMethod.POST, entity,
+				String.class);
 	}
 
 }
