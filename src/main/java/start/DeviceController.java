@@ -35,7 +35,8 @@ public class DeviceController {
 		DeviceContainer.instance().add(fridge);
 		System.out.println("#" +fridge.schedulesFixed);
 		System.out.println("#" +fridge.loadprofilesFixed);
-		System.out.println("#" +DateTime.ToString(fridge.timeFixed));
+		System.out.println("#" +fridge.scheduleMinutes);
+		//System.out.println("#" +DateTime.ToString(fridge.timeFixed));
 		return fridge.getUUID();
 	}
 

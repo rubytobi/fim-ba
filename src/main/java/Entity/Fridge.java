@@ -17,7 +17,7 @@ import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
-	double[][] scheduleMinutes = new double[2][60];
+	public double[][] scheduleMinutes = new double[2][60];
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
@@ -70,6 +70,8 @@ public class Fridge implements Device {
 		this.consCooling = consCooling;
 		this.currTemp = currTemp;
 		this.currCooling = false;
+		
+		sendLoadprofile();
 
 		status = DeviceStatus.INITIALIZED;
 	}
@@ -106,43 +108,45 @@ public class Fridge implements Device {
 		return consCooling;
 	}
 
-	/* Berechnet ein neues Lastprofil im Minutentakt für die 
-	 * volle Stunde, in welcher timeFixed liegt
-	 * und mit Temperatur currTempt zum Zeitpunkt timeFixed
+	/*
+	 * Berechnet ein neues Lastprofil im Minutentakt für die volle Stunde, in
+	 * welcher timeFixed liegt und mit Temperatur currTempt zum Zeitpunkt
+	 * timeFixed
 	 */
 	private void chargeNewScheduleMinutes() {
 		System.out.println("chargeScheduleMinutes, Start: " + DateTime.ToString(timeFixed));
 		// Erstelle Array mit geplantem Verbrauch (0) und geplanter Temperatur
 		// (1) pro Minute
 		scheduleMinutes = new double[2][15 * numSlots];
-		
-		/* Starte in der Minute nach timeFixed mit Kühlen, wenn 
-		 * die aktuelle Temperatur über der maximalen Temperatur liegt
+
+		/*
+		 * Starte in der Minute nach timeFixed mit Kühlen, wenn die aktuelle
+		 * Temperatur über der maximalen Temperatur liegt
 		 */
 		boolean cooling = currTemp >= maxTemp1;
-		
+
 		int startMinute = timeFixed.get(Calendar.MINUTE);
-		
-		// Setze alle Werte der Stunde vor timeFixed = 0 
+
+		// Setze alle Werte der Stunde vor timeFixed = 0
 		for (int i = 0; i < startMinute; i++) {
 			scheduleMinutes[0][0] = 0.0;
 			scheduleMinutes[1][0] = 0;
 		}
-		
-		/* Setze Temperatur zum Zeitpunkt timeFixed = currTemp,
-		 * wenn currCooling gesetzt ist, ist der Verbrauch = consCooling,
-		 * ansonsten = 0.0
+
+		/*
+		 * Setze Temperatur zum Zeitpunkt timeFixed = currTemp, wenn currCooling
+		 * gesetzt ist, ist der Verbrauch = consCooling, ansonsten = 0.0
 		 */
 		scheduleMinutes[1][startMinute] = currTemp;
 		if (currCooling) {
 			scheduleMinutes[0][startMinute] = 0.0;
-		}
-		else {
+		} else {
 			scheduleMinutes[0][startMinute] = consCooling;
 		}
-		
-		/* Berechne alle weiteren Verbrauchs- und Temperatur-
-		 * werte ab dem Zeitpuntk timeFixed + 1 Minute
+
+		/*
+		 * Berechne alle weiteren Verbrauchs- und Temperatur- werte ab dem
+		 * Zeitpuntk timeFixed + 1 Minute
 		 */
 		for (int i = startMinute + 1; i < numSlots * 15; i++) {
 			if (cooling) {
@@ -159,20 +163,21 @@ public class Fridge implements Device {
 				}
 			}
 		}
-		/* Prüfe, ob zu Beginn des nächsten Plans gekühlt werden 
-		 * soll und mit welcher Temperatur dann gestartet wird
+		/*
+		 * Prüfe, ob zu Beginn des nächsten Plans gekühlt werden soll und mit
+		 * welcher Temperatur dann gestartet wird
 		 */
 		if (cooling) {
 			currCooling = true;
-			currTemp = scheduleMinutes[1][numSlots*15 -1] + fallCooling;
-		}
-		else {
+			currTemp = scheduleMinutes[1][numSlots * 15 - 1] + fallCooling;
+		} else {
 			currCooling = false;
-			currTemp = scheduleMinutes[1][numSlots*15-1] + riseWarming;
+			currTemp = scheduleMinutes[1][numSlots * 15 - 1] + riseWarming;
 		}
 	}
 
-	// Berechnet viertelstündlich die aufsummierten Verbrauchswerte für den übergebenen Minutenplan
+	// Berechnet viertelstündlich die aufsummierten Verbrauchswerte für den
+	// übergebenen Minutenplan
 	public double[] createValuesLoadprofile(double[] schedule) {
 		System.out.println("createValuesLoadprofile");
 
@@ -197,22 +202,25 @@ public class Fridge implements Device {
 	public DeviceStatus getStatus() {
 		return status;
 	}
-	
-	/* Erzeugt einen neuen Fahrplan und das zugehörige Lastprofil.
-	 * Das Lastprofil wird an den Consumer geschickt.
+
+	/*
+	 * Erzeugt einen neuen Fahrplan und das zugehörige Lastprofil. Das
+	 * Lastprofil wird an den Consumer geschickt.
 	 */
 	public void sendLoadprofile() {
 		double[] valuesLoadprofile;
-		
+
 		System.out.println("###sendLoadprofile");
-		
-		/* Prüfe, ob dateFixed gesetzt, wenn nicht 
-		 * setze neu und erstelle initiales Lastprofil
+
+		/*
+		 * Prüfe, ob dateFixed gesetzt, wenn nicht setze neu und erstelle
+		 * initiales Lastprofil
 		 */
 		if (timeFixed == null) {
 			System.out.println("timeFixed: null");
-			/* Wenn noch nicht gesetzt, erstelle initialen 
-			 * Fahrplan für bis zur nächsten Stunde
+			/*
+			 * Wenn noch nicht gesetzt, erstelle initialen Fahrplan für bis zur
+			 * nächsten Stunde
 			 */
 			timeFixed = new GregorianCalendar();
 			timeFixed.set(Calendar.SECOND, 0);
@@ -225,7 +233,7 @@ public class Fridge implements Device {
 
 			saveSchedule(scheduleMinutes, timeFixed, false);
 			loadprofilesFixed.put(DateTime.ToString(timeFixed), valuesLoadprofile);
-		} 
+		}
 		// Zähle timeFixed um eine Stunde hoch
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		chargeNewScheduleMinutes();
@@ -244,36 +252,41 @@ public class Fridge implements Device {
 		start.set(Calendar.MILLISECOND, 0);
 		return start;
 	}
-	
-	/* Generiert einen neuen Fahrplan bei Temperaturabweichungen
+
+	/*
+	 * Generiert einen neuen Fahrplan bei Temperaturabweichungen
 	 * 
 	 */
 	public double[][] generateNewSchedule(GregorianCalendar aenderung, double newTemperature) {
 		int change = 0;
 		int minuteChange = aenderung.get(Calendar.MINUTE);
-		double[][] newSchedule = new double[2][15*numSlots];
+		double[][] newSchedule = new double[2][15 * numSlots];
 
 		System.out.println("generateNewSchedule, Aenderung: " + DateTime.ToString(aenderung) + " newTemperature: "
 				+ newTemperature + " Minute Änderung: " + minuteChange);
 		System.out.println("timeFixed: " + DateTime.ToString(timeFixed));
 
-		GregorianCalendar start = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY), aenderung.get(Calendar.DATE), 
-				aenderung.get(Calendar.MONTH), aenderung.get(Calendar.YEAR));
-		
+		GregorianCalendar start = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY),
+				aenderung.get(Calendar.DATE), aenderung.get(Calendar.MONTH), aenderung.get(Calendar.YEAR));
+
 		/*
-		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für scheduleMinutes
+		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
+		 * scheduleMinutes
 		 */
+		System.out.println(DateTime.ToString(start).equals(DateTime.ToString(timeFixed)));
 		if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed))) {
-			for (int i=0; i<15*numSlots; i++) {
+			for (int i = 0; i < 15 * numSlots; i++) {
 				double cons = scheduleMinutes[0][i];
 				double temp = scheduleMinutes[1][i];
 				newSchedule[0][i] = cons;
 				newSchedule[1][i] = temp;
-				System.out.println("Minute " +i+ " Verbrauch: " +newSchedule[0][i] + " Temperatur: " +newSchedule[1][i]);
+				System.out.println(
+						"Minute " + i + " Verbrauch: " + newSchedule[0][i] + " Temperatur: " + newSchedule[1][i]);
 			}
-		} 
-		/* 
-		 * Ansonsten muss der entsprechende Fahrplan aus schedulesFixed geändert werden
+		}
+		/*
+		 * Ansonsten muss der entsprechende Fahrplan aus schedulesFixed geändert
+		 * werden
 		 */
 		else {
 			for (int i = 0; i < 15 * numSlots; i++) {
@@ -285,17 +298,20 @@ public class Fridge implements Device {
 					newSchedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
 				}
 				start.add(Calendar.MINUTE, 1);
-				System.out.println("Minute " +i+ " Verbrauch: " +newSchedule[0][i]+ " Temperatur: " +newSchedule[1][i]);
+				System.out.println(
+						"Minute " + i + " Verbrauch: " + newSchedule[0][i] + " Temperatur: " + newSchedule[1][i]);
 			}
 			start.add(Calendar.HOUR_OF_DAY, -1);
 		}
-		
-		// Prüf mit testSchedule, in welcher Minute der Wert zu hoch/ zu niedrig ist
+
+		// Prüf mit testSchedule, in welcher Minute der Wert zu hoch/ zu niedrig
+		// ist
 		change = testSchedule(newSchedule, newTemperature, minuteChange);
 		boolean tooWarm = (change > 0);
 		change = Math.abs(change);
 
-		// Passe den Fahrplan so lange an, bis testOldSchedule die volle Anzahl der
+		// Passe den Fahrplan so lange an, bis testOldSchedule die volle Anzahl
+		// der
 		// Minuten zurückgibt
 		while (change != 15 * numSlots) {
 			// Wenn Änderung notwendig ist, passe Plan an
@@ -306,9 +322,9 @@ public class Fridge implements Device {
 				newSchedule[0][change] = consCooling;
 				newSchedule[1][change] = newSchedule[1][change] + fallCooling;
 				newTemperature = newSchedule[1][change];
-				
+
 				minuteChange = change;
-			} 
+			}
 			/*
 			 * Hoere in Minuten mit zu niedriger Temperatur auf zu Kuehlen
 			 */
@@ -316,7 +332,7 @@ public class Fridge implements Device {
 				newSchedule[0][change] = 0.0;
 				newSchedule[1][change] = newSchedule[1][change] + riseWarming;
 				newTemperature = newSchedule[1][change];
-				
+
 				minuteChange = change;
 			}
 			change = testSchedule(newSchedule, newTemperature, minuteChange);
@@ -330,15 +346,17 @@ public class Fridge implements Device {
 		schedule[1][minuteChange] = newTemperature;
 		System.out.println("testSchedule: " + minuteChange);
 
-		System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " + schedule[0][minuteChange] + " Temperatur: " + schedule[1][minuteChange]);
-		
-		for (int i = minuteChange+1; i < 15 * numSlots; i++) {
+		System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " + schedule[0][minuteChange] + " Temperatur: "
+				+ schedule[1][minuteChange]);
+
+		for (int i = minuteChange + 1; i < 15 * numSlots; i++) {
 			if (schedule[0][i] > 0) {
 				schedule[1][i] = schedule[1][i - 1] + fallCooling;
 			} else {
 				schedule[1][i] = schedule[1][i - 1] + riseWarming;
 			}
-			System.out.println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] + " Temepratur: " + schedule[1][i]);
+			System.out
+					.println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] + " Temepratur: " + schedule[1][i]);
 			if (schedule[1][i] > maxTemp2) {
 				System.out.println("Änderung notwendig in Minute " + i);
 				// Wenn Änderung notwendig ist, wird die Minute, in welcher
@@ -358,44 +376,49 @@ public class Fridge implements Device {
 	}
 
 	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
+		System.out.println("sendDelatLoadprofile aufgerufen. ");
 		GregorianCalendar startLoadprofile = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY),
 				aenderung.get(Calendar.DATE), aenderung.get(Calendar.MONTH), aenderung.get(Calendar.YEAR));
 		aenderung.set(Calendar.SECOND, 0);
 		aenderung.set(Calendar.MILLISECOND, 0);
-		boolean change; 
+		boolean change;
 		boolean nextCooling = false;
 		double nextTemp = newTemperature;
-
-		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 1,
+		
+		// +3 wegen +1: nach timeFixed und +2 wegen Zeitzone
+		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 3,
 				timeFixed.get(Calendar.DATE), timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
 		
+		System.out.println("Hour Time Fixed: " +timeFixed.get(Calendar.HOUR_OF_DAY));
+		System.out.println("startLoadprofile: " +DateTime.ToString(startLoadprofile));
+		System.out.println("compare: " +DateTime.ToString(compare));
+
 		/*
-		 * Berechne ab Zeitpunkt der Abweichung einschließlich des aktuellen Plans scheduleMinutes
-		 * neue Fahrpläne, neue Lastprofile und Deltalastprofile
+		 * Berechne ab Zeitpunkt der Abweichung einschließlich des aktuellen
+		 * Plans scheduleMinutes neue Fahrpläne, neue Lastprofile und
+		 * Deltalastprofile
 		 */
-		while (! DateTime.ToString(startLoadprofile).equals(DateTime.ToString(compare))) {
+		while (!DateTime.ToString(startLoadprofile).equals(DateTime.ToString(compare))) {
 			// Berechne neuen Fahrplan
 			double[][] newSchedule = generateNewSchedule(aenderung, nextTemp);
 			saveSchedule(newSchedule, startLoadprofile, true);
-			
+
 			// Setze nextTemp und nextCooling für nächsten Fahrplan
-			nextCooling = newSchedule[1][15*numSlots-1] >= maxTemp1;
+			nextCooling = newSchedule[1][15 * numSlots - 1] >= maxTemp1;
 			if (nextCooling) {
-				nextTemp = scheduleMinutes[1][numSlots*15 -1] + fallCooling;
+				nextTemp = scheduleMinutes[1][numSlots * 15 - 1] + fallCooling;
+			} else {
+				nextTemp = scheduleMinutes[1][numSlots * 15 - 1] + riseWarming;
 			}
-			else {
-				nextTemp = scheduleMinutes[1][numSlots*15-1] + riseWarming;
-			}
-			
+
 			double[] newValues = createValuesLoadprofile(newSchedule[0]);
 			aenderung.set(Calendar.MINUTE, 0);
 			double[] oldValues;
-			System.out.println("timeFixed: " +DateTime.ToString(timeFixed));
+			System.out.println("timeFixed: " + DateTime.ToString(timeFixed));
 			if (DateTime.ToString(startLoadprofile).equals(DateTime.ToString(timeFixed))) {
 				System.out.println("=");
 				oldValues = createValuesLoadprofile(scheduleMinutes[0]);
-			}
-			else {
+			} else {
 				oldValues = loadprofilesFixed.get(DateTime.ToString(startLoadprofile));
 			}
 			System.out.println("Start: " + DateTime.ToString(aenderung));
@@ -413,10 +436,11 @@ public class Fridge implements Device {
 				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil");
 				// TODO Versende deltaValues als Delta-Lastprofil an den
 				// Consumer
-				
-				// Löschen des alten Lastprofils des Zeitraums und Abspeichern des neuen Lastprofils
+
+				// Löschen des alten Lastprofils des Zeitraums und Abspeichern
+				// des neuen Lastprofils
 				loadprofilesFixed.remove(DateTime.ToString(aenderung));
-				loadprofilesFixed.put(DateTime.ToString(aenderung), newValues);	
+				loadprofilesFixed.put(DateTime.ToString(aenderung), newValues);
 			}
 			startLoadprofile.add(Calendar.HOUR_OF_DAY, 1);
 			aenderung.add(Calendar.HOUR_OF_DAY, 1);
@@ -424,7 +448,7 @@ public class Fridge implements Device {
 	}
 
 	public void saveSchedule(double[][] schedule, GregorianCalendar start, boolean delete) {
-		int size = 15*numSlots;
+		int size = 15 * numSlots;
 
 		System.out.println("####################################Schedule gespeichert ab: " + DateTime.ToString(start));
 
@@ -460,19 +484,19 @@ public class Fridge implements Device {
 		GregorianCalendar currentTime = new GregorianCalendar();
 		currentTime.set(Calendar.SECOND, 0);
 		currentTime.set(Calendar.MILLISECOND, 0);
-		
+
 		double tempPlanned, tempScaled;
 		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
 		// TODO Temperatur messen und =tempScaled setzen
 		tempScaled = 5.5;
 		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
-				+ schedulesFixed.get(DateTime.ToString(currentTime))[1]+ " Temperatur gemessen: " +tempScaled);
-		
+				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + " Temperatur gemessen: " + tempScaled);
+
 		if (tempPlanned != tempScaled) {
 			System.out.println("Rufe sendDeltaLoadprofile auf:");
-			System.out.println("Time Fixed: " +DateTime.ToString(timeFixed));
-			//sendDeltaLoadprofile(currentTime, tempScaled);
-		}		
+			System.out.println("Time Fixed: " + DateTime.ToString(timeFixed));
+			sendDeltaLoadprofile(currentTime, tempScaled);
+		}
 	}
 
 	private static void mapToString(Hashtable<String, double[]> map) {
