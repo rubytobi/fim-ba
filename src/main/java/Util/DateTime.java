@@ -3,6 +3,7 @@ package Util;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 public class DateTime {
 	public static String timestamp() {
@@ -15,7 +16,7 @@ public class DateTime {
 	}
 
 	public static GregorianCalendar now() {
-		return new GregorianCalendar();
+		return new GregorianCalendar(TimeZone.getTimeZone("America/Los_Angeles"));
 	}
 
 }

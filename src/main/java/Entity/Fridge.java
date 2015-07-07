@@ -22,7 +22,7 @@ public class Fridge implements Device {
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
-	@JsonFormat(pattern = "yyyy-MM-dd hh:mm:ss")
+	@JsonFormat(pattern = "yyyy-MM-dd'T'hh:mm:ssZ")
 	public GregorianCalendar timeFixed;
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
 	public Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
@@ -72,6 +72,8 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 		this.currCooling = false;
 		
+		sendLoadprofile();
+
 		sendLoadprofile();
 
 		status = DeviceStatus.INITIALIZED;
