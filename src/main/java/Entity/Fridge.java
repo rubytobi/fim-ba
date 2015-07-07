@@ -7,6 +7,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonView;
+import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
 import Packet.DeviceLoadprofile;
 import Util.DateTime;
@@ -388,10 +389,6 @@ public class Fridge implements Device {
 		// +3 wegen +1: nach timeFixed und +2 wegen Zeitzone
 		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 3,
 				timeFixed.get(Calendar.DATE), timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
-		
-		System.out.println("Hour Time Fixed: " +timeFixed.get(Calendar.HOUR_OF_DAY));
-		System.out.println("startLoadprofile: " +DateTime.ToString(startLoadprofile));
-		System.out.println("compare: " +DateTime.ToString(compare));
 
 		/*
 		 * Berechne ab Zeitpunkt der Abweichung einschließlich des aktuellen
@@ -495,7 +492,6 @@ public class Fridge implements Device {
 		if (tempPlanned != tempScaled) {
 			System.out.println("Rufe sendDeltaLoadprofile auf:");
 			System.out.println("Time Fixed: " + DateTime.ToString(timeFixed));
-			sendDeltaLoadprofile(currentTime, tempScaled);
 		}
 	}
 
@@ -508,7 +504,12 @@ public class Fridge implements Device {
 	}
 
 	public void setConsumer(UUID uuid) {
-		consumerUUID = uuid;
+		if (status == DeviceStatus.INITIALIZED) {
+			status = DeviceStatus.READY;
+			consumerUUID = uuid;
+		} else {
+			throw new IllegalDeviceState();
+		}
 	}
 
 	@Override
