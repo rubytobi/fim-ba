@@ -39,13 +39,13 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.POST)
-	public void getSingleDevice(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
+	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
 		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
 	public void postOffer(@RequestBody OfferNotification offerNotification, @PathVariable UUID uuid) {
-		ConsumerContainer.instance().get(uuid).postOfferNotification(offerNotification);
+		ConsumerContainer.instance().get(uuid).receiveOfferNotification(offerNotification);
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}", method = RequestMethod.GET)

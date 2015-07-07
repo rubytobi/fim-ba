@@ -12,8 +12,6 @@ public class DeviceLoadprofile {
 		this.calendar = calendar;
 	}
 
-	// TODO getter setter
-
 	public double[] getValues() {
 		return values;
 	}
@@ -21,5 +19,4 @@ public class DeviceLoadprofile {
 	public Date getDate() {
 		return calendar.getTime();
 	}
-
 }

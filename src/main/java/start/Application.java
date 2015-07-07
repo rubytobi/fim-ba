@@ -22,6 +22,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +30,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import Entity.Consumer;
 import Entity.Fridge;
+import Util.Log;
 
 @SpringBootApplication
 @EnableScheduling
@@ -46,7 +48,6 @@ public class Application {
 	@Scheduled(fixedRate = 100)
 	public static void init() {
 		if (countFridges < maxFridges) {
-			System.out.println("Count Fridges: " +countFridges+ " Max Fridges: " +maxFridges);
 			countFridges++;
 			RestTemplate rest = new RestTemplate();
 
@@ -58,15 +59,12 @@ public class Application {
 
 			HttpEntity<Fridge> entityFridge = new HttpEntity<Fridge>(fridge, getRestHeader());
 
-			System.out.println(BASE_URI + "/devices" + " new Fridge: " + fridge.getUUID());
 			rest.exchange(BASE_URI + "/devices", HttpMethod.POST, entityFridge, UUID.class);
 
 			HttpEntity<Consumer> entityConsumer = new HttpEntity<Consumer>(consumer, getRestHeader());
 
-			System.out.println(BASE_URI + "/consumers" + " new Consumer: " + consumer.getUUID());
 			rest.exchange(BASE_URI + "/consumers", HttpMethod.POST, entityConsumer, UUID.class);
 
-			
 		}
 	}
 
@@ -90,8 +88,11 @@ public class Application {
 		ResponseEntity<Fridge[]> devices = rest.exchange(BASE_URI + "/devices", HttpMethod.GET, null, Fridge[].class);
 
 		for (Device d : devices.getBody()) {
-			ResponseEntity<String> s = rest.exchange(BASE_URI + "/devices/" + d.getUUID() + "/ping", HttpMethod.GET,
-					null, String.class);
+			try {
+				rest.exchange(BASE_URI + "/devices/" + d.getUUID() + "/ping", HttpMethod.GET, null, String.class);
+			} catch (HttpServerErrorException e) {
+				Log.d("#500 @ pinging " + BASE_URI + "/devices/" + d.getUUID() + "/ping");
+			}
 		}
 	}
 }
