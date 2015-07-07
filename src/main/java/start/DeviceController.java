@@ -33,10 +33,9 @@ public class DeviceController {
 	@RequestMapping(value = "/devices", method = RequestMethod.POST)
 	public @ResponseBody UUID addDevice(@RequestBody Fridge fridge) {
 		DeviceContainer.instance().add(fridge);
-		System.out.println("#" +fridge.schedulesFixed);
-		System.out.println("#" +fridge.loadprofilesFixed);
-		System.out.println("#" +fridge.scheduleMinutes);
-		//System.out.println("#" +DateTime.ToString(fridge.timeFixed));
+		System.out.println("#" +fridge.getSchedulesFixed());
+		System.out.println("#" +fridge.getLoadprofilesFixed());
+		System.out.println("#" +fridge.getScheduleMinutes());
 		return fridge.getUUID();
 	}
 

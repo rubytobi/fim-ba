@@ -12,36 +12,38 @@ import Packet.ChangeRequest;
 import Packet.DeviceLoadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
+import Util.SimulationFridge;
 import start.Application;
 import start.Device;
 import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
-	public double[][] scheduleMinutes = new double[2][60];
+	private double[][] scheduleMinutes = new double[2][60];
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
 	@JsonFormat(pattern = "yyyy-MM-dd'T'hh:mm:ssZ")
-	public GregorianCalendar timeFixed;
+	private GregorianCalendar timeFixed;
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
-	public Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
-	public Hashtable<String, double[]> loadprofilesFixed = new Hashtable<String, double[]>();
+	private Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
+	private Hashtable<String, double[]> loadprofilesFixed = new Hashtable<String, double[]>();
 
 	// currTemp: Temperatur, bei der der nächste neue Fahrplan beginnen soll
-	double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
+	private double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
 	// currCooling: Gibt an, ob der nächste Fahrplan mit Kühlen beginnen soll
-	boolean currCooling;
+	private boolean currCooling;
 	// Wie viel Grad pro Minute erwärmt bzw. kühlt der Kühlschrank?
-	double fallCooling, riseWarming;
+	private double fallCooling, riseWarming;
 	// Verbrauch zum Kühlen pro Minute in Wh
-	double consCooling;
+	private double consCooling;
 	@JsonView(View.Summary.class)
 	private DeviceStatus status;
 	@JsonView(View.Summary.class)
 	private UUID uuid;
 	@JsonView(View.Summary.class)
 	private UUID consumerUUID;
+	private SimulationFridge simulationFridge;
 
 	private Fridge() {
 		status = DeviceStatus.CREATED;
@@ -71,16 +73,28 @@ public class Fridge implements Device {
 		this.currTemp = currTemp;
 		this.currCooling = false;
 		
-		System.out.println("Neuer Kühlschrank");
+		simulationFridge = new SimulationFridge();
 		sendNewLoadprofile();
 
-		sendLoadprofile();
+		sendNewLoadprofile();
 
 		status = DeviceStatus.INITIALIZED;
 	}
 
 	public DeviceStatus getStatus() {
 		return status;
+	}
+	
+	public double[][] getScheduleMinutes() {
+		return scheduleMinutes;
+	}
+	
+	public Hashtable<String, double[]> getSchedulesFixed() {
+		return schedulesFixed;
+	}
+	
+	public Hashtable<String, double[]> getLoadprofilesFixed() {
+		return loadprofilesFixed;
 	}
 	
 	@Override
@@ -113,7 +127,7 @@ public class Fridge implements Device {
 
 			timeFixed.set(Calendar.MINUTE, 0);
 
-			saveSchedule(scheduleMinutes, timeFixed, false);
+			saveSchedule(scheduleMinutes, timeFixed);
 			loadprofilesFixed.put(DateTime.ToString(timeFixed), valuesLoadprofile);
 		}
 		// Zähle timeFixed um eine Stunde hoch
@@ -247,7 +261,7 @@ public class Fridge implements Device {
 		while (!DateTime.ToString(startLoadprofile).equals(DateTime.ToString(compare))) {
 			// Berechne neuen Fahrplan
 			double[][] deltaSchedule = chargeDeltaSchedule(aenderung, newTemperature, firstSchedule);
-			saveSchedule(deltaSchedule, startLoadprofile, true);
+			saveSchedule(deltaSchedule, startLoadprofile);
 			
 			firstSchedule = false;
 			newTemperature = deltaSchedule[1][15*numSlots-1];
@@ -416,15 +430,13 @@ public class Fridge implements Device {
 		return 15 * numSlots;
 	}
 
-	public void saveSchedule(double[][] schedule, GregorianCalendar start, boolean delete) {
+	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		int size = 15 * numSlots;
 
 		for (int i = 0; i < size; i++) {
-			if (delete) {
-				schedulesFixed.remove(DateTime.ToString(start));
-			}
-			double[] values = { schedule[0][i], schedule[1][i] };
+			double[] values = {schedule[0][i], schedule[1][i] };
 			schedulesFixed.put(DateTime.ToString(start), values);
+			simulationFridge.addNewValues(DateTime.ToString(start), values);
 			start.add(Calendar.MINUTE, 1);
 		}
 		start.add(Calendar.HOUR_OF_DAY, -1);
@@ -448,15 +460,16 @@ public class Fridge implements Device {
 
 		double tempPlanned, tempScaled;
 		System.out.println(status);
+		System.out.println(DateTime.ToString(currentTime));
 		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
-		// TODO Temperatur messen und =tempScaled setzen
+		//tempScaled = simulationFridge.getTemperature(currentTime);
 		tempScaled = 5.5;
 		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
 				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + " Temperatur gemessen: " + tempScaled);
 
 		if (tempPlanned != tempScaled) {
 			System.out.println("Rufe sendDeltaLoadprofile auf:");
-			sendDeltaLoadprofile(currentTime, tempScaled);
+			//sendDeltaLoadprofile(currentTime, tempScaled);
 		}
 	}
 
