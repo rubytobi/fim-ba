@@ -74,8 +74,6 @@ public class Fridge implements Device {
 		System.out.println("Neuer Kühlschrank");
 		sendNewLoadprofile();
 
-		sendLoadprofile();
-
 		status = DeviceStatus.INITIALIZED;
 	}
 
