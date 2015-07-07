@@ -1,18 +1,18 @@
 package Util;
 
-import java.sql.Timestamp;
-import java.util.Date;
+import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 public class DateTime {
+	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZ");
+
 	public static String timestamp() {
-		Date date = new Date();
-		return new Timestamp(date.getTime()).toString();
+		return simpleDateFormat.format(now().getTime());
 	}
 
 	public static String ToString(GregorianCalendar calendar) {
-		return new Timestamp(calendar.getTime().getTime()).toString();
+		return simpleDateFormat.format(calendar.getTime());
 	}
 
 	public static GregorianCalendar now() {
