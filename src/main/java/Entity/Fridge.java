@@ -454,11 +454,11 @@ public class Fridge implements Device {
 	@Override
 	public void ping() {
 		sendInitialLoadprofile();
-		
+
 		GregorianCalendar currentTime = new GregorianCalendar();
 		currentTime.set(Calendar.SECOND, 0);
 		currentTime.set(Calendar.MILLISECOND, 0);
-		
+
 		double tempPlanned, tempScaled;
 		System.out.println(status);
 		System.out.println(DateTime.ToString(currentTime));
@@ -466,8 +466,8 @@ public class Fridge implements Device {
 		tempScaled = simulationFridge.getTemperature(currentTime);
 		// tempScaled = 5.5;
 		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
-		+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
-		
+				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
+
 		if (tempPlanned != tempScaled) {
 			System.out.println("Rufe sendDeltaLoadprofile auf:");
 			sendDeltaLoadprofile(currentTime, tempScaled);
@@ -498,7 +498,7 @@ public class Fridge implements Device {
 
 	private void sendInitialLoadprofile() {
 		RestTemplate rest = new RestTemplate();
-		DeviceLoadprofile lp = new DeviceLoadprofile(DateTime.now().getTime(), new double[] { 1, 2, 3, 4 });
+		DeviceLoadprofile lp = new DeviceLoadprofile(DateTime.now(), new double[] { 1, 2, 3, 4 });
 		HttpEntity<DeviceLoadprofile> entity = new HttpEntity<DeviceLoadprofile>(lp, Application.getRestHeader());
 
 		String url = "http://localhost:8080/consumers/" + consumerUUID;
@@ -506,8 +506,8 @@ public class Fridge implements Device {
 		try {
 			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
 		} catch (Exception e) {
-			Log.i("sendInitialLoadprofile", entity.getBody().toString());
-			Log.e("sendInitialLoadprofile", url);
+			Log.i(entity.getBody().toString());
+			Log.e(url);
 		}
 	}
 

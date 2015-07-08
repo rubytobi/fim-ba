@@ -25,6 +25,12 @@ import Packet.OfferNotification;
 @RestController
 public class ConsumerController {
 
+	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)
+	public void pingConsumer(@PathVariable UUID uuid) {
+		Consumer consumer = ConsumerContainer.instance().get(uuid);
+		consumer.ping();
+	}
+
 	@JsonView(View.Summary.class)
 	@RequestMapping(value = "/consumers", method = RequestMethod.GET)
 	public Consumer[] getAllConsumers() {
@@ -48,9 +54,15 @@ public class ConsumerController {
 		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
 	}
 
-	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.POST)
+	@RequestMapping(value = "/consumers/{uuid}/loadprofile", method = RequestMethod.POST)
 	@ResponseStatus(value = HttpStatus.ACCEPTED)
 	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
+		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofile", method = RequestMethod.POST)
+	@ResponseStatus(value = HttpStatus.ACCEPTED)
+	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
 		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
 	}
 

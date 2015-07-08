@@ -21,10 +21,10 @@ public class Offer {
 
 	// Consumer, von dem man das Angebot erhalten hat
 	@JsonView(View.Summary.class)
-	UUID consumerFrom;
+	UUID consumerFrom = null;
 
 	@JsonView(View.Summary.class)
-	private UUID uuid;
+	private UUID uuid = null;
 	@JsonView(View.Summary.class)
 	private OfferStatus status;
 

@@ -1,15 +1,14 @@
 package Entity;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.InvalidOffer;
@@ -17,7 +16,6 @@ import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
 import Util.Log;
 import start.Application;
-import start.Device;
 import start.Loadprofile;
 import start.View;
 
@@ -40,6 +38,7 @@ public class Consumer {
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
 	private DeviceLoadprofile deviceLoadprofile = null;
+	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
 
 	public int getNumSlots() {
 		return numSlots;
@@ -78,8 +77,8 @@ public class Consumer {
 	}
 
 	private boolean testOfferDate(Offer offer) {
-		Date dateOffer = offer.getAggLoadprofile().getDate();
-		Date dateLoadprofile = loadprofile.getDate();
+		GregorianCalendar dateOffer = offer.getAggLoadprofile().getDate();
+		GregorianCalendar dateLoadprofile = loadprofile.getDate();
 
 		if (dateOffer == dateLoadprofile) {
 			return true;
@@ -118,8 +117,32 @@ public class Consumer {
 		if (offerNotification.getReferenceOffer() == null) {
 			Log.i(uuid + " [consumer] received offer");
 			Log.i(offerNotification.toString());
+
+			notificationQueue.add(offerNotification);
 		} else {
 			throw new InvalidOffer();
+		}
+	}
+
+	public void ping() {
+		OfferNotification notification = notificationQueue.poll();
+
+		if (notification == null) {
+			Log.d("No current notifications available");
+			return;
+		}
+
+		RestTemplate rest = new RestTemplate();
+		HttpEntity<Void> entity = new HttpEntity<Void>(Application.getRestHeader());
+
+		String url = notification.getLocation();
+		Log.i("request offer at: " + url);
+
+		try {
+			ResponseEntity<Offer> responseOffer = rest.exchange(url, HttpMethod.GET, entity, Offer.class);
+			Log.d(responseOffer.getBody().toString());
+		} catch (Exception e) {
+			Log.e(e.getMessage());
 		}
 	}
 
@@ -164,7 +187,7 @@ public class Consumer {
 			try {
 				rest.exchange(url, HttpMethod.POST, entity, String.class);
 			} catch (Exception e) {
-				Log.e("loadprofile", e.getMessage());
+				Log.e(e.getMessage());
 			}
 		}
 	}

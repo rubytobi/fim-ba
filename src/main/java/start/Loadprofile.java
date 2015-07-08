@@ -11,13 +11,13 @@ public class Loadprofile {
 	double value1, value2, value3, value4;
 
 	// Zeitpunkt, ab wann das Lastprofil gelten soll
-	Date date;
+	GregorianCalendar date;
 
 	// Erstellt ausübergebenem Array neues Lastprofil
-	protected Loadprofile(double[] values, Consumer consumer, Date date) {
+	protected Loadprofile(double[] values, Consumer consumer, GregorianCalendar date) {
 		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil
 		// zur vollen Stunde startet
-		if (consumer.getNumSlots() != 4 || values.length != 4 || date.getMinutes() != 0) {
+		if (consumer.getNumSlots() != 4 || values.length != 4 || date.get(Calendar.MINUTE) != 0) {
 			return;
 		}
 
@@ -65,7 +65,7 @@ public class Loadprofile {
 		return value4;
 	}
 
-	public Date getDate() {
+	public GregorianCalendar getDate() {
 		return date;
 	}
 

@@ -1,17 +1,12 @@
 package start;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.web.HttpMapperProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,19 +15,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
 import Entity.Consumer;
 import Entity.Fridge;
-import Packet.DeviceLoadprofile;
 import Packet.FridgeCreation;
 import Util.Log;
 
@@ -73,22 +64,22 @@ public class Application {
 			HttpEntity<FridgeCreation> entityFridge = new HttpEntity<FridgeCreation>(fridgeCreation, getRestHeader());
 
 			url = BASE_URI + "/devices";
-			Log.i("init", url);
+			Log.i(url);
 			ResponseEntity<UUID> responseFridge = rest.exchange(BASE_URI + "/devices", HttpMethod.POST, entityFridge,
 					UUID.class);
 
 			HttpEntity<Void> entityConsumer = new HttpEntity<Void>(getRestHeader());
 
 			url = BASE_URI + "/consumers";
-			Log.i("init", url);
+			Log.i(url);
 			ResponseEntity<UUID> responseConsumer = rest.exchange(url, HttpMethod.POST, entityConsumer, UUID.class);
 
 			url = BASE_URI + "/devices/" + responseFridge.getBody() + "/link/" + responseConsumer.getBody();
-			Log.i("init", url);
+			Log.i(url);
 			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
 
 			url = BASE_URI + "/consumers/" + responseConsumer.getBody() + "/link/" + responseFridge.getBody();
-			Log.i("init", url);
+			Log.i(url);
 			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
 		}
 	}
@@ -107,7 +98,7 @@ public class Application {
 	}
 
 	@Scheduled(fixedRate = 5000)
-	public static void pingAll() {
+	public static void pingAllDevices() {
 		RestTemplate rest = new RestTemplate();
 
 		ResponseEntity<Fridge[]> devices = rest.exchange(BASE_URI + "/devices", HttpMethod.GET, null, Fridge[].class);
@@ -117,6 +108,24 @@ public class Application {
 				rest.exchange(BASE_URI + "/devices/" + d.getUUID() + "/ping", HttpMethod.GET, null, String.class);
 			} catch (HttpServerErrorException e) {
 				Log.e("#500 @ pinging " + BASE_URI + "/devices/" + d.getUUID() + "/ping");
+			}
+		}
+	}
+
+	@Scheduled(fixedRate = 5000)
+	public static void pingAllConsumers() {
+		RestTemplate rest = new RestTemplate();
+
+		ResponseEntity<Consumer[]> consumers = rest.exchange(BASE_URI + "/consumers", HttpMethod.GET, null,
+				Consumer[].class);
+
+		for (Consumer c : consumers.getBody()) {
+			String url = BASE_URI + "/consumers/" + c.getUUID() + "/ping";
+
+			try {
+				rest.exchange(url, HttpMethod.GET, null, String.class);
+			} catch (HttpServerErrorException e) {
+				Log.e("#500 @ pinging " + url);
 			}
 		}
 	}

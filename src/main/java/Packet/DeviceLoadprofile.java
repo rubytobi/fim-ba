@@ -6,14 +6,14 @@ import java.util.GregorianCalendar;
 import Util.DateTime;
 
 public class DeviceLoadprofile {
-	private Date date;
+	private GregorianCalendar date;
 	private double[] values;
 
 	public DeviceLoadprofile() {
 		// dummy constructor
 	}
 
-	public DeviceLoadprofile(Date datetime, double[] loadprofile) {
+	public DeviceLoadprofile(GregorianCalendar datetime, double[] loadprofile) {
 		this.values = loadprofile;
 		this.date = datetime;
 	}
@@ -22,7 +22,7 @@ public class DeviceLoadprofile {
 		return values;
 	}
 
-	public Date getDate() {
+	public GregorianCalendar getDate() {
 		return date;
 	}
 }

@@ -36,13 +36,13 @@ public class Marketplace {
 		return eex;
 	}
 	
-	public TreeMap<Double, Offer> getOffersConsumer() {
-		return offersConsumer;
-	}
-	
-	public TreeMap<Double, Offer> getOffersProducer() {
-		return offersProducer;
-	}
+//	public TreeMap<Double, Offer> getOffersConsumer() {
+//		return offersConsumer;
+//	}
+//	
+//	public TreeMap<Double, Offer> getOffersProducer() {
+//		return offersProducer;
+//	}
 	
 	public String getCheapestOfferConsumer() {
 		double key = testConsumer.lastKey();
