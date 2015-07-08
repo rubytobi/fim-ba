@@ -1,6 +1,5 @@
 package Util;
 
 public enum OfferStatus {
-	VALID, INVALID
-
+	INITIALIZED, VALID, INVALID
 }

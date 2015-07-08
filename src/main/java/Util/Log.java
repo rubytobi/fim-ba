@@ -1,6 +1,13 @@
 package Util;
 
 public class Log {
+	private boolean isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
+			.indexOf("jdwp") >= 0;
+
+	private boolean isDebug() {
+		return isDebug;
+	}
+
 	public static void i(String s) {
 		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
 		String string = stack[2].toString();
@@ -15,6 +22,10 @@ public class Log {
 	}
 
 	public static void d(String s) {
+		if (!new Log().isDebug()) {
+			return;
+		}
+
 		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
 		String string = stack[2].toString();
 

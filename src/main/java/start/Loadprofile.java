@@ -13,14 +13,16 @@ public class Loadprofile {
 	private GregorianCalendar date;
 
 	// Preis
-	private double price;
+	private double minPrice;
 
 	public Loadprofile() {
-		price = 0.0;
+		minPrice = 0.0;
 	}
 
 	// Erstellt ausübergebenem Array neues Lastprofil
 	public Loadprofile(double[] values, GregorianCalendar date) {
+		this();
+
 		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil
 		// zur vollen Stunde startet
 		if (values.length != 4 || date.get(Calendar.MINUTE) != 0) {
@@ -31,22 +33,32 @@ public class Loadprofile {
 		this.date = date;
 	}
 
-	public Loadprofile(double[] values, GregorianCalendar date, double price) {
+	public Loadprofile(double[] values, GregorianCalendar date, double minPrice) {
 		this(values, date);
 
-		this.price = price;
+		this.minPrice = minPrice;
 	}
 
 	// Erstellt aus beiden Lastprofilen Aggregiertes Lastprofil
 	public Loadprofile(Loadprofile lp1, Loadprofile lp2) {
+		this();
+		
 		if (lp1.getDate() != lp2.getDate()) {
 			return;
 		}
+
 		date = lp1.getDate();
 
 		for (int i = 0; i < 4; i++) {
 			values[i] = lp1.getValues()[i] + lp2.getValues()[i];
 		}
+
+		// TODO: annahme: nehme stets den billigeren preis
+		this.minPrice = Math.min(lp1.getPrice(), lp2.getPrice());
+	}
+
+	public double getPrice() {
+		return minPrice;
 	}
 
 	public double[] getValues() {
