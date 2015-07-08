@@ -438,7 +438,7 @@ public class Fridge implements Device {
 
 	@Override
 	public void ping() {
-		GregorianCalendar currentTime = new GregorianCalendar();
+		GregorianCalendar currentTime = DateTime.now();
 		currentTime.set(Calendar.SECOND, 0);
 		currentTime.set(Calendar.MILLISECOND, 0);
 
@@ -457,14 +457,6 @@ public class Fridge implements Device {
 		}
 	}
 
-	private static void mapToString(Hashtable<String, double[]> map) {
-		Set<String> set = map.keySet();
-
-		for (String s : set) {
-			System.out.println("##" + s + " " + Arrays.toString(map.get(s)));
-		}
-	}
-
 	public void setConsumer(UUID uuid) {
 		if (status == DeviceStatus.INITIALIZED) {
 			status = DeviceStatus.READY;
@@ -479,12 +471,17 @@ public class Fridge implements Device {
 		// TODO Auto-generated method stub
 	}
 
-	private void sendInitialLoadprofile() {
+	private void sendLoadprofileToConsumer(Loadprofile loadprofile, boolean isDeltaLoadprofile) {
 		RestTemplate rest = new RestTemplate();
-		Loadprofile lp = new Loadprofile(new double[] { 1, 2, 3, 4 }, DateTime.now());
-		HttpEntity<Loadprofile> entity = new HttpEntity<Loadprofile>(lp, Application.getRestHeader());
+		HttpEntity<Loadprofile> entity = new HttpEntity<Loadprofile>(loadprofile, Application.getRestHeader());
 
-		String url = "http://localhost:8080/consumers/" + consumerUUID + "/loadprofile";
+		String url = "http://localhost:8080/consumers/" + consumerUUID;
+
+		if (isDeltaLoadprofile) {
+			url += "/deltaLoadprofile";
+		} else {
+			url += "/loadprofile";
+		}
 
 		try {
 			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
@@ -493,5 +490,4 @@ public class Fridge implements Device {
 			Log.e(e.getMessage());
 		}
 	}
-
 }

@@ -182,6 +182,7 @@ public class Consumer {
 	}
 
 	private Offer[] getMarketplaceSupplies(int i) {
+		// TODO
 		return new Offer[0];
 	}
 
