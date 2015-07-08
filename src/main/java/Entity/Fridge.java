@@ -6,17 +6,16 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
-import Packet.DeviceLoadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
 import Util.Log;
 import Util.SimulationFridge;
 import start.Application;
 import start.Device;
+import start.Loadprofile;
 import start.View;
 
 public class Fridge implements Device {
@@ -276,6 +275,7 @@ public class Fridge implements Device {
 			} else {
 				oldValues = loadprofilesFixed.get(DateTime.ToString(startLoadprofile));
 			}
+
 			double[] deltaValues = new double[4];
 
 			if (oldValues == null) {
@@ -503,10 +503,10 @@ public class Fridge implements Device {
 
 	private void sendInitialLoadprofile() {
 		RestTemplate rest = new RestTemplate();
-		DeviceLoadprofile lp = new DeviceLoadprofile(DateTime.now(), new double[] { 1, 2, 3, 4 });
-		HttpEntity<DeviceLoadprofile> entity = new HttpEntity<DeviceLoadprofile>(lp, Application.getRestHeader());
+		Loadprofile lp = new Loadprofile(new double[] { 1, 2, 3, 4 }, DateTime.now());
+		HttpEntity<Loadprofile> entity = new HttpEntity<Loadprofile>(lp, Application.getRestHeader());
 
-		String url = "http://localhost:8080/consumers/" + consumerUUID;
+		String url = "http://localhost:8080/consumers/" + consumerUUID + "/loadprofile";
 
 		try {
 			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);

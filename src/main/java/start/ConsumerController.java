@@ -19,7 +19,6 @@ import Entity.Consumer;
 import Entity.Offer;
 import Event.InvalidOffer;
 import Packet.FridgeCreation;
-import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
 
 @RestController
@@ -56,14 +55,14 @@ public class ConsumerController {
 
 	@RequestMapping(value = "/consumers/{uuid}/loadprofile", method = RequestMethod.POST)
 	@ResponseStatus(value = HttpStatus.ACCEPTED)
-	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
-		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
+	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
+		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofile", method = RequestMethod.POST)
 	@ResponseStatus(value = HttpStatus.ACCEPTED)
-	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
-		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
+	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
+		ConsumerContainer.instance().get(uuid).receiveDeltaLoadprofile(loadprofile);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
@@ -77,12 +76,12 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}", method = RequestMethod.GET)
-	public Offer getOffer(@PathVariable UUID uuidConsumer, UUID uuidOffer) {
+	public Offer getOffer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer) {
 		return ConsumerContainer.instance().get(uuidConsumer).getOffer(uuidOffer);
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/status", method = RequestMethod.GET)
-	public Map<String, Object> getOfferStatus(@PathVariable UUID uuidConsumer, UUID uuidOffer) {
+	public Map<String, Object> getOfferStatus(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer) {
 		return ConsumerContainer.instance().get(uuidConsumer).getOffer(uuidOffer).status();
 	}
 

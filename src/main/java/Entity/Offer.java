@@ -12,7 +12,9 @@ public class Offer {
 	// Aggregiertes Lastprofil über alle Lastprofile
 	@JsonView(View.Summary.class)
 	Loadprofile loadprofile;
+	
 	// Alle beteiligten Lastprofile
+	@JsonView(View.Summary.class)
 	Map<UUID, Loadprofile> allLoadprofiles = new HashMap<UUID, Loadprofile>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
@@ -25,6 +27,7 @@ public class Offer {
 
 	@JsonView(View.Summary.class)
 	private UUID uuid = null;
+
 	@JsonView(View.Summary.class)
 	private OfferStatus status;
 

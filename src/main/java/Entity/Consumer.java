@@ -12,7 +12,6 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.InvalidOffer;
-import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
 import Util.Log;
 import start.Application;
@@ -37,7 +36,6 @@ public class Consumer {
 	// Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
-	private DeviceLoadprofile deviceLoadprofile = null;
 	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
 
 	public int getNumSlots() {
@@ -163,11 +161,15 @@ public class Consumer {
 		device = uuid;
 	}
 
-	public void loadprofile(DeviceLoadprofile device) {
-		Log.i(uuid + " [consumer] received loadprofile from device");
-		Log.i(device.toString());
+	public void receiveDeltaLoadprofile(Loadprofile device) {
+		Log.e("function not yet implemented...");
+	}
 
-		this.loadprofile = new Loadprofile(device);
+	public void receiveLoadprofile(Loadprofile loadprofile) {
+		Log.i(uuid + " [consumer] received loadprofile from device");
+		Log.i(loadprofile.toString());
+
+		this.loadprofile = loadprofile;
 
 		this.offer = new Offer(loadprofile, this, 0.0);
 		OfferNotification notification = new OfferNotification(
@@ -182,7 +184,7 @@ public class Consumer {
 
 		for (Consumer c : getAllConsumers()) {
 			url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
-			Log.i("#500 @ send offer: " + url);
+			Log.i("send offer: " + url);
 
 			try {
 				rest.exchange(url, HttpMethod.POST, entity, String.class);
