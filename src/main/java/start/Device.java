@@ -2,6 +2,9 @@ package start;
 
 import java.util.Map;
 import java.util.UUID;
+
+import Entity.Consumer;
+
 import java.util.GregorianCalendar;
 
 import Packet.ChangeRequest;
@@ -13,10 +16,14 @@ public interface Device {
 	public double[] createValuesLoadprofile(double[] values);
 
 	public void sendNewLoadprofile();
-	
+
 	public void sendDeltaLoadprofile(GregorianCalendar timeChanged, double valueChanged);
-	
-	public void sendImprovedLoadprofile(/*TODO ueberlege, in welchem Format gewünschte Änderung übergeben werden kann*/);
+
+	public void sendImprovedLoadprofile(/*
+										 * TODO ueberlege, in welchem Format
+										 * gewünschte Änderung übergeben werden
+										 * kann
+										 */);
 
 	public UUID getUUID();
 
@@ -25,6 +32,8 @@ public interface Device {
 	public DeviceStatus getStatus();
 
 	public void ping();
+
+	public void setConsumer(UUID consumerUUID);
 
 	public void changeLoadprofile(ChangeRequest cr);
 }

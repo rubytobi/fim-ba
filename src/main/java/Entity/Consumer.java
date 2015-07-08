@@ -9,6 +9,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonView;
+
 import Event.InvalidOffer;
 import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
@@ -16,24 +19,27 @@ import Util.Log;
 import start.Application;
 import start.Device;
 import start.Loadprofile;
+import start.View;
 
 public class Consumer {
 	// uuid für jeden consumer
+	@JsonView(View.Summary.class)
 	private UUID uuid;
 
 	// uuid für das verbundene device
-	private UUID deviceUUID;
+	@JsonView(View.Summary.class)
+	private UUID device = null;
 
 	// Aktuelles Angebot
-	Offer offer;
+	private Offer offer = null;
 
 	// Anzahl der 15-Minuten-Slots f�r ein Lastprofil
-	int numSlots = 4;
+	private int numSlots = 4;
 
 	// Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
 	// Teilnehmern)
-	Loadprofile loadprofile;
-	DeviceLoadprofile deviceLoadprofile = null;
+	private Loadprofile loadprofile = null;
+	private DeviceLoadprofile deviceLoadprofile = null;
 
 	public int getNumSlots() {
 		return numSlots;
@@ -110,8 +116,8 @@ public class Consumer {
 
 	public void receiveOfferNotification(OfferNotification offerNotification) {
 		if (offerNotification.getReferenceOffer() == null) {
-			Log.d(uuid + " [consumer] received offer");
-			Log.d(offerNotification.toString());
+			Log.i(uuid + " [consumer] received offer");
+			Log.i(offerNotification.toString());
 		} else {
 			throw new InvalidOffer();
 		}
@@ -131,28 +137,35 @@ public class Consumer {
 	}
 
 	public void setDevice(UUID uuid) {
-		deviceUUID = uuid;
+		device = uuid;
 	}
 
 	public void loadprofile(DeviceLoadprofile device) {
-		Log.d(uuid + " [consumer] received loadprofile from device");
-		Log.d(device.toString());
+		Log.i(uuid + " [consumer] received loadprofile from device");
+		Log.i(device.toString());
 
 		this.loadprofile = new Loadprofile(device);
 
 		this.offer = new Offer(loadprofile, this, 0.0);
 		OfferNotification notification = new OfferNotification(
-				"http://localhost:8080/consumers/" + uuid + "/offers" + offer.getUUID(), null);
+				"http://localhost:8080/consumers/" + uuid + "/offers/" + offer.getUUID(), null);
 
 		RestTemplate rest = new RestTemplate();
 
 		HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
 				Application.getRestHeader());
 
-		for (Device d : getAllDevices()) {
-			Log.d("#500 @ send offer: http://localhost:8080/consumers/" + d.getUUID() + "/offers");
-			rest.exchange("http://localhost:8080/consumers/" + d.getUUID() + "/offers", HttpMethod.POST, entity,
-					String.class);
+		String url;
+
+		for (Consumer c : getAllConsumers()) {
+			url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
+			Log.i("#500 @ send offer: " + url);
+
+			try {
+				rest.exchange(url, HttpMethod.POST, entity, String.class);
+			} catch (Exception e) {
+				Log.e("loadprofile", e.getMessage());
+			}
 		}
 	}
 
@@ -165,9 +178,22 @@ public class Consumer {
 		return devices.getBody();
 	}
 
+	private Consumer[] getAllConsumers() {
+		RestTemplate rest = new RestTemplate();
+
+		ResponseEntity<Consumer[]> consumers = rest.exchange("http://localhost:8080/consumers", HttpMethod.GET, null,
+				Consumer[].class);
+
+		return consumers.getBody();
+	}
+
 	public Map<String, Object> status() {
 		Map<String, Object> map = new HashMap<String, Object>();
 		// TODO
 		return map;
+	}
+
+	public Offer[] getOffers() {
+		return new Offer[] { this.offer };
 	}
 }

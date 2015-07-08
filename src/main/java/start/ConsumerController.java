@@ -11,24 +11,29 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.annotation.JsonView;
+
 import Container.ConsumerContainer;
 import Container.DeviceContainer;
 import Entity.Consumer;
 import Entity.Offer;
 import Event.InvalidOffer;
+import Packet.FridgeCreation;
 import Packet.DeviceLoadprofile;
 import Packet.OfferNotification;
 
 @RestController
 public class ConsumerController {
 
+	@JsonView(View.Summary.class)
 	@RequestMapping(value = "/consumers", method = RequestMethod.GET)
-	public Device[] getAllConsumers() {
-		return DeviceContainer.instance().getAll();
+	public Consumer[] getAllConsumers() {
+		return ConsumerContainer.instance().getAll();
 	}
 
 	@RequestMapping(value = "/consumers", method = RequestMethod.POST)
-	public UUID addConsumer(@RequestBody Consumer consumer) {
+	public UUID addConsumer() {
+		Consumer consumer = new Consumer();
 		ConsumerContainer.instance().add(consumer);
 		return consumer.getUUID();
 	}
@@ -38,7 +43,13 @@ public class ConsumerController {
 		return ConsumerContainer.instance().get(uuid);
 	}
 
+	@RequestMapping(value = "/consumers/{consumerUUID}/link/{fridgeUUID}", method = RequestMethod.POST)
+	public void linkDevice(@PathVariable UUID consumerUUID, @PathVariable UUID fridgeUUID) {
+		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
+	}
+
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.POST)
+	@ResponseStatus(value = HttpStatus.ACCEPTED)
 	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody DeviceLoadprofile loadprofile) {
 		ConsumerContainer.instance().get(uuid).loadprofile(loadprofile);
 	}
@@ -46,6 +57,11 @@ public class ConsumerController {
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
 	public void postOffer(@RequestBody OfferNotification offerNotification, @PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveOfferNotification(offerNotification);
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
+	public Offer[] postOffer(@PathVariable UUID uuid) {
+		return ConsumerContainer.instance().get(uuid).getOffers();
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}", method = RequestMethod.GET)

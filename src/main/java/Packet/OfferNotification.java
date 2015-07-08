@@ -4,6 +4,10 @@ public class OfferNotification {
 	private String location;
 	private String referenceOffer;
 
+	public OfferNotification() {
+		// dummy konstruktor
+	}
+
 	public OfferNotification(String location, String referenceOffer) {
 		this.location = location;
 		this.referenceOffer = referenceOffer;

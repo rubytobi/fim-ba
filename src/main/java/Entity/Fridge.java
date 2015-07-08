@@ -3,6 +3,7 @@ package Entity;
 import java.util.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -12,6 +13,7 @@ import Packet.ChangeRequest;
 import Packet.DeviceLoadprofile;
 import Util.DateTime;
 import Util.DeviceStatus;
+import Util.Log;
 import Util.SimulationFridge;
 import start.Application;
 import start.Device;
@@ -23,7 +25,6 @@ public class Fridge implements Device {
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
-	@JsonFormat(pattern = "yyyy-MM-dd'T'hh:mm:ssZ")
 	private GregorianCalendar timeFixed;
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
 	private Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
@@ -72,7 +73,7 @@ public class Fridge implements Device {
 		this.consCooling = consCooling;
 		this.currTemp = currTemp;
 		this.currCooling = false;
-		
+
 		simulationFridge = new SimulationFridge();
 		sendNewLoadprofile();
 
@@ -88,15 +89,14 @@ public class Fridge implements Device {
 		return status;
 	}
 
-	
 	public double[][] getScheduleMinutes() {
 		return scheduleMinutes;
 	}
-	
+
 	public Hashtable<String, double[]> getSchedulesFixed() {
 		return schedulesFixed;
 	}
-	
+
 	public Hashtable<String, double[]> getLoadprofilesFixed() {
 		return loadprofilesFixed;
 	}
@@ -264,7 +264,7 @@ public class Fridge implements Device {
 			double[][] deltaSchedule = chargeDeltaSchedule(aenderung, newTemperature, firstSchedule);
 
 			saveSchedule(deltaSchedule, startLoadprofile);
-			
+
 			firstSchedule = false;
 			newTemperature = deltaSchedule[1][15 * numSlots - 1];
 
@@ -433,7 +433,7 @@ public class Fridge implements Device {
 		int size = 15 * numSlots;
 
 		for (int i = 0; i < size; i++) {
-			double[] values = {schedule[0][i], schedule[1][i] };
+			double[] values = { schedule[0][i], schedule[1][i] };
 			schedulesFixed.put(DateTime.ToString(start), values);
 			simulationFridge.addNewValues(DateTime.ToString(start), values);
 			start.add(Calendar.MINUTE, 1);
@@ -453,23 +453,27 @@ public class Fridge implements Device {
 
 	@Override
 	public void ping() {
-		GregorianCalendar currentTime = new GregorianCalendar();
-		currentTime.set(Calendar.SECOND, 0);
-		currentTime.set(Calendar.MILLISECOND, 0);
-
-		double tempPlanned, tempScaled;
-		System.out.println(status);
-		System.out.println(DateTime.ToString(currentTime));
-		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
-		//tempScaled = simulationFridge.getTemperature(currentTime);
-		tempScaled = 5.5;
-		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
-				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + " Temperatur gemessen: " + tempScaled);
-
-		if (tempPlanned != tempScaled) {
-			System.out.println("Rufe sendDeltaLoadprofile auf:");
-			//sendDeltaLoadprofile(currentTime, tempScaled);
-		}
+		sendInitialLoadprofile();
+		return;
+		// GregorianCalendar currentTime = new GregorianCalendar();
+		// currentTime.set(Calendar.SECOND, 0);
+		// currentTime.set(Calendar.MILLISECOND, 0);
+		//
+		// double tempPlanned, tempScaled;
+		// System.out.println(status);
+		// System.out.println(DateTime.ToString(currentTime));
+		// tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
+		// // tempScaled = simulationFridge.getTemperature(currentTime);
+		// tempScaled = 5.5;
+		// System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + "
+		// Temperatur geplant: "
+		// + schedulesFixed.get(DateTime.ToString(currentTime))[1] + "
+		// Temperatur gemessen: " + tempScaled);
+		//
+		// if (tempPlanned != tempScaled) {
+		// System.out.println("Rufe sendDeltaLoadprofile auf:");
+		// // sendDeltaLoadprofile(currentTime, tempScaled);
+		// }
 	}
 
 	private static void mapToString(Hashtable<String, double[]> map) {
@@ -496,11 +500,17 @@ public class Fridge implements Device {
 
 	private void sendInitialLoadprofile() {
 		RestTemplate rest = new RestTemplate();
-		DeviceLoadprofile lp = new DeviceLoadprofile(null, createValuesLoadprofile(scheduleMinutes[0]));
+		DeviceLoadprofile lp = new DeviceLoadprofile(DateTime.now().getTime(), new double[] { 1, 2, 3, 4 });
 		HttpEntity<DeviceLoadprofile> entity = new HttpEntity<DeviceLoadprofile>(lp, Application.getRestHeader());
-		System.out.println(entity.toString());
-		rest.exchange("http://localhost:8080/consumers/" + consumerUUID + "/offers", HttpMethod.POST, entity,
-				String.class);
+
+		String url = "http://localhost:8080/consumers/" + consumerUUID;
+
+		try {
+			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+		} catch (Exception e) {
+			Log.i("sendInitialLoadprofile", entity.getBody().toString());
+			Log.e("sendInitialLoadprofile", url);
+		}
 	}
 
 }

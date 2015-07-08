@@ -1,5 +1,7 @@
 package Util;
 
+import java.util.Date;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
@@ -17,6 +19,20 @@ public class DateTime {
 
 	public static GregorianCalendar now() {
 		return new GregorianCalendar(TimeZone.getTimeZone("America/Los_Angeles"));
+	}
+
+	public static GregorianCalendar parse(String calendar) {
+		GregorianCalendar gc = new GregorianCalendar();
+		Date date = null;
+		try {
+			date = simpleDateFormat.parse(calendar);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException();
+		}
+
+		gc.setTime(date);
+
+		return gc;
 	}
 
 }

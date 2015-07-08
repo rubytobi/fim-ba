@@ -3,13 +3,19 @@ package Packet;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
-public class DeviceLoadprofile {
-	private double[] values;
-	private GregorianCalendar calendar;
+import Util.DateTime;
 
-	public DeviceLoadprofile(GregorianCalendar calendar, double[] loadprofile) {
+public class DeviceLoadprofile {
+	private Date date;
+	private double[] values;
+
+	public DeviceLoadprofile() {
+		// dummy constructor
+	}
+
+	public DeviceLoadprofile(Date datetime, double[] loadprofile) {
 		this.values = loadprofile;
-		this.calendar = calendar;
+		this.date = datetime;
 	}
 
 	public double[] getValues() {
@@ -17,6 +23,6 @@ public class DeviceLoadprofile {
 	}
 
 	public Date getDate() {
-		return calendar.getTime();
+		return date;
 	}
 }

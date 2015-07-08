@@ -14,12 +14,14 @@ import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.jaxrs.annotation.JacksonFeatures;
 
+import Container.ConsumerContainer;
 import Container.DeviceContainer;
 import Entity.Fridge;
 import Event.DeviceNotFound;
 import Event.IllegalDeviceCreation;
 import Event.UnsupportedDeviceType;
 import Packet.ChangeRequest;
+import Packet.FridgeCreation;
 
 @RestController
 public class DeviceController {
@@ -31,12 +33,20 @@ public class DeviceController {
 	}
 
 	@RequestMapping(value = "/devices", method = RequestMethod.POST)
-	public @ResponseBody UUID addDevice(@RequestBody Fridge fridge) {
+	public @ResponseBody UUID addDevice(@RequestBody FridgeCreation fC) {
+		Fridge fridge = new Fridge(fC.getMaxTemp1(), fC.getMaxTemp2(), fC.getMinTemp1(), fC.getMinTemp2(),
+				fC.getFallCooling(), fC.getRiseWarming(), fC.getConsCooling(), fC.getCurrTemp());
+
 		DeviceContainer.instance().add(fridge);
-		System.out.println("#" +fridge.getSchedulesFixed());
-		System.out.println("#" +fridge.getLoadprofilesFixed());
-		System.out.println("#" +fridge.getScheduleMinutes());
+		System.out.println("#" + fridge.getSchedulesFixed());
+		System.out.println("#" + fridge.getLoadprofilesFixed());
+		System.out.println("#" + fridge.getScheduleMinutes());
 		return fridge.getUUID();
+	}
+
+	@RequestMapping(value = "/devices/{deviceUUID}/link/{consumerUUID}", method = RequestMethod.POST)
+	public void linkDevice(@PathVariable UUID deviceUUID, @PathVariable UUID consumerUUID) {
+		DeviceContainer.instance().get(deviceUUID).setConsumer(consumerUUID);
 	}
 
 	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.GET)

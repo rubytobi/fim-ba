@@ -2,24 +2,30 @@ package Entity;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonView;
+
 import Util.OfferStatus;
 import start.Loadprofile;
+import start.View;
 
 public class Offer {
-	// Aggregiertes Lastprofil �ber alle Lastprofile
+	// Aggregiertes Lastprofil über alle Lastprofile
+	@JsonView(View.Summary.class)
 	Loadprofile loadprofile;
 	// Alle beteiligten Lastprofile
-	ArrayList<Loadprofile> allLoadprofiles;
+	Map<UUID, Loadprofile> allLoadprofiles = new HashMap<UUID, Loadprofile>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
+	@JsonView(View.Summary.class)
 	double price;
 
 	// Consumer, von dem man das Angebot erhalten hat
-	Consumer consumerFrom;
-	// Alle beteiligten Consumer
-	ArrayList<Consumer> allConsumers;
+	@JsonView(View.Summary.class)
+	UUID consumerFrom;
 
+	@JsonView(View.Summary.class)
 	private UUID uuid;
+	@JsonView(View.Summary.class)
 	private OfferStatus status;
 
 	private Offer() {
@@ -31,10 +37,8 @@ public class Offer {
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.loadprofile = loadprofile;
-		allLoadprofiles.add(loadprofile);
-
-		consumerFrom = consumer;
-		allConsumers.add(consumer);
+		allLoadprofiles.put(consumer.getUUID(), loadprofile);
+		consumerFrom = consumer.getUUID();
 
 		this.price = price;
 	}
@@ -48,14 +52,10 @@ public class Offer {
 		// Zu allen Lastprofilen werden die Lastprofile vom vorherigen Angebot
 		// aufgenommen und das Lastprofil des neuen Consumers hinzugef�gt
 		this.allLoadprofiles = offer.getAllLoadprofiles();
-		this.allLoadprofiles.add(loadprofile);
+		this.allLoadprofiles.put(consumer.getUUID(), loadprofile);
 
-		// �bergebener Consumer ist neuer Versender des Angebots
-		consumerFrom = consumer;
-		// Zu allen Consumern werden die Consumer vom vorherigen Angebot
-		// aufgenommen und das Lastprofil des neuen Consumers hinzugef�gt
-		this.allConsumers = offer.getAllConsumers();
-		this.allConsumers.add(consumer);
+		// Übergebener Consumer ist neuer Versender des Angebots
+		consumerFrom = consumer.getUUID();
 
 		this.price = price;
 	}
@@ -64,16 +64,12 @@ public class Offer {
 		return loadprofile;
 	}
 
-	public ArrayList<Loadprofile> getAllLoadprofiles() {
+	public Map<UUID, Loadprofile> getAllLoadprofiles() {
 		return allLoadprofiles;
 	}
 
-	public Consumer getConsumerFrom() {
+	public UUID getConsumerFrom() {
 		return consumerFrom;
-	}
-
-	public ArrayList<Consumer> getAllConsumers() {
-		return allConsumers;
 	}
 
 	public double getPrice() {
@@ -94,7 +90,7 @@ public class Offer {
 		map.put("uuid", uuid);
 		map.put("status", status.name());
 		map.put("price", price);
-		map.put("numberOfConsumers", allConsumers.size());
+		map.put("numberOfConsumers", allLoadprofiles.keySet().size());
 
 		return map;
 	}
