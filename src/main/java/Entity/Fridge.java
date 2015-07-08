@@ -133,7 +133,9 @@ public class Fridge implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
-		// TODO Schicke values + Startzeit (timeFixed) an Consumer
+		
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0);
+		sendLoadprofileToConsumer(loadprofile, false);
 	}
 
 	/*
@@ -273,13 +275,13 @@ public class Fridge implements Device {
 			if (change) {
 				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil für "
 						+ DateTime.ToString(startLoadprofile));
-						// TODO Versende deltaValues als Delta-Lastprofil an den
-						// Consumer
+				
+				// Versende deltaValues als Delta-Lastprofil an den Consumer
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0);
+				sendLoadprofileToConsumer(deltaLoadprofile, true);
 
-				// Löschen des alten Lastprofils des Zeitraums und Abspeichern
-				// des neuen Lastprofils
-				loadprofilesFixed.remove(DateTime.ToString(aenderung));
-				loadprofilesFixed.put(DateTime.ToString(aenderung), newValues);
+				// Abspeichern des neuen Lastprofils
+				loadprofilesFixed.put(DateTime.ToString(startLoadprofile), newValues);
 			} else {
 				System.out.println("Keine Aenderungen für " + DateTime.ToString(startLoadprofile));
 			}
