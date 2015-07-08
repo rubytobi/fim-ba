@@ -60,7 +60,7 @@ public class Offer {
 		this.aggLoadprofile = aggLoadprofile;
 		this.aggPrice = aggLoadprofile.getPrice();
 
-		status = OfferStatus.INVALID;
+		status = OfferStatus.VALID;
 	}
 
 	public Loadprofile getAggLoadprofile() {
