@@ -478,9 +478,9 @@ public class Fridge implements Device {
 		String url = "http://localhost:8080/consumers/" + consumerUUID;
 
 		if (isDeltaLoadprofile) {
-			url += "/deltaLoadprofile";
+			url += "/deltaLoadprofiles";
 		} else {
-			url += "/loadprofile";
+			url += "/loadprofiles";
 		}
 
 		try {

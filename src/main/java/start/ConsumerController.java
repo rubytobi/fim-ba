@@ -47,7 +47,7 @@ public class ConsumerController {
 		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
 	}
 
-	@RequestMapping(value = "/consumers/{uuid}/loadprofile", method = RequestMethod.POST)
+	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
 	@ResponseStatus(value = HttpStatus.ACCEPTED)
 	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
@@ -59,7 +59,7 @@ public class ConsumerController {
 		ConsumerContainer.instance().get(uuid).ping();
 	}
 
-	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofile", method = RequestMethod.POST)
+	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofiles", method = RequestMethod.POST)
 	@ResponseStatus(value = HttpStatus.ACCEPTED)
 	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
 		ConsumerContainer.instance().get(uuid).receiveDeltaLoadprofile(loadprofile);
