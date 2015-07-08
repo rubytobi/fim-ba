@@ -74,9 +74,6 @@ public class Fridge implements Device {
 		this.currCooling = false;
 
 		simulationFridge = new SimulationFridge();
-		sendNewLoadprofile();
-
-		sendNewLoadprofile();
 
 		System.out.println("Neuer Kühlschrank");
 		sendNewLoadprofile();
@@ -121,9 +118,10 @@ public class Fridge implements Device {
 			 * Wenn noch nicht gesetzt, erstelle initialen Fahrplan für bis zur
 			 * nächsten Stunde
 			 */
-			timeFixed = new GregorianCalendar();
+			timeFixed = DateTime.now();
 			timeFixed.set(Calendar.SECOND, 0);
 			timeFixed.set(Calendar.MILLISECOND, 0);
+			System.out.println("------------------------------------timeFixed: " +DateTime.ToString(timeFixed));
 
 			chargeNewSchedule();
 			valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
@@ -138,6 +136,7 @@ public class Fridge implements Device {
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 		// TODO Schicke values + Startzeit (timeFixed) an Consumer
+		System.out.println("------------------------------------timeFixed: " +DateTime.ToString(timeFixed));
 	}
 
 	/*
@@ -228,30 +227,19 @@ public class Fridge implements Device {
 		return valuesLoadprofile;
 	}
 
-	public GregorianCalendar generateStartLoadprofile(int hour, int date, int month, int year) {
-		GregorianCalendar start = DateTime.now();
-		start.set(Calendar.HOUR_OF_DAY, hour);
-		start.set(Calendar.DATE, date);
-		start.set(Calendar.MONTH, month);
-		start.set(Calendar.YEAR, year);
-		start.set(Calendar.MINUTE, 0);
-		start.set(Calendar.SECOND, 0);
-		start.set(Calendar.MILLISECOND, 0);
-		return start;
-	}
-
 	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
-		System.out.println("sendDeltaLoadprofile aufgerufen. ");
-		GregorianCalendar startLoadprofile = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY),
-				aenderung.get(Calendar.DATE), aenderung.get(Calendar.MONTH), aenderung.get(Calendar.YEAR));
-		aenderung.set(Calendar.SECOND, 0);
-		aenderung.set(Calendar.MILLISECOND, 0);
+		System.out.println("sendDeltaLoadprofile aufgerufen. Aenderung: " +DateTime.ToString(aenderung));
+		System.out.println("Aenderung Stunde: " +aenderung.get(Calendar.HOUR_OF_DAY));
+		
+		GregorianCalendar startLoadprofile = (GregorianCalendar) aenderung.clone();
+		startLoadprofile.set(Calendar.MINUTE, 0);
+		GregorianCalendar compare = (GregorianCalendar) timeFixed.clone();
+		compare.add(Calendar.HOUR_OF_DAY, 1);
 		boolean change;
 		boolean firstSchedule = true;
-
-		// +3 wegen +1: nach timeFixed und +2 wegen Zeitzone
-		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 1,
-				timeFixed.get(Calendar.DATE), timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
+		
+		aenderung.set(Calendar.SECOND, 0);
+		aenderung.set(Calendar.MILLISECOND, 0);
 
 		/*
 		 * Berechne ab Zeitpunkt der Abweichung einschließlich des aktuellen
@@ -310,6 +298,7 @@ public class Fridge implements Device {
 	 * 
 	 */
 	public double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
+		System.out.println("chargeDeltaSchedule aufgerufen.");
 		int change = 0;
 		int minuteChange = aenderung.get(Calendar.MINUTE);
 		double[][] deltaSchedule = new double[2][15 * numSlots];
@@ -318,9 +307,10 @@ public class Fridge implements Device {
 				+ newTemperature + " Minute Änderung: " + minuteChange);
 		System.out.println("timeFixed: " + DateTime.ToString(timeFixed));
 
-		GregorianCalendar start = generateStartLoadprofile(aenderung.get(Calendar.HOUR_OF_DAY),
-				aenderung.get(Calendar.DATE), aenderung.get(Calendar.MONTH), aenderung.get(Calendar.YEAR));
-
+		GregorianCalendar start = (GregorianCalendar) aenderung.clone();
+		start.set(Calendar.MINUTE, 0);
+		System.out.println("Start: " +DateTime.ToString(start));
+		
 		/*
 		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
 		 * scheduleMinutes
@@ -468,8 +458,8 @@ public class Fridge implements Device {
 		System.out.println(status);
 		System.out.println(DateTime.ToString(currentTime));
 		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
-		tempScaled = simulationFridge.getTemperature(currentTime);
-		// tempScaled = 5.5;
+		//tempScaled = simulationFridge.getTemperature(currentTime);
+		tempScaled = 7.5;
 		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
 				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
 

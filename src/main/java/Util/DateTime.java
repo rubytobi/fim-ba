@@ -7,7 +7,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 public class DateTime {
-	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'hh:mm:ssZ");
+	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	public static String timestamp() {
 		return simpleDateFormat.format(now().getTime());
@@ -18,7 +18,7 @@ public class DateTime {
 	}
 
 	public static GregorianCalendar now() {
-		return new GregorianCalendar(TimeZone.getTimeZone("America/Los_Angeles"));
+		return new GregorianCalendar(TimeZone.getTimeZone("America/Los Angeles"));
 	}
 
 	public static GregorianCalendar parse(String calendar) {
