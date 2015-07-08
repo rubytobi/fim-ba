@@ -24,12 +24,6 @@ import Packet.OfferNotification;
 @RestController
 public class ConsumerController {
 
-	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)
-	public void pingConsumer(@PathVariable UUID uuid) {
-		Consumer consumer = ConsumerContainer.instance().get(uuid);
-		consumer.ping();
-	}
-
 	@JsonView(View.Summary.class)
 	@RequestMapping(value = "/consumers", method = RequestMethod.GET)
 	public Consumer[] getAllConsumers() {
@@ -57,6 +51,12 @@ public class ConsumerController {
 	@ResponseStatus(value = HttpStatus.ACCEPTED)
 	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)
+	@ResponseStatus(value = HttpStatus.ACCEPTED)
+	public void ping(@PathVariable UUID uuid) {
+		ConsumerContainer.instance().get(uuid).ping();
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofile", method = RequestMethod.POST)

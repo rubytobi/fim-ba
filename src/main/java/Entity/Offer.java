@@ -11,19 +11,19 @@ import start.View;
 public class Offer {
 	// Aggregiertes Lastprofil über alle Lastprofile
 	@JsonView(View.Summary.class)
-	Loadprofile loadprofile;
-	
+	Loadprofile aggLoadprofile;
+
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
 	Map<UUID, Loadprofile> allLoadprofiles = new HashMap<UUID, Loadprofile>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
 	@JsonView(View.Summary.class)
-	double price;
+	double aggPrice;
 
 	// Consumer, von dem man das Angebot erhalten hat
 	@JsonView(View.Summary.class)
-	UUID consumerFrom = null;
+	UUID author = null;
 
 	@JsonView(View.Summary.class)
 	private UUID uuid = null;
@@ -33,50 +33,50 @@ public class Offer {
 
 	private Offer() {
 		uuid = UUID.randomUUID();
+		status = OfferStatus.INITIALIZED;
 	}
 
-	public Offer(Loadprofile loadprofile, Consumer consumer, double price) {
+	public Offer(UUID author, Loadprofile loadprofile) {
 		this();
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
-		this.loadprofile = loadprofile;
-		allLoadprofiles.put(consumer.getUUID(), loadprofile);
-		consumerFrom = consumer.getUUID();
+		this.aggLoadprofile = loadprofile;
+		allLoadprofiles.put(author, loadprofile);
 
-		this.price = price;
+		this.author = author;
+		this.aggPrice = loadprofile.getPrice();
+
+		status = OfferStatus.VALID;
 	}
 
-	public Offer(Loadprofile aggLoadprofile, Loadprofile loadprofile, Consumer consumer, Offer offer, double price) {
+	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenzeOffer) {
 		this();
 
-		// Consumer hat aggregiertes Lastprofil f�r neues Lastprofil �bergeben
-		this.loadprofile = aggLoadprofile;
+		// lastprofile aus bestehendem angebot einbeziehen
+		this.allLoadprofiles.putAll(referenzeOffer.getAllLoadprofiles());
+		this.allLoadprofiles.put(author, loadprofile);
 
-		// Zu allen Lastprofilen werden die Lastprofile vom vorherigen Angebot
-		// aufgenommen und das Lastprofil des neuen Consumers hinzugef�gt
-		this.allLoadprofiles = offer.getAllLoadprofiles();
-		this.allLoadprofiles.put(consumer.getUUID(), loadprofile);
+		this.author = author;
+		this.aggLoadprofile = aggLoadprofile;
+		this.aggPrice = aggLoadprofile.getPrice();
 
-		// Übergebener Consumer ist neuer Versender des Angebots
-		consumerFrom = consumer.getUUID();
-
-		this.price = price;
+		status = OfferStatus.INVALID;
 	}
 
 	public Loadprofile getAggLoadprofile() {
-		return loadprofile;
+		return aggLoadprofile;
 	}
 
 	public Map<UUID, Loadprofile> getAllLoadprofiles() {
 		return allLoadprofiles;
 	}
 
-	public UUID getConsumerFrom() {
-		return consumerFrom;
+	public UUID getAuthor() {
+		return author;
 	}
 
 	public double getPrice() {
-		return price;
+		return aggPrice;
 	}
 
 	public UUID getUUID() {
@@ -92,7 +92,7 @@ public class Offer {
 
 		map.put("uuid", uuid);
 		map.put("status", status.name());
-		map.put("price", price);
+		map.put("price", aggPrice);
 		map.put("numberOfConsumers", allLoadprofiles.keySet().size());
 
 		return map;

@@ -76,12 +76,7 @@ public class Consumer {
 		return valuesLoadprofile;
 	}
 
-	private Loadprofile generateAggLoadprofile(Offer offer) {
-		Loadprofile aggLoadprofile = new Loadprofile(loadprofile, offer.getAggLoadprofile());
-		return aggLoadprofile;
-	}
-
-	private boolean testOfferDate(Offer offer) {
+	private boolean isValidOfferDate(Offer offer) {
 		GregorianCalendar dateOffer = offer.getAggLoadprofile().getDate();
 		GregorianCalendar dateLoadprofile = loadprofile.getDate();
 
@@ -92,8 +87,8 @@ public class Consumer {
 		}
 	}
 
-	private boolean testOfferAverage(Offer offer) {
-		Loadprofile aggLoadprofile = generateAggLoadprofile(offer);
+	private boolean improveLoadprofileAverage(Offer offer) {
+		Loadprofile aggLoadprofile = new Loadprofile(loadprofile, offer.getAggLoadprofile());
 
 		double deviation = loadprofile.chargeDeviationAverage();
 		double aggDeviation = aggLoadprofile.chargeDeviationAverage();
@@ -105,8 +100,8 @@ public class Consumer {
 		}
 	}
 
-	private boolean testOfferOtherProfile(Offer offer, Loadprofile otherProfile) {
-		Loadprofile aggLoadprofile = generateAggLoadprofile(offer);
+	private boolean improveLoadprofileApproximation(Offer offer, Loadprofile otherProfile) {
+		Loadprofile aggLoadprofile = new Loadprofile(loadprofile, offer.getAggLoadprofile());
 
 		double deviation = loadprofile.chargeDeviationOtherProfile(otherProfile);
 		double aggDeviation = aggLoadprofile.chargeDeviationOtherProfile(otherProfile);
@@ -138,17 +133,56 @@ public class Consumer {
 		}
 
 		RestTemplate rest = new RestTemplate();
-		HttpEntity<Void> entity = new HttpEntity<Void>(Application.getRestHeader());
+		HttpEntity<Void> entityVoid = new HttpEntity<Void>(Application.getRestHeader());
 
 		String url = notification.getLocation();
 		Log.i("request offer at: " + url);
 
+		Offer offer = null;
 		try {
-			ResponseEntity<Offer> responseOffer = rest.exchange(url, HttpMethod.GET, entity, Offer.class);
-			Log.d(responseOffer.getBody().toString());
+			ResponseEntity<Offer> responseOffer = rest.exchange(url, HttpMethod.GET, entityVoid, Offer.class);
+			offer = responseOffer.getBody();
 		} catch (Exception e) {
 			Log.e(e.getMessage());
 		}
+
+		if (!isValidOfferDate(offer)) {
+			Log.d("offerdate invalid");
+			return;
+		}
+
+		Offer[] supplies = getMarketplaceSupplies(5);
+		boolean improveLoadprofileApproximation = false;
+
+		for (Offer o : supplies) {
+			if (improveLoadprofileApproximation(o, loadprofile)) {
+				improveLoadprofileApproximation = true;
+				break;
+			}
+		}
+
+		if (!improveLoadprofileApproximation && !improveLoadprofileAverage(offer)) {
+			Log.d("No improvement possible.");
+			return;
+		}
+
+		Offer toBeContract = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, offer.getAggLoadprofile()),
+				offer);
+
+		HttpEntity<Offer> entityOffer = new HttpEntity<Offer>(toBeContract, Application.getRestHeader());
+
+		url = "http://localhost:8080/consumers/" + offer.getAuthor() + "/contracts";
+		Log.i("post contract at: " + url);
+
+		try {
+			rest.exchange(url, HttpMethod.GET, entityOffer, Void.class);
+		} catch (Exception e) {
+			Log.e(e.getMessage());
+		}
+	}
+
+	private Offer[] getMarketplaceSupplies(int i) {
+		return new Offer[0];
 	}
 
 	public Offer getOffer(UUID uuidOffer) {
@@ -174,7 +208,7 @@ public class Consumer {
 
 		this.loadprofile = loadprofile;
 
-		this.offer = new Offer(loadprofile, this, 0.0);
+		this.offer = new Offer(uuid, loadprofile);
 		OfferNotification notification = new OfferNotification(
 				"http://localhost:8080/consumers/" + uuid + "/offers/" + offer.getUUID(), null);
 
