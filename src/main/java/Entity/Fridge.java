@@ -230,7 +230,7 @@ public class Fridge implements Device {
 	}
 
 	public GregorianCalendar generateStartLoadprofile(int hour, int date, int month, int year) {
-		GregorianCalendar start = new GregorianCalendar();
+		GregorianCalendar start = DateTime.now();
 		start.set(Calendar.HOUR_OF_DAY, hour);
 		start.set(Calendar.DATE, date);
 		start.set(Calendar.MONTH, month);
@@ -251,7 +251,7 @@ public class Fridge implements Device {
 		boolean firstSchedule = true;
 
 		// +3 wegen +1: nach timeFixed und +2 wegen Zeitzone
-		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 3,
+		GregorianCalendar compare = generateStartLoadprofile(timeFixed.get(Calendar.HOUR_OF_DAY) + 1,
 				timeFixed.get(Calendar.DATE), timeFixed.get(Calendar.MONTH), timeFixed.get(Calendar.YEAR));
 
 		/*
@@ -277,6 +277,11 @@ public class Fridge implements Device {
 				oldValues = loadprofilesFixed.get(DateTime.ToString(startLoadprofile));
 			}
 			double[] deltaValues = new double[4];
+
+			if (oldValues == null) {
+				Log.e(DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
+			}
+
 			change = false;
 			for (int i = 0; i < 4; i++) {
 				deltaValues[i] = newValues[i] - oldValues[i];
