@@ -26,8 +26,8 @@ public class Fridge implements Device {
 	@JsonView(View.Summary.class)
 	private GregorianCalendar timeFixed;
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
-	private Hashtable<String, double[]> schedulesFixed = new Hashtable<String, double[]>();
-	private Hashtable<String, double[]> loadprofilesFixed = new Hashtable<String, double[]>();
+	private TreeMap<String, double[]> schedulesFixed = new TreeMap<String, double[]>();
+	private TreeMap<String, double[]> loadprofilesFixed = new TreeMap<String, double[]>();
 
 	// currTemp: Temperatur, bei der der nächste neue Fahrplan beginnen soll
 	private double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
@@ -88,11 +88,11 @@ public class Fridge implements Device {
 		return scheduleMinutes;
 	}
 
-	public Hashtable<String, double[]> getSchedulesFixed() {
+	public TreeMap<String, double[]> getSchedulesFixed() {
 		return schedulesFixed;
 	}
 
-	public Hashtable<String, double[]> getLoadprofilesFixed() {
+	public TreeMap<String, double[]> getLoadprofilesFixed() {
 		return loadprofilesFixed;
 	}
 
@@ -230,7 +230,7 @@ public class Fridge implements Device {
 		compare.add(Calendar.HOUR_OF_DAY, 1);
 		boolean change;
 		boolean firstSchedule = true;
-		
+
 		aenderung.set(Calendar.SECOND, 0);
 		aenderung.set(Calendar.MILLISECOND, 0);
 
@@ -271,17 +271,17 @@ public class Fridge implements Device {
 				}
 			}
 			if (change) {
-				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil für " +DateTime.ToString(startLoadprofile));
-				// TODO Versende deltaValues als Delta-Lastprofil an den
-				// Consumer
+				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil für "
+						+ DateTime.ToString(startLoadprofile));
+						// TODO Versende deltaValues als Delta-Lastprofil an den
+						// Consumer
 
 				// Löschen des alten Lastprofils des Zeitraums und Abspeichern
 				// des neuen Lastprofils
 				loadprofilesFixed.remove(DateTime.ToString(aenderung));
 				loadprofilesFixed.put(DateTime.ToString(aenderung), newValues);
-			}
-			else {
-				System.out.println("Keine Aenderungen für " +DateTime.ToString(startLoadprofile));
+			} else {
+				System.out.println("Keine Aenderungen für " + DateTime.ToString(startLoadprofile));
 			}
 			startLoadprofile.add(Calendar.HOUR_OF_DAY, 1);
 			aenderung.add(Calendar.HOUR_OF_DAY, 1);
@@ -299,7 +299,7 @@ public class Fridge implements Device {
 
 		GregorianCalendar start = (GregorianCalendar) aenderung.clone();
 		start.set(Calendar.MINUTE, 0);
-		
+
 		/*
 		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
 		 * scheduleMinutes
@@ -310,7 +310,8 @@ public class Fridge implements Device {
 				double temp = scheduleMinutes[1][i];
 				deltaSchedule[0][i] = cons;
 				deltaSchedule[1][i] = temp;
-				//System.out.println("Minute " + i + " Verbrauch: " + deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
+				// System.out.println("Minute " + i + " Verbrauch: " +
+				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
 			}
 		}
 		/*
@@ -327,7 +328,8 @@ public class Fridge implements Device {
 					deltaSchedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
 				}
 				start.add(Calendar.MINUTE, 1);
-				//System.out.println("Minute " + i + " Verbrauch: " + deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
+				// System.out.println("Minute " + i + " Verbrauch: " +
+				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
 			}
 			start.add(Calendar.HOUR_OF_DAY, -1);
 		}
@@ -381,8 +383,9 @@ public class Fridge implements Device {
 			schedule[1][minuteChange] = newTemperature;
 		}
 
-		//System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " + schedule[0][minuteChange] + " Temperatur: "
-			//	+ schedule[1][minuteChange]);
+		// System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " +
+		// schedule[0][minuteChange] + " Temperatur: "
+		// + schedule[1][minuteChange]);
 
 		for (int i = minuteChange + 1; i < 15 * numSlots; i++) {
 			if (schedule[0][i] > 0) {
@@ -390,15 +393,16 @@ public class Fridge implements Device {
 			} else {
 				schedule[1][i] = schedule[1][i - 1] + riseWarming;
 			}
-			//System.out
-				//	.println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] + " Temperatur: " + schedule[1][i]);
+			// System.out
+			// .println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] +
+			// " Temperatur: " + schedule[1][i]);
 			if (schedule[1][i] > maxTemp2) {
-				//System.out.println("Änderung notwendig in Minute " + i);
+				// System.out.println("Änderung notwendig in Minute " + i);
 				// Wenn Änderung notwendig ist, wird die Minute, in welcher
 				// Temperatur zu hoch zurückgegeben
 				return i;
 			} else if (schedule[1][i] < minTemp2) {
-				//System.out.println("Änderung notwendig in Minute " + (-i));
+				// System.out.println("Änderung notwendig in Minute " + (-i));
 				// Wenn Änderung notwendig ist, wird die -Minute, in welcher
 				// Temperatur zu niedrig zurückgegeben
 				return -i;
@@ -434,8 +438,6 @@ public class Fridge implements Device {
 
 	@Override
 	public void ping() {
-		sendInitialLoadprofile();
-
 		GregorianCalendar currentTime = new GregorianCalendar();
 		currentTime.set(Calendar.SECOND, 0);
 		currentTime.set(Calendar.MILLISECOND, 0);
@@ -444,7 +446,7 @@ public class Fridge implements Device {
 		System.out.println(status);
 		System.out.println(DateTime.ToString(currentTime));
 		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
-		//tempScaled = simulationFridge.getTemperature(currentTime);
+		// tempScaled = simulationFridge.getTemperature(currentTime);
 		tempScaled = 7.5;
 		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
 				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
@@ -487,8 +489,8 @@ public class Fridge implements Device {
 		try {
 			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
 		} catch (Exception e) {
-			Log.i(entity.getBody().toString());
-			Log.e(url);
+			Log.i(url);
+			Log.e(e.getMessage());
 		}
 	}
 
