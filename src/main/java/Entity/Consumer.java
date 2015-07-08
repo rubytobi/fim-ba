@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.InvalidOffer;
 import Packet.OfferNotification;
+import Util.DateTime;
 import Util.Log;
 import start.Application;
 import start.Loadprofile;
@@ -29,6 +30,12 @@ public class Consumer {
 
 	// Aktuelles Angebot
 	private Offer offer = null;
+	
+	// Angebote mit DeltaLastprofilen
+	private ArrayList<Offer> deltaOffers = new ArrayList<Offer>();
+	
+	// Erhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Offer gibt
+	private Hashtable<String, double[]> deltaLoadprofiles = new Hashtable<String, double[]>();
 
 	// Anzahl der 15-Minuten-Slots f�r ein Lastprofil
 	private int numSlots = 4;
@@ -161,10 +168,6 @@ public class Consumer {
 		device = uuid;
 	}
 
-	public void receiveDeltaLoadprofile(Loadprofile device) {
-		Log.e("function not yet implemented...");
-	}
-
 	public void receiveLoadprofile(Loadprofile loadprofile) {
 		Log.i(uuid + " [consumer] received loadprofile from device");
 		Log.i(loadprofile.toString());
@@ -220,5 +223,79 @@ public class Consumer {
 
 	public Offer[] getOffers() {
 		return new Offer[] { this.offer };
+	}
+	
+	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
+		Log.i(uuid + " [consumer] received deltaloadprofile from device");
+		Log.i(loadprofile.toString());
+		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
+		GregorianCalendar timeCurrent = DateTime.now();
+		double[] valuesNew = deltaLoadprofile.getValues();
+		
+		// Prüfe, ob deltaLoadprofile Änderungen für die aktuelle Stunde hat
+		boolean currentHour = timeLoadprofile.get(Calendar.HOUR_OF_DAY) == timeCurrent.get(Calendar.HOUR_OF_DAY);	
+		if (currentHour) {
+			// Prüfe, ob deltaLoadprofile Änderungen für die noch kommenden Slots beinhaltet
+			int minuteCurrent = timeCurrent.get(Calendar.MINUTE);
+			int slot = (int) Math.floor(minuteCurrent/15)+1;
+			double sum = 0;
+			for (int i=slot; i<numSlots; i++) {
+				sum = sum + valuesNew[i];
+			}
+			if (sum == 0) {
+				return;
+			}
+			else {
+				for (int j=0; j<slot; j++) {
+					valuesNew[j] = 0;
+				}
+			}
+		}
+		
+		// Prüfe, welche Werte für die Stunde von deltaLoadprofile bereits in deltaLoadprofiles hinterlegt sind
+		double[] valuesOld = deltaLoadprofiles.get(DateTime.ToString(timeLoadprofile));
+		double sum = 0;
+		
+		// Erstelle Summe aus valuesOld und den valuesNew vom deltaLoaprofile
+		if(valuesOld != null) {
+			for (int i=0; i<numSlots; i++) {
+				valuesNew[i] = valuesOld[i] + valuesNew[i];
+				sum = sum+valuesNew[i];
+			}
+		}
+		
+		// Versende Deltalastprofile mit Summe>5 oder aus der aktuellen Stunde sofort
+		if (currentHour	|| sum >= 5) {
+			deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile);
+			
+			// Erstelle Angebot aus deltaLoadprofile, speichere es in deltaOffers und verschicke es
+			Offer deltaOffer = new Offer(deltaLoadprofile, this, 0.0);
+			deltaOffers.add(deltaOffer);
+			
+			OfferNotification notification = new OfferNotification(
+					"http://localhost:8080/consumers/" + uuid + "/offers/" + offer.getUUID(), null);
+
+			RestTemplate rest = new RestTemplate();
+
+			HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
+					Application.getRestHeader());
+
+			String url;
+
+			for (Consumer c : getAllConsumers()) {
+				url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
+				Log.i("send offer: " + url);
+
+				try {
+					rest.exchange(url, HttpMethod.POST, entity, String.class);
+				} catch (Exception e) {
+					Log.e(e.getMessage());
+				}
+			}
+		}
+		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
+		else {
+			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
+		}
 	}
 }

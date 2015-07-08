@@ -75,7 +75,6 @@ public class Fridge implements Device {
 
 		simulationFridge = new SimulationFridge();
 
-		System.out.println("Neuer Kühlschrank");
 		sendNewLoadprofile();
 
 		status = DeviceStatus.INITIALIZED;
@@ -121,7 +120,6 @@ public class Fridge implements Device {
 			timeFixed = DateTime.now();
 			timeFixed.set(Calendar.SECOND, 0);
 			timeFixed.set(Calendar.MILLISECOND, 0);
-			System.out.println("------------------------------------timeFixed: " +DateTime.ToString(timeFixed));
 
 			chargeNewSchedule();
 			valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
@@ -136,7 +134,6 @@ public class Fridge implements Device {
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 		// TODO Schicke values + Startzeit (timeFixed) an Consumer
-		System.out.println("------------------------------------timeFixed: " +DateTime.ToString(timeFixed));
 	}
 
 	/*
@@ -145,7 +142,6 @@ public class Fridge implements Device {
 	 * timeFixed
 	 */
 	private void chargeNewSchedule() {
-		System.out.println("chargeScheduleMinutes, Start: " + DateTime.ToString(timeFixed));
 		// Erstelle Array mit geplantem Verbrauch (0) und geplanter Temperatur
 		// (1) pro Minute
 		scheduleMinutes = new double[2][15 * numSlots];
@@ -228,9 +224,6 @@ public class Fridge implements Device {
 	}
 
 	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
-		System.out.println("sendDeltaLoadprofile aufgerufen. Aenderung: " +DateTime.ToString(aenderung));
-		System.out.println("Aenderung Stunde: " +aenderung.get(Calendar.HOUR_OF_DAY));
-		
 		GregorianCalendar startLoadprofile = (GregorianCalendar) aenderung.clone();
 		startLoadprofile.set(Calendar.MINUTE, 0);
 		GregorianCalendar compare = (GregorianCalendar) timeFixed.clone();
@@ -273,13 +266,12 @@ public class Fridge implements Device {
 			change = false;
 			for (int i = 0; i < 4; i++) {
 				deltaValues[i] = newValues[i] - oldValues[i];
-				System.out.println("Delta Values: " + i + " " + deltaValues[i]);
 				if (deltaValues[i] != 0) {
 					change = true;
 				}
 			}
 			if (change) {
-				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil");
+				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil für " +DateTime.ToString(startLoadprofile));
 				// TODO Versende deltaValues als Delta-Lastprofil an den
 				// Consumer
 
@@ -287,6 +279,9 @@ public class Fridge implements Device {
 				// des neuen Lastprofils
 				loadprofilesFixed.remove(DateTime.ToString(aenderung));
 				loadprofilesFixed.put(DateTime.ToString(aenderung), newValues);
+			}
+			else {
+				System.out.println("Keine Aenderungen für " +DateTime.ToString(startLoadprofile));
 			}
 			startLoadprofile.add(Calendar.HOUR_OF_DAY, 1);
 			aenderung.add(Calendar.HOUR_OF_DAY, 1);
@@ -298,32 +293,24 @@ public class Fridge implements Device {
 	 * 
 	 */
 	public double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
-		System.out.println("chargeDeltaSchedule aufgerufen.");
 		int change = 0;
 		int minuteChange = aenderung.get(Calendar.MINUTE);
 		double[][] deltaSchedule = new double[2][15 * numSlots];
 
-		System.out.println("generateNewSchedule, Aenderung: " + DateTime.ToString(aenderung) + " newTemperature: "
-				+ newTemperature + " Minute Änderung: " + minuteChange);
-		System.out.println("timeFixed: " + DateTime.ToString(timeFixed));
-
 		GregorianCalendar start = (GregorianCalendar) aenderung.clone();
 		start.set(Calendar.MINUTE, 0);
-		System.out.println("Start: " +DateTime.ToString(start));
 		
 		/*
 		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
 		 * scheduleMinutes
 		 */
-		System.out.println(DateTime.ToString(start).equals(DateTime.ToString(timeFixed)));
 		if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed))) {
 			for (int i = 0; i < 15 * numSlots; i++) {
 				double cons = scheduleMinutes[0][i];
 				double temp = scheduleMinutes[1][i];
 				deltaSchedule[0][i] = cons;
 				deltaSchedule[1][i] = temp;
-				System.out.println(
-						"Minute " + i + " Verbrauch: " + deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
+				//System.out.println("Minute " + i + " Verbrauch: " + deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
 			}
 		}
 		/*
@@ -340,8 +327,7 @@ public class Fridge implements Device {
 					deltaSchedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
 				}
 				start.add(Calendar.MINUTE, 1);
-				System.out.println(
-						"Minute " + i + " Verbrauch: " + deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
+				//System.out.println("Minute " + i + " Verbrauch: " + deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
 			}
 			start.add(Calendar.HOUR_OF_DAY, -1);
 		}
@@ -395,8 +381,8 @@ public class Fridge implements Device {
 			schedule[1][minuteChange] = newTemperature;
 		}
 
-		System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " + schedule[0][minuteChange] + " Temperatur: "
-				+ schedule[1][minuteChange]);
+		//System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " + schedule[0][minuteChange] + " Temperatur: "
+			//	+ schedule[1][minuteChange]);
 
 		for (int i = minuteChange + 1; i < 15 * numSlots; i++) {
 			if (schedule[0][i] > 0) {
@@ -404,15 +390,15 @@ public class Fridge implements Device {
 			} else {
 				schedule[1][i] = schedule[1][i - 1] + riseWarming;
 			}
-			System.out
-					.println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] + " Temperatur: " + schedule[1][i]);
+			//System.out
+				//	.println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] + " Temperatur: " + schedule[1][i]);
 			if (schedule[1][i] > maxTemp2) {
-				System.out.println("Änderung notwendig in Minute " + i);
+				//System.out.println("Änderung notwendig in Minute " + i);
 				// Wenn Änderung notwendig ist, wird die Minute, in welcher
 				// Temperatur zu hoch zurückgegeben
 				return i;
 			} else if (schedule[1][i] < minTemp2) {
-				System.out.println("Änderung notwendig in Minute " + (-i));
+				//System.out.println("Änderung notwendig in Minute " + (-i));
 				// Wenn Änderung notwendig ist, wird die -Minute, in welcher
 				// Temperatur zu niedrig zurückgegeben
 				return -i;
