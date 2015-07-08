@@ -38,9 +38,9 @@ public class DeviceController {
 				fC.getFallCooling(), fC.getRiseWarming(), fC.getConsCooling(), fC.getCurrTemp());
 
 		DeviceContainer.instance().add(fridge);
-		System.out.println("#" + fridge.getSchedulesFixed());
-		System.out.println("#" + fridge.getLoadprofilesFixed());
-		System.out.println("#" + fridge.getScheduleMinutes());
+		//System.out.println("#" + fridge.getSchedulesFixed());
+		//System.out.println("#" + fridge.getLoadprofilesFixed());
+		//System.out.println("#" + fridge.getScheduleMinutes());
 		return fridge.getUUID();
 	}
 

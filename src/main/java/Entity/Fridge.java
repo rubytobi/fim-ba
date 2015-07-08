@@ -454,26 +454,24 @@ public class Fridge implements Device {
 	@Override
 	public void ping() {
 		sendInitialLoadprofile();
-		return;
-		// GregorianCalendar currentTime = new GregorianCalendar();
-		// currentTime.set(Calendar.SECOND, 0);
-		// currentTime.set(Calendar.MILLISECOND, 0);
-		//
-		// double tempPlanned, tempScaled;
-		// System.out.println(status);
-		// System.out.println(DateTime.ToString(currentTime));
-		// tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
-		// // tempScaled = simulationFridge.getTemperature(currentTime);
+		
+		GregorianCalendar currentTime = new GregorianCalendar();
+		currentTime.set(Calendar.SECOND, 0);
+		currentTime.set(Calendar.MILLISECOND, 0);
+		
+		double tempPlanned, tempScaled;
+		System.out.println(status);
+		System.out.println(DateTime.ToString(currentTime));
+		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
+		tempScaled = simulationFridge.getTemperature(currentTime);
 		// tempScaled = 5.5;
-		// System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + "
-		// Temperatur geplant: "
-		// + schedulesFixed.get(DateTime.ToString(currentTime))[1] + "
-		// Temperatur gemessen: " + tempScaled);
-		//
-		// if (tempPlanned != tempScaled) {
-		// System.out.println("Rufe sendDeltaLoadprofile auf:");
-		// // sendDeltaLoadprofile(currentTime, tempScaled);
-		// }
+		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
+		+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
+		
+		if (tempPlanned != tempScaled) {
+			System.out.println("Rufe sendDeltaLoadprofile auf:");
+			sendDeltaLoadprofile(currentTime, tempScaled);
+		}
 	}
 
 	private static void mapToString(Hashtable<String, double[]> map) {

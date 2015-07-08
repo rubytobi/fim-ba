@@ -15,7 +15,6 @@ public class SimulationFridge {
 	
 	public void addNewValues(String s, double[] values) {
 		schedule.put(s, values);
-		System.out.println("SimulationFridge: " +s+ " Werte: " +values[0]+ ", " +values[1]);
 	}
 	
 	private void openDoor() {
