@@ -53,6 +53,32 @@ public class Consumer {
 		return uuid;
 	}
 
+	public Offer getOffer(UUID uuidOffer) {
+		return offer;
+	}
+
+	private Fridge[] getAllDevices() {
+		RestTemplate rest = new RestTemplate();
+	
+		ResponseEntity<Fridge[]> devices = rest.exchange("http://localhost:8080/devices", HttpMethod.GET, null,
+				Fridge[].class);
+	
+		return devices.getBody();
+	}
+
+	private Consumer[] getAllConsumers() {
+		RestTemplate rest = new RestTemplate();
+	
+		ResponseEntity<Consumer[]> consumers = rest.exchange("http://localhost:8080/consumers", HttpMethod.GET, null,
+				Consumer[].class);
+	
+		return consumers.getBody();
+	}
+
+	public Offer[] getOffers() {
+		return new Offer[] { this.offer };
+	}
+
 	public Consumer() {
 		uuid = UUID.randomUUID();
 	}
@@ -151,10 +177,6 @@ public class Consumer {
 		}
 	}
 
-	public Offer getOffer(UUID uuidOffer) {
-		return offer;
-	}
-
 	public boolean confirmOffer(UUID uuidOffer) {
 		// TODO Auto-generated method stub
 		return true;
@@ -197,34 +219,12 @@ public class Consumer {
 		}
 	}
 
-	private Fridge[] getAllDevices() {
-		RestTemplate rest = new RestTemplate();
-
-		ResponseEntity<Fridge[]> devices = rest.exchange("http://localhost:8080/devices", HttpMethod.GET, null,
-				Fridge[].class);
-
-		return devices.getBody();
-	}
-
-	private Consumer[] getAllConsumers() {
-		RestTemplate rest = new RestTemplate();
-
-		ResponseEntity<Consumer[]> consumers = rest.exchange("http://localhost:8080/consumers", HttpMethod.GET, null,
-				Consumer[].class);
-
-		return consumers.getBody();
-	}
-
 	public Map<String, Object> status() {
 		Map<String, Object> map = new HashMap<String, Object>();
 		// TODO
 		return map;
 	}
 
-	public Offer[] getOffers() {
-		return new Offer[] { this.offer };
-	}
-	
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
 		Log.i(uuid + " [consumer] received deltaloadprofile from device");
 		Log.i(loadprofile.toString());

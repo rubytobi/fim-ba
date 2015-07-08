@@ -16,12 +16,6 @@ public interface Device {
 
 	public void sendDeltaLoadprofile(GregorianCalendar timeChanged, double valueChanged);
 
-	public void sendImprovedLoadprofile(/*
-										 * TODO ueberlege, in welchem Format
-										 * gewünschte Änderung übergeben werden
-										 * kann
-										 */);
-
 	public UUID getUUID();
 
 	public void initialize(Map<String, Object> init);

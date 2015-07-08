@@ -423,11 +423,6 @@ public class Fridge implements Device {
 	}
 
 	@Override
-	public void sendImprovedLoadprofile() {
-		// TODO Auto-generated method stub
-	}
-
-	@Override
 	public void initialize(Map<String, Object> init) {
 		// TODO Auto-generated method stub
 	}
@@ -474,6 +469,12 @@ public class Fridge implements Device {
 
 	@Override
 	public void changeLoadprofile(ChangeRequest cr) {
+		double[] changesLoadprofile = cr.getChangesLoadprofile();
+		GregorianCalendar timeChange = cr.getStartLoadprofile();
+		
+		// Hole aktuellen Schedule zu dieser Zeit und prüfe, ob die Änderungen eingefügt werden können, ohne
+		// dass die harten Grenzen verletzt werden
+		
 		// TODO Auto-generated method stub
 	}
 
