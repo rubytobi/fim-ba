@@ -59,19 +59,19 @@ public class Consumer {
 
 	private Fridge[] getAllDevices() {
 		RestTemplate rest = new RestTemplate();
-	
+
 		ResponseEntity<Fridge[]> devices = rest.exchange("http://localhost:8080/devices", HttpMethod.GET, null,
 				Fridge[].class);
-	
+
 		return devices.getBody();
 	}
 
 	private Consumer[] getAllConsumers() {
 		RestTemplate rest = new RestTemplate();
-	
+
 		ResponseEntity<Consumer[]> consumers = rest.exchange("http://localhost:8080/consumers", HttpMethod.GET, null,
 				Consumer[].class);
-	
+
 		return consumers.getBody();
 	}
 
@@ -172,6 +172,11 @@ public class Consumer {
 			Log.e(e.getMessage());
 		}
 
+		if (offer == null) {
+			Log.e("offer unavailable...");
+			return;
+		}
+
 		if (!isValidOfferDate(offer)) {
 			Log.d("offerdate invalid");
 			return;
@@ -262,7 +267,7 @@ public class Consumer {
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
 		Log.i(uuid + " [consumer] received deltaloadprofile from device");
-		Log.i(loadprofile.toString());
+		Log.i(deltaLoadprofile.toString());
 		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
 		GregorianCalendar timeCurrent = DateTime.now();
 		double[] valuesNew = deltaLoadprofile.getValues();
@@ -311,7 +316,7 @@ public class Consumer {
 			deltaOffers.add(deltaOffer);
 
 			OfferNotification notification = new OfferNotification(
-					"http://localhost:8080/consumers/" + uuid + "/offers/" + offer.getUUID(), null);
+					"http://localhost:8080/consumers/" + uuid + "/offers/" + deltaOffer.getUUID(), null);
 
 			RestTemplate rest = new RestTemplate();
 

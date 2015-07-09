@@ -133,7 +133,7 @@ public class Fridge implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
-		
+
 		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0);
 		sendLoadprofileToConsumer(loadprofile, false);
 	}
@@ -275,7 +275,7 @@ public class Fridge implements Device {
 			if (change) {
 				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil für "
 						+ DateTime.ToString(startLoadprofile));
-				
+
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
 				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0);
 				sendLoadprofileToConsumer(deltaLoadprofile, true);
@@ -467,24 +467,23 @@ public class Fridge implements Device {
 	public void changeLoadprofile(ChangeRequest cr) {
 		double[] changesLoadprofile = cr.getChangesLoadprofile();
 		GregorianCalendar startChangedLoadprofile = cr.getStartLoadprofile();
-		double[][] plannedSchedule = new double[2][15*numSlots];
-		
+		double[][] plannedSchedule = new double[2][15 * numSlots];
+
 		if (DateTime.ToString(startChangedLoadprofile) == DateTime.ToString(timeFixed)) {
 			plannedSchedule = scheduleMinutes;
-		}
-		else {
-			for (int i=0; i<15*numSlots; i++) {
+		} else {
+			for (int i = 0; i < 15 * numSlots; i++) {
 				plannedSchedule[0][i] = schedulesFixed.get(DateTime.ToString(startChangedLoadprofile))[0];
 				plannedSchedule[0][i] = schedulesFixed.get(DateTime.ToString(startChangedLoadprofile))[0];
 				startChangedLoadprofile.add(Calendar.MINUTE, 0);
 			}
 			startChangedLoadprofile.add(Calendar.HOUR_OF_DAY, -1);
 		}
-		
-		
-		// Hole aktuellen Schedule zu dieser Zeit und prüfe, ob die Änderungen eingefügt werden können, ohne
+
+		// Hole aktuellen Schedule zu dieser Zeit und prüfe, ob die Änderungen
+		// eingefügt werden können, ohne
 		// dass die harten Grenzen verletzt werden
-		
+
 		// TODO Auto-generated method stub
 	}
 
