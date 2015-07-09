@@ -2,6 +2,12 @@ package start;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+
 import Entity.Consumer;
 import Util.DateTime;
 
@@ -13,6 +19,7 @@ public class Loadprofile {
 	private GregorianCalendar date;
 
 	// Preis
+	@JsonProperty("minPrice")
 	private double minPrice;
 
 	public Loadprofile() {
@@ -26,7 +33,7 @@ public class Loadprofile {
 		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil
 		// zur vollen Stunde startet
 		if (values.length != 4 || date.get(Calendar.MINUTE) != 0) {
-			return;
+			throw new IllegalArgumentException();
 		}
 
 		this.values = values;
@@ -42,22 +49,27 @@ public class Loadprofile {
 	// Erstellt aus beiden Lastprofilen Aggregiertes Lastprofil
 	public Loadprofile(Loadprofile lp1, Loadprofile lp2) {
 		this();
-		
-		if (lp1.getDate() != lp2.getDate()) {
-			return;
+
+		if (!DateTime.ToString(lp1.getDate()).equals(DateTime.ToString(lp2.getDate()))) {
+			throw new IllegalArgumentException();
+		}
+
+		if (lp1.getValues() == null || lp2.getValues() == null) {
+			throw new IllegalArgumentException();
 		}
 
 		date = lp1.getDate();
+		values = new double[4];
 
 		for (int i = 0; i < 4; i++) {
 			values[i] = lp1.getValues()[i] + lp2.getValues()[i];
 		}
 
 		// TODO: annahme: nehme stets den billigeren preis
-		this.minPrice = Math.min(lp1.getPrice(), lp2.getPrice());
+		this.minPrice = Math.min(lp1.getMinPrice(), lp2.getMinPrice());
 	}
 
-	public double getPrice() {
+	public double getMinPrice() {
 		return minPrice;
 	}
 
@@ -67,6 +79,11 @@ public class Loadprofile {
 
 	public GregorianCalendar getDate() {
 		return date;
+	}
+
+	public String toString() {
+		return "{\"values\"=" + Arrays.toString(values) + ",\"date\"=\"" + DateTime.ToString(date) + "\",\"minPrice\"="
+				+ minPrice + "}";
 	}
 
 	// Berechnet die Abweichung des Lastprofils von seinem Mittelwert

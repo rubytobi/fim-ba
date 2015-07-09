@@ -45,13 +45,12 @@ public class Application {
 
 		mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-		mapper.setSerializationInclusion(Include.NON_NULL);
 
 		jsonConverter.setObjectMapper(mapper);
 		return jsonConverter;
 	}
 
-	@Scheduled(fixedRate = 100)
+	@Scheduled(initialDelay = 10000, fixedRate = 100)
 	public static void init() {
 		if (countFridges < maxFridges) {
 			countFridges++;
@@ -74,11 +73,11 @@ public class Application {
 			Log.i(url);
 			ResponseEntity<UUID> responseConsumer = rest.exchange(url, HttpMethod.POST, entityConsumer, UUID.class);
 
-			url = BASE_URI + "/devices/" + responseFridge.getBody() + "/link/" + responseConsumer.getBody();
+			url = BASE_URI + "/consumers/" + responseConsumer.getBody() + "/link/" + responseFridge.getBody();
 			Log.i(url);
 			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
 
-			url = BASE_URI + "/consumers/" + responseConsumer.getBody() + "/link/" + responseFridge.getBody();
+			url = BASE_URI + "/devices/" + responseFridge.getBody() + "/link/" + responseConsumer.getBody();
 			Log.i(url);
 			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
 		}
@@ -105,7 +104,7 @@ public class Application {
 
 		for (Device d : devices.getBody()) {
 			try {
-				rest.exchange(BASE_URI + "/devices/" + d.getUUID() + "/ping", HttpMethod.GET, null, String.class);
+				rest.exchange(BASE_URI + "/devices/" + d.getUUID() + "/ping", HttpMethod.GET, null, Void.class);
 			} catch (HttpServerErrorException e) {
 				Log.e("#500 @ pinging " + BASE_URI + "/devices/" + d.getUUID() + "/ping");
 			}
@@ -123,7 +122,7 @@ public class Application {
 			String url = BASE_URI + "/consumers/" + c.getUUID() + "/ping";
 
 			try {
-				rest.exchange(url, HttpMethod.GET, null, String.class);
+				rest.exchange(url, HttpMethod.GET, null, Void.class);
 			} catch (HttpServerErrorException e) {
 				Log.e("#500 @ pinging " + url);
 			}

@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,9 +49,14 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
-	@ResponseStatus(value = HttpStatus.ACCEPTED)
-	public void receiveLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
+	public boolean receiveLoadprofile(@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
+		return true;
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.GET)
+	public @ResponseBody Loadprofile receiveLoadprofile(@PathVariable UUID uuid) {
+		return ConsumerContainer.instance().get(uuid).getLoadprofile();
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)

@@ -106,7 +106,7 @@ public class Consumer {
 		GregorianCalendar dateOffer = offer.getAggLoadprofile().getDate();
 		GregorianCalendar dateLoadprofile = loadprofile.getDate();
 
-		if (dateOffer == dateLoadprofile) {
+		if (DateTime.ToString(dateOffer).equals(DateTime.ToString(dateLoadprofile))) {
 			return true;
 		} else {
 			return false;
@@ -340,5 +340,9 @@ public class Consumer {
 		else {
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
 		}
+	}
+
+	public Loadprofile getLoadprofile() {
+		return loadprofile;
 	}
 }

@@ -44,7 +44,7 @@ public class Offer {
 		allLoadprofiles.put(author, loadprofile);
 
 		this.author = author;
-		this.aggPrice = loadprofile.getPrice();
+		this.aggPrice = loadprofile.getMinPrice();
 
 		status = OfferStatus.VALID;
 	}
@@ -58,7 +58,7 @@ public class Offer {
 
 		this.author = author;
 		this.aggLoadprofile = aggLoadprofile;
-		this.aggPrice = aggLoadprofile.getPrice();
+		this.aggPrice = aggLoadprofile.getMinPrice();
 
 		status = OfferStatus.VALID;
 	}
