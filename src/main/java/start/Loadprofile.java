@@ -68,6 +68,10 @@ public class Loadprofile {
 	public GregorianCalendar getDate() {
 		return date;
 	}
+	
+	public void setMinPrice(double newPrice) {
+		minPrice = newPrice;
+	}
 
 	// Berechnet die Abweichung des Lastprofils von seinem Mittelwert
 	public double chargeDeviationAverage() {

@@ -239,7 +239,7 @@ public class Consumer {
 		Log.i(loadprofile.toString());
 
 		this.loadprofile = loadprofile;
-
+		
 		this.offer = new Offer(uuid, loadprofile);
 		OfferNotification notification = new OfferNotification(
 				"http://localhost:8080/consumers/" + uuid + "/offers/" + offer.getUUID(), null);
