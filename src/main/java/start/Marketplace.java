@@ -19,8 +19,6 @@ public class Marketplace {
 	private Map<UUID, Offer> demand = new HashMap<UUID, Offer>();
 	private Map<UUID, Offer> supply = new HashMap<UUID, Offer>();
 	private static final double eexPrice = 20;
-	
-	private ArrayList<Double, Offer, Offer> confirmedOffers = new ArrayList<Double, Offer, Offer>(); 
 
 	private Marketplace() {
 		
