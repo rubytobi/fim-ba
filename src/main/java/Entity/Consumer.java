@@ -1,19 +1,26 @@
 package Entity;
 
+import java.net.URI;
+import java.nio.file.AccessDeniedException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
+import Event.InvalidOrOutdatedKey;
+import Event.OfferAccepted;
 import Event.InvalidOffer;
 import Packet.OfferNotification;
 import Packet.ConfirmOffer;
+import Util.API;
 import Util.DateTime;
 import Util.Log;
 import start.Application;
@@ -45,6 +52,9 @@ public class Consumer {
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
 	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
+	private ConcurrentLinkedQueue<Offer> offerQueue = new ConcurrentLinkedQueue<Offer>();
+
+	private int maxMarketplaceOffersToCompare;
 
 	// Bereits bestätigte Lastprofile
 
@@ -84,6 +94,12 @@ public class Consumer {
 
 	public Consumer() {
 		uuid = UUID.randomUUID();
+		this.maxMarketplaceOffersToCompare = 5;
+	}
+
+	public Consumer(int maxMarketplaceOffersToCompare) {
+		this();
+		this.maxMarketplaceOffersToCompare = maxMarketplaceOffersToCompare;
 	}
 
 	public double[] chargeValuesLoadprofile(double[] scheduleMinutes) {
@@ -142,25 +158,7 @@ public class Consumer {
 		}
 	}
 
-	public void receiveOfferNotification(OfferNotification offerNotification) {
-		if (offerNotification.getReferenceOffer() == null) {
-			Log.i(uuid + " [consumer] received offer");
-			Log.i(offerNotification.toString());
-
-			notificationQueue.add(offerNotification);
-		} else {
-			throw new InvalidOffer();
-		}
-	}
-
-	public void ping() {
-		OfferNotification notification = notificationQueue.poll();
-
-		if (notification == null) {
-			Log.d("No current notifications available");
-			return;
-		}
-
+	private Offer getOfferFromNotification(OfferNotification notification) {
 		RestTemplate rest = new RestTemplate();
 		HttpEntity<Void> entityVoid = new HttpEntity<Void>(Application.getRestHeader());
 
@@ -175,43 +173,103 @@ public class Consumer {
 			Log.e(e.getMessage());
 		}
 
+		return offer;
+	}
+
+	public void ping() {
+		OfferNotification notification = notificationQueue.poll();
+
+		if (notification == null) {
+			Log.d("No current notifications available");
+			return;
+		}
+
+		Offer offer = getOfferFromNotification(notification);
+
 		if (offer == null) {
 			Log.e("offer unavailable...");
 			return;
 		}
 
-		if (!isValidOfferDate(offer)) {
-			Log.d("offerdate invalid");
-			return;
+		if (!isOfferBetter(offer)) {
+			Log.e("offer not better - but for testing continued");
+			// return;
 		}
 
-		Offer[] supplies = getMarketplaceSupplies(5);
-		boolean improveLoadprofileApproximation = false;
+		if (offer.getAllLoadprofiles().containsKey(uuid)) {
+			Log.d("work on offer");
+			workOnContractOffer(offer);
+		} else {
+			Log.d("work on notification");
+			workOnLoadprofileOffer(offer);
+		}
+	}
+
+	private boolean isOfferBetter(Offer offer) {
+		if (!isValidOfferDate(offer)) {
+			Log.e("invalid offer - offer is for different time");
+			return false;
+		}
+
+		Offer[] supplies = getMarketplaceSupplies(maxMarketplaceOffersToCompare);
 
 		for (Offer o : supplies) {
 			if (improveLoadprofileApproximation(o, loadprofile)) {
-				improveLoadprofileApproximation = true;
-				break;
+				Log.d("offer is better by marketplace approximation");
+				return true;
 			}
 		}
 
-		if (!improveLoadprofileApproximation && !improveLoadprofileAverage(offer)) {
-			Log.d("No improvement possible.");
-			return;
+		if (improveLoadprofileAverage(offer)) {
+			Log.d("offer is better by average");
+			return true;
 		}
 
-		Offer toBeContract = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, offer.getAggLoadprofile()),
-				offer);
+		Log.d("offer is not better");
 
-		HttpEntity<Offer> entityOffer = new HttpEntity<Offer>(toBeContract, Application.getRestHeader());
+		return false;
+	}
 
-		url = "http://localhost:8080/consumers/" + offer.getAuthor() + "/contracts";
-		Log.i("post contract at: " + url);
+	private void workOnLoadprofileOffer(Offer oldOffer) {
+		// offer not yet part of
+		Offer newOffer = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, oldOffer.getAggLoadprofile()),
+				oldOffer);
+		this.offerQueue.offer(newOffer);
+
+		OfferNotification notification = new OfferNotification(newOffer.getLocation(), oldOffer.getLocation());
+
+		String url = new API().consumers(oldOffer.getAuthor()).offers().toString();
+		Log.i("post offer for contract at: " + url);
 
 		try {
-			rest.exchange(url, HttpMethod.GET, entityOffer, Void.class);
+			RequestEntity<OfferNotification> request = RequestEntity.post(new URI(url))
+					.accept(MediaType.APPLICATION_JSON).body(notification);
+			new RestTemplate().exchange(request, Void.class);
 		} catch (Exception e) {
 			Log.e(e.getMessage());
+		}
+	}
+
+	private void workOnContractOffer(Offer offer) {
+		// confirm offer
+		API api = new API().consumers(offer.getAuthor()).offers(offer.getAuthor()).confirm(offer.getKey());
+		Log.i("confirm offer at: " + api.toString());
+
+		ResponseEntity<Boolean> response = null;
+		try {
+			HttpEntity<Void> entity = new HttpEntity<Void>(Application.getRestHeader());
+			response = new RestTemplate().exchange(api.toString(), HttpMethod.GET, entity, Boolean.class);
+		} catch (Exception e) {
+			Log.e(e.getMessage());
+		}
+
+		Log.d("contract immediate response: " + response.getBody());
+
+		// check response
+		if (response == null || response.getBody() == false) {
+			// offer confirmation declined
+		} else {
+			// offer accepted
 		}
 	}
 
@@ -220,9 +278,12 @@ public class Consumer {
 		return new Offer[0];
 	}
 
-	public boolean confirmOffer(UUID uuidOffer) {
-		// TODO Auto-generated method stub
-		return true;
+	public void confirmOffer(UUID uuidOffer, UUID key) {
+		if (!offer.getKey().equals(key)) {
+			throw new InvalidOrOutdatedKey();
+		} else {
+			throw new OfferAccepted();
+		}
 	}
 
 	public void cancelOffer(UUID uuidOffer) {
@@ -251,7 +312,12 @@ public class Consumer {
 		String url;
 
 		for (Consumer c : getAllConsumers()) {
-			url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
+			if (c.getUUID().equals(uuid)) {
+				// do not send notifications to itself
+				break;
+			}
+
+			url = new API().consumers(c.getUUID()).offers().toString();
 			Log.i("send offer: " + url);
 
 			try {
@@ -262,18 +328,11 @@ public class Consumer {
 		}
 	}
 
-	public Map<String, Object> status() {
-		Map<String, Object> map = new HashMap<String, Object>();
+	public void receiveOfferNotification(OfferNotification offerNotification) {
+		Log.i(uuid + " [consumer] received offer");
+		Log.i(offerNotification.toString());
 
-		map.put("uuid", uuid);
-		map.put("device uuid", device);
-		map.put("offer uuid", offer.getUUID());
-		map.put("startOffer", offer.getAggLoadprofile().getDate());
-		map.put("numberOfDeltaOffers", deltaOffers.keySet().size());
-		map.put("numberOfDeltaLoadprofiles", deltaLoadprofiles.keySet().size());
-		map.put("numberInNotificationQueue", notificationQueue.size());
-
-		return map;
+		notificationQueue.add(offerNotification);
 	}
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
@@ -351,6 +410,20 @@ public class Consumer {
 		else {
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
 		}
+	}
+
+	public Map<String, Object> status() {
+		Map<String, Object> map = new HashMap<String, Object>();
+
+		map.put("uuid", uuid);
+		map.put("device uuid", device);
+		map.put("offer uuid", offer.getUUID());
+		map.put("startOffer", offer.getAggLoadprofile().getDate());
+		map.put("numberOfDeltaOffers", deltaOffers.keySet().size());
+		map.put("numberOfDeltaLoadprofiles", deltaLoadprofiles.keySet().size());
+		map.put("numberInNotificationQueue", notificationQueue.size());
+
+		return map;
 	}
 
 	public Loadprofile getLoadprofile() {

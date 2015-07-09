@@ -40,45 +40,22 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.GET)
-	public Consumer getSingleDevice(@PathVariable UUID uuid) {
+	public Consumer getSingleCustomer(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid);
 	}
 
 	@RequestMapping(value = "/consumers/{consumerUUID}/link/{fridgeUUID}", method = RequestMethod.POST)
-	public void linkDevice(@PathVariable UUID consumerUUID, @PathVariable UUID fridgeUUID) {
+	public void linkDeviceToCustomer(@PathVariable UUID consumerUUID, @PathVariable UUID fridgeUUID) {
 		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
 	}
 
-	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
-	public boolean receiveLoadprofile(@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
-		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
-		return true;
-	}
-
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.GET)
-	public @ResponseBody Loadprofile receiveLoadprofile(@PathVariable UUID uuid) {
+	public @ResponseBody Loadprofile getLoadprofile(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid).getLoadprofile();
 	}
 
-	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)
-	@ResponseStatus(value = HttpStatus.ACCEPTED)
-	public void ping(@PathVariable UUID uuid) {
-		ConsumerContainer.instance().get(uuid).ping();
-	}
-
-	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofiles", method = RequestMethod.POST)
-	@ResponseStatus(value = HttpStatus.ACCEPTED)
-	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
-		ConsumerContainer.instance().get(uuid).receiveDeltaLoadprofile(loadprofile);
-	}
-
-	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
-	public void postOffer(@RequestBody OfferNotification offerNotification, @PathVariable UUID uuid) {
-		ConsumerContainer.instance().get(uuid).receiveOfferNotification(offerNotification);
-	}
-
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
-	public Offer[] postOffer(@PathVariable UUID uuid) {
+	public Offer[] getAllOffers(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid).getOffers();
 	}
 
@@ -92,22 +69,39 @@ public class ConsumerController {
 		return ConsumerContainer.instance().get(uuidConsumer).getOffer(uuidOffer).status();
 	}
 
-	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirm", method = RequestMethod.GET)
-	@ResponseStatus(HttpStatus.ACCEPTED)
-	public void confirmOffer(@PathVariable UUID uuidConsumer, UUID uuidOffer) {
-		if (ConsumerContainer.instance().get(uuidConsumer).confirmOffer(uuidOffer)) {
-			throw new InvalidOffer();
-		}
+	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)
+	public void ping(@PathVariable UUID uuid) {
+		ConsumerContainer.instance().get(uuid).ping();
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
+	public boolean receiveLoadprofileByDevice(@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
+		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
+		return true;
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofiles", method = RequestMethod.POST)
+	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
+		ConsumerContainer.instance().get(uuid).receiveDeltaLoadprofile(loadprofile);
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
+	public void receiveOfferNotification(@RequestBody OfferNotification offerNotification, @PathVariable UUID uuid) {
+		ConsumerContainer.instance().get(uuid).receiveOfferNotification(offerNotification);
+	}
+
+	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
+	public void confirmOfferByMarketplace(@PathVariable UUID uuidConsumer, @RequestBody ConfirmOffer confirmOffer) {
+		ConsumerContainer.instance().get(uuidConsumer).confirmOfferByMarketplace(confirmOffer);
+	}
+
+	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirm/{uuidKey}", method = RequestMethod.GET)
+	public void confirmOfferByDevice(@PathVariable UUID uuidConsumer, UUID uuidOffer, UUID uuidKey) {
+		ConsumerContainer.instance().get(uuidConsumer).confirmOffer(uuidOffer, uuidKey);
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/cancel", method = RequestMethod.GET)
 	public void cancelOffer(@PathVariable UUID uuidConsumer, UUID uuidOffer) {
 		ConsumerContainer.instance().get(uuidConsumer).cancelOffer(uuidOffer);
-	}
-	
-	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
-	@ResponseStatus(HttpStatus.ACCEPTED)
-	public void confirmOfferByMarketplace(@PathVariable UUID uuidConsumer, @RequestBody ConfirmOffer confirmOffer) {
-		ConsumerContainer.instance().get(uuidConsumer).confirmOfferByMarketplace(confirmOffer);
 	}
 }

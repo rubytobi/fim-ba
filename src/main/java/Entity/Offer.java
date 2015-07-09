@@ -4,6 +4,7 @@ import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
+import Util.API;
 import Util.OfferStatus;
 import start.Loadprofile;
 import start.View;
@@ -12,6 +13,9 @@ public class Offer {
 	// Aggregiertes Lastprofil über alle Lastprofile
 	@JsonView(View.Summary.class)
 	Loadprofile aggLoadprofile;
+
+	@JsonView(View.Summary.class)
+	UUID key = null;
 
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
@@ -34,6 +38,7 @@ public class Offer {
 	private Offer() {
 		uuid = UUID.randomUUID();
 		status = OfferStatus.INITIALIZED;
+		key = null;
 	}
 
 	public Offer(UUID author, Loadprofile loadprofile) {
@@ -49,6 +54,10 @@ public class Offer {
 		status = OfferStatus.VALID;
 	}
 
+	public String getLocation() {
+		return new API().consumers(author).offers(uuid).toString();
+	}
+
 	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenzeOffer) {
 		this();
 
@@ -59,6 +68,8 @@ public class Offer {
 		this.author = author;
 		this.aggLoadprofile = aggLoadprofile;
 		this.aggPrice = aggLoadprofile.getMinPrice();
+
+		this.key = UUID.randomUUID();
 
 		status = OfferStatus.VALID;
 	}
@@ -96,5 +107,9 @@ public class Offer {
 		map.put("numberOfConsumers", allLoadprofiles.keySet().size());
 
 		return map;
+	}
+
+	public UUID getKey() {
+		return key;
 	}
 }

@@ -1,8 +1,10 @@
 package Packet;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class OfferNotification {
-	private String location;
-	private String referenceOffer;
+	private String location = null;
+	private String referenceOffer = null;
 
 	public OfferNotification() {
 		// dummy konstruktor
@@ -23,5 +25,10 @@ public class OfferNotification {
 
 	public String toString() {
 		return "[location=" + location + ",referenceOffer=" + referenceOffer + "]";
+	}
+
+	@JsonIgnore
+	public boolean isFirstOffer() {
+		return referenceOffer == null;
 	}
 }
