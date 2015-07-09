@@ -20,7 +20,7 @@ import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
-	private double[][] scheduleMinutes = new double[2][60];
+	private double[][] scheduleMinutes = new double[2][15*numSlots];
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)

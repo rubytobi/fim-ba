@@ -23,5 +23,4 @@ public class ChangeRequest {
 	public double[] getChangesLoadprofile() {
 		return changesLoadprofile;
 	}
-	
 }
