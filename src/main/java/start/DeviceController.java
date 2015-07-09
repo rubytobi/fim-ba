@@ -38,9 +38,9 @@ public class DeviceController {
 				fC.getFallCooling(), fC.getRiseWarming(), fC.getConsCooling(), fC.getCurrTemp());
 
 		DeviceContainer.instance().add(fridge);
-		//System.out.println("#" + fridge.getSchedulesFixed());
-		//System.out.println("#" + fridge.getLoadprofilesFixed());
-		//System.out.println("#" + fridge.getScheduleMinutes());
+		// System.out.println("#" + fridge.getSchedulesFixed());
+		// System.out.println("#" + fridge.getLoadprofilesFixed());
+		// System.out.println("#" + fridge.getScheduleMinutes());
 		return fridge.getUUID();
 	}
 
@@ -62,8 +62,7 @@ public class DeviceController {
 
 	@RequestMapping(value = "/devices/{uuid}/ping", method = RequestMethod.GET)
 	public void pingDevice(@PathVariable UUID uuid) {
-		Device device = DeviceContainer.instance().get(uuid);
-		device.ping();
+		DeviceContainer.instance().get(uuid).ping();
 	}
 
 	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.DELETE)

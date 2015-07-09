@@ -1,8 +1,12 @@
 package Entity;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.*;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -74,8 +78,6 @@ public class Fridge implements Device {
 		this.currCooling = false;
 
 		simulationFridge = new SimulationFridge();
-
-		sendNewLoadprofile();
 
 		status = DeviceStatus.INITIALIZED;
 	}
@@ -460,6 +462,9 @@ public class Fridge implements Device {
 		} else {
 			throw new IllegalDeviceState();
 		}
+
+		// sende an den eigenen consumer das lastprofil
+		sendNewLoadprofile();
 	}
 
 	@Override
@@ -488,21 +493,15 @@ public class Fridge implements Device {
 
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile, boolean isDeltaLoadprofile) {
 		RestTemplate rest = new RestTemplate();
-		HttpEntity<Loadprofile> entity = new HttpEntity<Loadprofile>(loadprofile, Application.getRestHeader());
 
-		String url = "http://localhost:8080/consumers/" + consumerUUID;
-
-		if (isDeltaLoadprofile) {
-			url += "/deltaLoadprofiles";
-		} else {
-			url += "/loadprofiles";
-		}
-
+		String url = "http://localhost:8080/consumers/" + consumerUUID + "/loadprofiles";
 		try {
-			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
-		} catch (Exception e) {
-			Log.i(url);
-			Log.e(e.getMessage());
+			RequestEntity<Loadprofile> request = RequestEntity.post(new URI(url)).accept(MediaType.APPLICATION_JSON)
+					.body(loadprofile);
+			rest.exchange(request, Boolean.class);
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 	

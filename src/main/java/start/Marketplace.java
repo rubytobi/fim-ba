@@ -11,7 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Set;
-
 import Entity.Consumer;
 import Entity.Offer;
 import Packet.ConfirmOffer;
@@ -30,7 +29,7 @@ public class Marketplace {
 	private int numSlots = 4;
 
 	private Marketplace() {
-		
+
 	}
 
 	public static Marketplace instance() {
@@ -77,13 +76,12 @@ public class Marketplace {
 
 		return map;
 	}
-	
-	public boolean findFittingOffer (Offer offer, boolean offerIsSupplyOffer) {
+
+	public boolean findFittingOffer(Offer offer, boolean offerIsSupplyOffer) {
 		Set<UUID> set;
 		if (offerIsSupplyOffer) {
 			set = supply.keySet();
-		}
-		else {
+		} else {
 			set = demand.keySet();
 		}
 		if (set == null) {
@@ -102,33 +100,34 @@ public class Marketplace {
 		double[] currentDeviation;
 		double[] leastDeviation = offerLoadprofile;
 		
-		// Suche aus allen Angeboten des Marktplatzes, das mit der geringsten Abweichung
-		for (UUID uuid: set) {
+		// Suche aus allen Angeboten des Marktplatzes, das mit der geringsten
+		// Abweichung
+		for (UUID uuid : set) {
 			Offer compareOffer;
 			if (offerIsSupplyOffer) {
 				compareOffer = supply.get(uuid);
-			}
-			else {
+			} else {
 				compareOffer = demand.get(uuid);
 			}
-			
-			// Prüfe, ob Angebote für gleichen Zeitraum sind, gehe sonst zum nächsten Angebot
-			if (DateTime.ToString(compareOffer.getAggLoadprofile().getDate()) == 
-					DateTime.ToString(offer.getAggLoadprofile().getDate())) {
-				double[] compareLoadprofile = compareOffer.getAggLoadprofile().getValues();
-				currentDeviation = new double[4];
-				double sumCurrentDeviation = 0;
-			
-				for (int i=0; i<numSlots; i++) {
-					currentDeviation[i] = offerLoadprofile[i] + compareLoadprofile[i];
-					sumCurrentDeviation += Math.abs(currentDeviation[i]);
+				sumCurrentDeviation += Math.abs(currentDeviation[i]);
+
+			// Prüfe, ob Angebote für gleichen Zeitraum sind, gehe sonst zum
+			// nächsten Angebot
+			if (DateTime.ToString(compareOffer.getAggLoadprofile().getDate()) == DateTime
+					.ToString(offer.getAggLoadprofile().getDate())) {
+				double[] supplyLoadprofile = compareOffer.getAggLoadprofile().getValues();
+				double currentDeviation = 0;
+
+				for (int i = 0; i < numSlots; i++) {
+					currentDeviation = supplyLoadprofile[i] - offerLoadprofile[i];
+
 				}
 				if (sumCurrentDeviation < sumLeastDeviation) {
 					sumLeastDeviation = sumCurrentDeviation;
 					leastDeviation = currentDeviation;
 					offerLeastDeviation = compareOffer;
-				}	
-			}			
+				}
+			}
 		}
 		
 		// Prüfe, ob geringste Abweichung klein genug, um Angebote zusammenzufuehren
@@ -136,7 +135,7 @@ public class Marketplace {
 			mergeOffers(offer, offerLeastDeviation, leastDeviation, sumLeastDeviation);
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -183,18 +182,57 @@ public class Marketplace {
 			priceDemand = priceDemand/sumOfferDemand;
 			priceSupply = priceSupply/sumOfferSupply;
 		}
-		
-		
 	}
-	
-	private void confirmOffer (Offer offer, UUID consumer, double newPrice) {
-		ConfirmOffer confirmOffer = new ConfirmOffer(offer.getUUID(), newPrice);
 		
+
+	private void mergeOffers(Offer offer1, Offer offer2) {
+		// Entferne beide Angebote vom Marktplatz
+		demand.remove(offer1.getUUID());
+		demand.remove(offer2.getUUID());
+		supply.remove(offer1.getUUID());
+		supply.remove(offer2.getUUID());
+
+		// Berechne neuen Preis und jeweils prozentuale Abweichung vom alten
+		// Preis
+		double price1 = Math.abs(offer1.getPrice());
+		double price2 = Math.abs(offer2.getPrice());
+		double mergedPrice = (price1 + price2) / 2;
+		double deviationPrice1 = (mergedPrice - price1) / price1;
+		double deviationPrice2 = (mergedPrice - price2) / price2;
+
+		Set<UUID> consumers1 = offer1.getAllLoadprofiles().keySet();
+		Set<UUID> consumers2 = offer2.getAllLoadprofiles().keySet();
+
+		// Berechne anteilige Einzelpreise für alle Consumer von offer1 und
+		// benachrichtige sie
+		for (UUID uuid : consumers1) {
+			Loadprofile loadprofile1 = offer1.getAllLoadprofiles().get(uuid);
+			double newPrice = loadprofile1.getMinPrice() * deviationPrice1;
+			confirmOffer(offer1, uuid, newPrice);
+		}
+
+		// Berechne anteilige Einzelpreise für alle Consumer von offer2 und
+		// benachrichtige sie
+		for (UUID uuid : consumers2) {
+			Loadprofile supplyLoadprofile = offer2.getAllLoadprofiles().get(uuid);
+			double newPrice = supplyLoadprofile.getMinPrice() * deviationPrice2;
+			confirmOffer(offer2, uuid, newPrice);
+		}
+
+		// Lege Zusammenführung der beiden Angebote ab
+		MergedOffers mergedOffer = new MergedOffers(mergedPrice, offer1, offer2);
+		mergedOffers.put(mergedOffer.getUUID(), mergedOffer);
+	}
+
+	private void confirmOffer(Offer offer, UUID consumer, double newPrice) {
+		ConfirmOffer confirmOffer = new ConfirmOffer(offer.getUUID(), newPrice);
+
 		// Sende confirmOffer an consumer
 		RestTemplate rest = new RestTemplate();
 		HttpEntity<ConfirmOffer> entity = new HttpEntity<ConfirmOffer>(confirmOffer, Application.getRestHeader());
 
-		String url = "http://localhost:8080/consumers/" +consumer+ "/offers/" +offer.getUUID()+"/confirmByMarketplace";
+		String url = "http://localhost:8080/consumers/" + consumer + "/offers/" + offer.getUUID()
+				+ "/confirmByMarketplace";
 
 		try {
 			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
