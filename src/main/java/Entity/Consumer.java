@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.InvalidOffer;
 import Packet.OfferNotification;
+import Packet.ConfirmOffer;
 import Util.DateTime;
 import Util.Log;
 import start.Application;
@@ -32,7 +33,7 @@ public class Consumer {
 	private Offer offer = null;
 
 	// Angebote mit DeltaLastprofilen
-	private ArrayList<Offer> deltaOffers = new ArrayList<Offer>();
+	private Map<UUID, Offer> deltaOffers = new HashMap<UUID, Offer>();
 
 	// Erhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Offer gibt
 	private Hashtable<String, double[]> deltaLoadprofiles = new Hashtable<String, double[]>();
@@ -313,7 +314,7 @@ public class Consumer {
 			// Erstelle Angebot aus deltaLoadprofile, speichere es in
 			// deltaOffers und verschicke es
 			Offer deltaOffer = new Offer(uuid, deltaLoadprofile);
-			deltaOffers.add(deltaOffer);
+			deltaOffers.put(deltaOffer.getUUID(), deltaOffer);
 
 			OfferNotification notification = new OfferNotification(
 					"http://localhost:8080/consumers/" + uuid + "/offers/" + deltaOffer.getUUID(), null);
@@ -339,6 +340,22 @@ public class Consumer {
 		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
 		else {
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
+		}
+	}
+	
+	public void receiveConfirmOffer (ConfirmOffer confirmOffer) {
+		boolean deltaOffer = deltaOffers.get(confirmOffer.getOffer()) != null;
+		if (deltaOffer) {
+			deltaOffers.remove(confirmOffer.getOffer());
+		}
+		else {
+			if (offer.getUUID() == confirmOffer.getOffer()) {
+				// TODO Schicke Bestätigung zu Loadprofile an Device und fordere neues Lastprofil
+				offer = null;
+				loadprofile = null;
+				// TODO Schicke Bestätigung zu Loadprofile an Device und fordere neues Lastprofil
+			}
+			// TODO was passtiert, wenn bestätigtes Angebot weder aktuelles Angebot noch Deltalastprofil?
 		}
 	}
 }

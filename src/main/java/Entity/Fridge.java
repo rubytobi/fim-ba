@@ -449,7 +449,6 @@ public class Fridge implements Device {
 				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
 
 		if (tempPlanned != tempScaled) {
-			System.out.println("Rufe sendDeltaLoadprofile auf:");
 			sendDeltaLoadprofile(currentTime, tempScaled);
 		}
 	}

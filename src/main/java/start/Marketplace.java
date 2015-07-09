@@ -1,23 +1,22 @@
 package start;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.Set;
 
 import Entity.Offer;
-import Entity.Consumer;
+import Packet.ConfirmOffer;
+import Util.ConfirmedOffers;
+import Util.DateTime;
 import jersey.repackaged.com.google.common.collect.Lists;
 
 public class Marketplace {
 	private static Marketplace instance = null;
 	private Map<UUID, Offer> demand = new HashMap<UUID, Offer>();
 	private Map<UUID, Offer> supply = new HashMap<UUID, Offer>();
+	private Map<UUID, ConfirmedOffers> confirmedOffers = new HashMap<UUID, ConfirmedOffers>();
 	private static final double eexPrice = 20;
 
 	private Marketplace() {
@@ -48,13 +47,15 @@ public class Marketplace {
 	}
 
 	public void putDemand(Offer demandOffer) {
-		if (!findFittingSupplyOffer(demandOffer)) {
+		if (!findFittingOffer(demandOffer, false)) {
 			demand.put(demandOffer.getUUID(), demandOffer);
 		}
 	}
 
 	public void putSupply(Offer supplyOffer) {
-		supply.put(supplyOffer.getUUID(), supplyOffer);
+		if (!findFittingOffer(supplyOffer, true)) {
+			supply.put(supplyOffer.getUUID(), supplyOffer);
+		}
 	}
 
 	public Map<String, Object> status() {
@@ -67,82 +68,62 @@ public class Marketplace {
 		return map;
 	}
 	
-	public boolean findFittingSupplyOffer (Offer demandOffer) {
-		Set<UUID> set = supply.keySet();
+	public boolean findFittingOffer (Offer offer, boolean offerIsSupplyOffer) {
+		Set<UUID> set;
+		if (offerIsSupplyOffer) {
+			set = supply.keySet();
+		}
+		else {
+			set = demand.keySet();
+		}
 		if (set == null) {
 			return false;
 		}
 		int numSlots = 4;
 		double leastDeviation = 0;
-		Offer offerLeastDeviation = demandOffer;
-		double[] demandLoadprofile = demandOffer.getAggLoadprofile().getValues();
+		Offer offerLeastDeviation = offer;
+		double[] offerLoadprofile = offer.getAggLoadprofile().getValues();
 		
 		// Setzte leastDeviation initial auf aufsummiertes Lastprofil des Verbrauchers
 		for (int i=0; i<numSlots; i++) {
-			leastDeviation = leastDeviation + demandLoadprofile[i];
+			leastDeviation = leastDeviation + offerLoadprofile[i];
 		}
 		
 		// Suche aus allen Angeboten des Marktplatzes, das mit der geringsten Abweichung
 		for (UUID uuid: set) {
-			Offer supplyOffer = supply.get(uuid);
-			double[] supplyLoadprofile = supplyOffer.getAggLoadprofile().getValues();
-			double currentDeviation = 0;
+			Offer compareOffer;
+			if (offerIsSupplyOffer) {
+				compareOffer = supply.get(uuid);
+			}
+			else {
+				compareOffer = demand.get(uuid);
+			}
 			
-			for (int i=0; i<numSlots; i++) {
-				currentDeviation = supplyLoadprofile[i] - demandLoadprofile[i];
-			}
-			if (currentDeviation < leastDeviation) {
-				leastDeviation = currentDeviation;
-				offerLeastDeviation = supplyOffer;
-			}
+			// Prüfe, ob Angebote für gleichen Zeitraum sind, gehe sonst zum nächsten Angebot
+			if (DateTime.ToString(compareOffer.getAggLoadprofile().getDate()) == 
+					DateTime.ToString(offer.getAggLoadprofile().getDate())) {
+				double[] supplyLoadprofile = compareOffer.getAggLoadprofile().getValues();
+				double currentDeviation = 0;
+			
+				for (int i=0; i<numSlots; i++) {
+					currentDeviation = supplyLoadprofile[i] - offerLoadprofile[i];
+				}
+				if (currentDeviation < leastDeviation) {
+					leastDeviation = currentDeviation;
+					offerLeastDeviation = compareOffer;
+				}	
+			}			
 		}
 		
 		// Prüfe, ob geringste Abweichung klein genug, um Angebote zusammenzufuehren
-		if (leastDeviation < 5 && offerLeastDeviation.getUUID() != demandOffer.getUUID()) {
-			mergeOffers(demandOffer, offerLeastDeviation);
+		if (leastDeviation < 5 && offerLeastDeviation.getUUID() != offer.getUUID()) {
+			mergeOffers(offer, offerLeastDeviation);
 			return true;
 		}
+		
 		return false;
 	}
-	
-	public boolean findFittingDemandOffer (Offer supplyOffer) {
-		Set<UUID> set = demand.keySet();
-		if (set == null) {
-			return false;
-		}
-		int numSlots = 4;
-		double leastDeviation = 0;
-		Offer offerLeastDeviation = supplyOffer;
-		double[] supplyLoadprofile = supplyOffer.getAggLoadprofile().getValues();
-		
-		// Setzte leastDeviation initial auf aufsummiertes Lastprofil des Verbrauchers
-		for (int i=0; i<numSlots; i++) {
-			leastDeviation = leastDeviation + supplyLoadprofile[i];
-		}
-		
-		// Suche aus allen Angeboten des Marktplatzes, das mit der geringsten Abweichung
-		for (UUID uuid: set) {
-			Offer demandOffer = demand.get(uuid);
-			double[] demandLoadprofile = demandOffer.getAggLoadprofile().getValues();
-			double currentDeviation = 0;
-			
-			for (int i=0; i<numSlots; i++) {
-				currentDeviation = supplyLoadprofile[i] - demandLoadprofile[i];
-			}
-			if (currentDeviation < leastDeviation) {
-				leastDeviation = currentDeviation;
-				offerLeastDeviation = demandOffer;
-			}
-		}
-		
-		// Prüfe, ob geringste Abweichung klein genug, um Angebote zusammenzufuehren
-		if (leastDeviation < 5 && offerLeastDeviation.getUUID() != supplyOffer.getUUID()) {
-			mergeOffers(offerLeastDeviation, supplyOffer);
-			return true;
-		}
-		return false;
-	}
-	
+
 	private void mergeOffers (Offer offer1, Offer offer2) {		
 		// Entferne beide Angebote vom Marktplatz
 		demand.remove(offer1.getUUID());
@@ -174,20 +155,13 @@ public class Marketplace {
 			confirmOffer(offer2, uuid, newPrice);
 		}
 		
-		// Lege Zusammenführung der beiden Angebote in 
+		// Lege Zusammenführung der beiden Angebote ab
+		ConfirmedOffers confirmedOffer = new ConfirmedOffers(mergedPrice, offer1, offer2);
+		confirmedOffers.put(confirmedOffer.getUUID(), confirmedOffer);
 	}
 	
 	private void confirmOffer (Offer offer, UUID consumer, double newPrice) {
-		// TODO Sende Bestätigung für offer an consumer mit newPrice
+		ConfirmOffer confirmOffer = new ConfirmOffer(offer.getUUID(), newPrice);
+		// TODO Sende confirmOffer an consumer
 	}
-	
-	private static void mapToString(HashMap<String, double[]> map) {
-		Set<String> set = map.keySet();
-
-		for (String s : set) {
-			System.out.println("##" + s);
-			System.out.println(Arrays.toString(map.get(s)));
-		}
-	}
-
 }
