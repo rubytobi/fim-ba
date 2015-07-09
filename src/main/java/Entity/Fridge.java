@@ -466,7 +466,21 @@ public class Fridge implements Device {
 	@Override
 	public void changeLoadprofile(ChangeRequest cr) {
 		double[] changesLoadprofile = cr.getChangesLoadprofile();
-		GregorianCalendar timeChange = cr.getStartLoadprofile();
+		GregorianCalendar startChangedLoadprofile = cr.getStartLoadprofile();
+		double[][] plannedSchedule = new double[2][15*numSlots];
+		
+		if (DateTime.ToString(startChangedLoadprofile) == DateTime.ToString(timeFixed)) {
+			plannedSchedule = scheduleMinutes;
+		}
+		else {
+			for (int i=0; i<15*numSlots; i++) {
+				plannedSchedule[0][i] = schedulesFixed.get(DateTime.ToString(startChangedLoadprofile))[0];
+				plannedSchedule[0][i] = schedulesFixed.get(DateTime.ToString(startChangedLoadprofile))[0];
+				startChangedLoadprofile.add(Calendar.MINUTE, 0);
+			}
+			startChangedLoadprofile.add(Calendar.HOUR_OF_DAY, -1);
+		}
+		
 		
 		// Hole aktuellen Schedule zu dieser Zeit und prüfe, ob die Änderungen eingefügt werden können, ohne
 		// dass die harten Grenzen verletzt werden
