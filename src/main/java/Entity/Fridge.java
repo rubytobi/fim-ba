@@ -505,4 +505,11 @@ public class Fridge implements Device {
 			Log.e(e.getMessage());
 		}
 	}
+	
+	public void confirmLoadprofile (String time) {
+		if (time == DateTime.ToString(timeFixed)) {
+			saveSchedule(scheduleMinutes, timeFixed);
+			sendNewLoadprofile();
+		}
+	}
 }

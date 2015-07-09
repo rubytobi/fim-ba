@@ -4,19 +4,28 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
+
 import java.util.Set;
 
+import Entity.Consumer;
 import Entity.Offer;
 import Packet.ConfirmOffer;
-import Util.ConfirmedOffers;
+import Packet.OfferNotification;
+import Util.MergedOffers;
 import Util.DateTime;
+import Util.Log;
 import jersey.repackaged.com.google.common.collect.Lists;
 
 public class Marketplace {
 	private static Marketplace instance = null;
 	private Map<UUID, Offer> demand = new HashMap<UUID, Offer>();
 	private Map<UUID, Offer> supply = new HashMap<UUID, Offer>();
-	private Map<UUID, ConfirmedOffers> confirmedOffers = new HashMap<UUID, ConfirmedOffers>();
+	private Map<UUID, MergedOffers> mergedOffers = new HashMap<UUID, MergedOffers>();
 	private static final double eexPrice = 20;
 
 	private Marketplace() {
@@ -156,12 +165,24 @@ public class Marketplace {
 		}
 		
 		// Lege Zusammenführung der beiden Angebote ab
-		ConfirmedOffers confirmedOffer = new ConfirmedOffers(mergedPrice, offer1, offer2);
-		confirmedOffers.put(confirmedOffer.getUUID(), confirmedOffer);
+		MergedOffers mergedOffer = new MergedOffers(mergedPrice, offer1, offer2);
+		mergedOffers.put(mergedOffer.getUUID(), mergedOffer);
 	}
 	
 	private void confirmOffer (Offer offer, UUID consumer, double newPrice) {
 		ConfirmOffer confirmOffer = new ConfirmOffer(offer.getUUID(), newPrice);
-		// TODO Sende confirmOffer an consumer
+		
+		// Sende confirmOffer an consumer
+		RestTemplate rest = new RestTemplate();
+		HttpEntity<ConfirmOffer> entity = new HttpEntity<ConfirmOffer>(confirmOffer, Application.getRestHeader());
+
+		String url = "http://localhost:8080/consumers/" +consumer+ "/offers/" +offer.getUUID()+"/confirmByMarketplace";
+
+		try {
+			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+		} catch (Exception e) {
+			Log.i(url);
+			Log.e(e.getMessage());
+		}
 	}
 }

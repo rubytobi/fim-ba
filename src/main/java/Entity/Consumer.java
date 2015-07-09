@@ -45,7 +45,10 @@ public class Consumer {
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
 	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
+	
+	// Bereits bestätigte Lastprofile
 
+	
 	public int getNumSlots() {
 		return numSlots;
 	}
@@ -262,7 +265,15 @@ public class Consumer {
 
 	public Map<String, Object> status() {
 		Map<String, Object> map = new HashMap<String, Object>();
-		// TODO
+		
+		map.put("uuid", uuid);
+		map.put("device uuid", device);
+		map.put("offer uuid", offer.getUUID());
+		map.put("startOffer", offer.getAggLoadprofile().getDate());
+		map.put("numberOfDeltaOffers", deltaOffers.keySet().size());
+		map.put("numberOfDeltaLoadprofiles", deltaLoadprofiles.keySet().size());
+		map.put("numberInNotificationQueue", notificationQueue.size());
+		
 		return map;
 	}
 
@@ -343,19 +354,33 @@ public class Consumer {
 		}
 	}
 	
-	public void receiveConfirmOffer (ConfirmOffer confirmOffer) {
+	public void confirmOfferByMarketplace (ConfirmOffer confirmOffer) {
 		boolean deltaOffer = deltaOffers.get(confirmOffer.getOffer()) != null;
 		if (deltaOffer) {
 			deltaOffers.remove(confirmOffer.getOffer());
 		}
 		else {
 			if (offer.getUUID() == confirmOffer.getOffer()) {
-				// TODO Schicke Bestätigung zu Loadprofile an Device und fordere neues Lastprofil
+				// Schicke Bestätigung zu Loadprofile an Device
+				String date = DateTime.ToString(offer.getAggLoadprofile().getDate());
+				
+				RestTemplate rest = new RestTemplate();
+				HttpEntity<String> entity = new HttpEntity<String>(date, Application.getRestHeader());
+
+				String url = "http://localhost:8080/devices/" +device+ "/confirmLoadprofile";
+
+				try {
+					ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+				} catch (Exception e) {
+					Log.i(url);
+					Log.e(e.getMessage());
+				}
+				
 				offer = null;
+				// TODO Speichere Lastprofil in Historie ab
 				loadprofile = null;
-				// TODO Schicke Bestätigung zu Loadprofile an Device und fordere neues Lastprofil
 			}
-			// TODO was passtiert, wenn bestätigtes Angebot weder aktuelles Angebot noch Deltalastprofil?
+			// TODO was passiert, wenn bestätigtes Angebot weder aktuelles Angebot noch Deltalastprofil?
 		}
 	}
 }

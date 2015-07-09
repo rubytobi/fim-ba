@@ -27,4 +27,6 @@ public interface Device {
 	public void setConsumer(UUID consumerUUID);
 
 	public void changeLoadprofile(ChangeRequest cr);
+	
+	public void confirmLoadprofile (String time);
 }
