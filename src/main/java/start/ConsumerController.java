@@ -21,6 +21,7 @@ import Entity.Offer;
 import Event.InvalidOffer;
 import Packet.FridgeCreation;
 import Packet.OfferNotification;
+import Packet.ConfirmOffer;
 
 @RestController
 public class ConsumerController {
@@ -102,5 +103,11 @@ public class ConsumerController {
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/cancel", method = RequestMethod.GET)
 	public void cancelOffer(@PathVariable UUID uuidConsumer, UUID uuidOffer) {
 		ConsumerContainer.instance().get(uuidConsumer).cancelOffer(uuidOffer);
+	}
+	
+	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public void confirmOfferByMarketplace(@PathVariable UUID uuidConsumer, @RequestBody ConfirmOffer confirmOffer) {
+		ConsumerContainer.instance().get(uuidConsumer).confirmOfferByMarketplace(confirmOffer);
 	}
 }

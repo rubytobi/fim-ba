@@ -24,7 +24,7 @@ import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
-	private double[][] scheduleMinutes = new double[2][60];
+	private double[][] scheduleMinutes = new double[2][15*numSlots];
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
@@ -451,7 +451,6 @@ public class Fridge implements Device {
 				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
 
 		if (tempPlanned != tempScaled) {
-			System.out.println("Rufe sendDeltaLoadprofile auf:");
 			sendDeltaLoadprofile(currentTime, tempScaled);
 		}
 	}
@@ -503,6 +502,13 @@ public class Fridge implements Device {
 		} catch (URISyntaxException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		}
+	}
+	
+	public void confirmLoadprofile (String time) {
+		if (time == DateTime.ToString(timeFixed)) {
+			saveSchedule(scheduleMinutes, timeFixed);
+			sendNewLoadprofile();
 		}
 	}
 }

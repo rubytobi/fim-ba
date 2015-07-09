@@ -76,4 +76,10 @@ public class DeviceController {
 		DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
 		return true;
 	}
+	
+	@RequestMapping(value = "/devices/{uuid}/confirmLoadprofile", method = RequestMethod.DELETE)
+	public Boolean receiveChangeRequest(@RequestBody String time, @PathVariable UUID uuid) {
+		DeviceContainer.instance().get(uuid).confirmLoadprofile(time);
+		return true;
+	}
 }

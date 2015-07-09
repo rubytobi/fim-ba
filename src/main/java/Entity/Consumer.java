@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.InvalidOffer;
 import Packet.OfferNotification;
+import Packet.ConfirmOffer;
 import Util.DateTime;
 import Util.Log;
 import start.Application;
@@ -32,7 +33,7 @@ public class Consumer {
 	private Offer offer = null;
 
 	// Angebote mit DeltaLastprofilen
-	private ArrayList<Offer> deltaOffers = new ArrayList<Offer>();
+	private Map<UUID, Offer> deltaOffers = new HashMap<UUID, Offer>();
 
 	// Erhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Offer gibt
 	private Hashtable<String, double[]> deltaLoadprofiles = new Hashtable<String, double[]>();
@@ -44,6 +45,8 @@ public class Consumer {
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
 	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
+
+	// Bereits bestätigte Lastprofile
 
 	public int getNumSlots() {
 		return numSlots;
@@ -261,7 +264,15 @@ public class Consumer {
 
 	public Map<String, Object> status() {
 		Map<String, Object> map = new HashMap<String, Object>();
-		// TODO
+
+		map.put("uuid", uuid);
+		map.put("device uuid", device);
+		map.put("offer uuid", offer.getUUID());
+		map.put("startOffer", offer.getAggLoadprofile().getDate());
+		map.put("numberOfDeltaOffers", deltaOffers.keySet().size());
+		map.put("numberOfDeltaLoadprofiles", deltaLoadprofiles.keySet().size());
+		map.put("numberInNotificationQueue", notificationQueue.size());
+
 		return map;
 	}
 
@@ -313,7 +324,7 @@ public class Consumer {
 			// Erstelle Angebot aus deltaLoadprofile, speichere es in
 			// deltaOffers und verschicke es
 			Offer deltaOffer = new Offer(uuid, deltaLoadprofile);
-			deltaOffers.add(deltaOffer);
+			deltaOffers.put(deltaOffer.getUUID(), deltaOffer);
 
 			OfferNotification notification = new OfferNotification(
 					"http://localhost:8080/consumers/" + uuid + "/offers/" + deltaOffer.getUUID(), null);
@@ -344,5 +355,35 @@ public class Consumer {
 
 	public Loadprofile getLoadprofile() {
 		return loadprofile;
+	}
+
+	public void confirmOfferByMarketplace(ConfirmOffer confirmOffer) {
+		boolean deltaOffer = deltaOffers.get(confirmOffer.getOffer()) != null;
+		if (deltaOffer) {
+			deltaOffers.remove(confirmOffer.getOffer());
+		} else {
+			if (offer.getUUID() == confirmOffer.getOffer()) {
+				// Schicke Bestätigung zu Loadprofile an Device
+				String date = DateTime.ToString(offer.getAggLoadprofile().getDate());
+
+				RestTemplate rest = new RestTemplate();
+				HttpEntity<String> entity = new HttpEntity<String>(date, Application.getRestHeader());
+
+				String url = "http://localhost:8080/devices/" + device + "/confirmLoadprofile";
+
+				try {
+					ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+				} catch (Exception e) {
+					Log.i(url);
+					Log.e(e.getMessage());
+				}
+
+				offer = null;
+				// TODO Speichere Lastprofil in Historie ab
+				loadprofile = null;
+			}
+			// TODO was passiert, wenn bestätigtes Angebot weder aktuelles
+			// Angebot noch Deltalastprofil?
+		}
 	}
 }
