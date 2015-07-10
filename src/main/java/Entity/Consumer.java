@@ -95,8 +95,8 @@ public class Consumer {
 		return list;
 	}
 
-	public Offer[] getOffers() {
-		return new Offer[] { this.ownOffer };
+	public Offer getOffer() {
+		return ownOffer;
 	}
 
 	public Consumer() {
@@ -325,6 +325,10 @@ public class Consumer {
 	}
 
 	public void receiveLoadprofile(Loadprofile loadprofile) {
+		if (this.loadprofile != null) {
+			return;
+		}
+
 		Log.i(uuid + " [consumer] received loadprofile from device");
 		Log.i(loadprofile.toString());
 

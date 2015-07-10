@@ -55,8 +55,8 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
-	public Offer[] getAllOffers(@PathVariable UUID uuid) {
-		return ConsumerContainer.instance().get(uuid).getOffers();
+	public Offer getAllOffers(@PathVariable UUID uuid) {
+		return ConsumerContainer.instance().get(uuid).getOffer();
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}", method = RequestMethod.GET)
