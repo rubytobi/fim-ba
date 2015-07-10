@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -18,6 +20,7 @@ import Packet.OfferNotification;
 import Util.MergedOffers;
 import Util.DateTime;
 import Util.Log;
+import Container.ConsumerContainer;
 import jersey.repackaged.com.google.common.collect.Lists;
 
 public class Marketplace {
@@ -29,14 +32,13 @@ public class Marketplace {
 	private int numSlots = 4;
 
 	private Marketplace() {
-
+		
 	}
 
 	public static Marketplace instance() {
 		if (instance == null) {
 			instance = new Marketplace();
 		}
-
 		return instance;
 	}
 
@@ -51,9 +53,6 @@ public class Marketplace {
 	public Offer getSupply(UUID uuid) {
 		return supply.get(uuid);
 	}
-
-	public void ping() {
-	}
 	
 	public void putOffer (Offer offer) {
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
@@ -61,7 +60,7 @@ public class Marketplace {
 		for (int i=0; i<numSlots; i++) {
 			sumLoadprofile += valuesLoadprofile[i];
 		}
-		if (sumLoadprofile > 0) {
+		if (sumLoadprofile >= 0) {
 			if (! findFittingOffer(offer, true)) {
 				supply.put(offer.getUUID(), offer);
 			}
@@ -71,6 +70,11 @@ public class Marketplace {
 				demand.put(offer.getUUID(), offer);
 			}
 		}
+	}
+	
+	public void removeOffer (UUID offer) {
+		supply.remove(offer);
+		demand.remove(offer);	
 	}
 
 	public Map<String, Object> status() {
@@ -263,6 +267,21 @@ public class Marketplace {
 				Log.i(url);
 				Log.e(e.getMessage());
 			}
+		}
+	}
+	
+	public void ping() {
+		Set<UUID> set = demand.keySet();
+		
+		if (set.size() == 0) {
+			System.out.println("ping: @ marketplace " +DateTime.timestamp()+ " no demand offers in Marketplace");
+		}
+		for (UUID uuidOffer: set) {
+			Offer offer = demand.get(uuidOffer);
+			System.out.println("ping: @ marketplace " +DateTime.timestamp()+ " confirm demand offer " +uuidOffer);
+			confirmOffer(offer, offer.getAggLoadprofile().getMinPrice());
+			demand.remove(offer.getUUID());
+			break;
 		}
 	}
 }

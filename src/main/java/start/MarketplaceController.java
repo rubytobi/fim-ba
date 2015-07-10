@@ -34,7 +34,7 @@ public class MarketplaceController {
 
 	@RequestMapping(value = "/marketplace/demands", method = RequestMethod.POST)
 	public void postDemand(@RequestBody Offer offer) {
-		Marketplace.instance().putDemand(offer);
+		Marketplace.instance().putOffer(offer);
 	}
 
 	@RequestMapping(value = "/marketplace/demands/{uuid}", method = RequestMethod.GET)
@@ -50,5 +50,11 @@ public class MarketplaceController {
 	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)
 	public void getOffer(@RequestBody UUID uuid) {
 		Marketplace.instance().getDemand(uuid).invalidate();
+		Marketplace.instance().removeOffer(uuid);
+	}
+	
+	@RequestMapping(value = "/marketplace/ping", method = RequestMethod.POST)
+	public void ping() {
+		Marketplace.instance().ping();
 	}
 }
