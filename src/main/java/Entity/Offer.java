@@ -112,4 +112,8 @@ public class Offer {
 	public UUID getKey() {
 		return key;
 	}
+
+	public boolean isValid() {
+		return status == OfferStatus.VALID;
+	}
 }

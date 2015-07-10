@@ -3,6 +3,7 @@ package Entity;
 import java.net.URI;
 import java.nio.file.AccessDeniedException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.springframework.http.HttpEntity;
@@ -17,6 +18,8 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Event.InvalidOrOutdatedKey;
 import Event.OfferAccepted;
+import Event.AcceptContract;
+import Event.DeclineContract;
 import Event.InvalidOffer;
 import Packet.OfferNotification;
 import Packet.ConfirmOffer;
@@ -37,7 +40,7 @@ public class Consumer {
 	private UUID device = null;
 
 	// Aktuelles Angebot
-	private Offer offer = null;
+	private Offer ownOffer = null;
 
 	// Angebote mit DeltaLastprofilen
 	private Map<UUID, Offer> deltaOffers = new HashMap<UUID, Offer>();
@@ -45,14 +48,14 @@ public class Consumer {
 	// Erhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Offer gibt
 	private Hashtable<String, double[]> deltaLoadprofiles = new Hashtable<String, double[]>();
 
-	// Anzahl der 15-Minuten-Slots f�r ein Lastprofil
+	// Anzahl der 15-Minuten-Slots für ein Lastprofil
 	private int numSlots = 4;
 
 	// Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
 	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
-	private ConcurrentLinkedQueue<Offer> offerQueue = new ConcurrentLinkedQueue<Offer>();
+	private ConcurrentHashMap<UUID, Offer> offerMap = new ConcurrentHashMap<UUID, Offer>();
 
 	private int maxMarketplaceOffersToCompare;
 
@@ -67,7 +70,7 @@ public class Consumer {
 	}
 
 	public Offer getOffer(UUID uuidOffer) {
-		return offer;
+		return ownOffer;
 	}
 
 	private Fridge[] getAllDevices() {
@@ -89,7 +92,7 @@ public class Consumer {
 	}
 
 	public Offer[] getOffers() {
-		return new Offer[] { this.offer };
+		return new Offer[] { this.ownOffer };
 	}
 
 	public Consumer() {
@@ -191,6 +194,11 @@ public class Consumer {
 			return;
 		}
 
+		if (!offer.isValid()) {
+			Log.e("offer invalid...");
+			return;
+		}
+
 		if (!isOfferBetter(offer)) {
 			Log.e("offer not better - but for testing continued");
 			// return;
@@ -234,7 +242,7 @@ public class Consumer {
 		// offer not yet part of
 		Offer newOffer = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, oldOffer.getAggLoadprofile()),
 				oldOffer);
-		this.offerQueue.offer(newOffer);
+		offerMap.put(newOffer.getUUID(), newOffer);
 
 		OfferNotification notification = new OfferNotification(newOffer.getLocation(), oldOffer.getLocation());
 
@@ -267,9 +275,11 @@ public class Consumer {
 
 		// check response
 		if (response == null || response.getBody() == false) {
-			// offer confirmation declined
+			Log.d("contract " + offer.getUUID() + " declined");
+			throw new DeclineContract();
 		} else {
-			// offer accepted
+			Log.e("contract " + offer.getUUID() + " accepted");
+			throw new AcceptContract();
 		}
 	}
 
@@ -279,7 +289,7 @@ public class Consumer {
 	}
 
 	public void confirmOffer(UUID uuidOffer, UUID key) {
-		if (!offer.getKey().equals(key)) {
+		if (!ownOffer.getKey().equals(key)) {
 			throw new InvalidOrOutdatedKey();
 		} else {
 			throw new OfferAccepted();
@@ -299,10 +309,10 @@ public class Consumer {
 		Log.i(loadprofile.toString());
 
 		this.loadprofile = loadprofile;
-		
-		this.offer = new Offer(uuid, loadprofile);
+
+		this.ownOffer = new Offer(uuid, loadprofile);
 		OfferNotification notification = new OfferNotification(
-				"http://localhost:8080/consumers/" + uuid + "/offers/" + offer.getUUID(), null);
+				"http://localhost:8080/consumers/" + uuid + "/offers/" + ownOffer.getUUID(), null);
 
 		RestTemplate rest = new RestTemplate();
 
@@ -417,8 +427,8 @@ public class Consumer {
 
 		map.put("uuid", uuid);
 		map.put("device uuid", device);
-		map.put("offer uuid", offer.getUUID());
-		map.put("startOffer", offer.getAggLoadprofile().getDate());
+		map.put("offer uuid", ownOffer.getUUID());
+		map.put("startOffer", ownOffer.getAggLoadprofile().getDate());
 		map.put("numberOfDeltaOffers", deltaOffers.keySet().size());
 		map.put("numberOfDeltaLoadprofiles", deltaLoadprofiles.keySet().size());
 		map.put("numberInNotificationQueue", notificationQueue.size());
@@ -435,9 +445,9 @@ public class Consumer {
 		if (deltaOffer) {
 			deltaOffers.remove(confirmOffer.getOffer());
 		} else {
-			if (offer.getUUID() == confirmOffer.getOffer()) {
+			if (ownOffer.getUUID() == confirmOffer.getOffer()) {
 				// Schicke Bestätigung zu Loadprofile an Device
-				String date = DateTime.ToString(offer.getAggLoadprofile().getDate());
+				String date = DateTime.ToString(ownOffer.getAggLoadprofile().getDate());
 
 				RestTemplate rest = new RestTemplate();
 				HttpEntity<String> entity = new HttpEntity<String>(date, Application.getRestHeader());
@@ -451,7 +461,7 @@ public class Consumer {
 					Log.e(e.getMessage());
 				}
 
-				offer = null;
+				ownOffer = null;
 				// TODO Speichere Lastprofil in Historie ab
 				loadprofile = null;
 			}
