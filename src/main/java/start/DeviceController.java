@@ -1,5 +1,6 @@
 package start;
 
+import java.util.GregorianCalendar;
 import java.util.UUID;
 import Util.DateTime;
 
@@ -38,9 +39,6 @@ public class DeviceController {
 				fC.getFallCooling(), fC.getRiseWarming(), fC.getConsCooling(), fC.getCurrTemp());
 
 		DeviceContainer.instance().add(fridge);
-		// System.out.println("#" + fridge.getSchedulesFixed());
-		// System.out.println("#" + fridge.getLoadprofilesFixed());
-		// System.out.println("#" + fridge.getScheduleMinutes());
 		return fridge.getUUID();
 	}
 
@@ -66,9 +64,8 @@ public class DeviceController {
 	}
 
 	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.DELETE)
-	public Boolean deleteSingleDevice(@PathVariable UUID uuid) {
+	public void deleteSingleDevice(@PathVariable UUID uuid) {
 		DeviceContainer.instance().delete(uuid);
-		return true;
 	}
 
 	@RequestMapping(value = "/devices/{uuid}/", method = RequestMethod.DELETE)
@@ -76,10 +73,9 @@ public class DeviceController {
 		DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
 		return true;
 	}
-	
-	@RequestMapping(value = "/devices/{uuid}/confirmLoadprofile", method = RequestMethod.DELETE)
-	public Boolean receiveChangeRequest(@RequestBody String time, @PathVariable UUID uuid) {
+
+	@RequestMapping(value = "/devices/{uuid}/confirm/{time}", method = RequestMethod.GET)
+	public void receiveChangeRequest(@RequestBody GregorianCalendar time, @PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).confirmLoadprofile(time);
-		return true;
 	}
 }

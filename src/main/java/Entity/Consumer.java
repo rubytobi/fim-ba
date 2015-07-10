@@ -1,6 +1,7 @@
 package Entity;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.AccessDeniedException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -55,7 +56,6 @@ public class Consumer {
 	// Teilnehmern)
 	private Loadprofile loadprofile = null;
 	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
-	private ConcurrentHashMap<UUID, Offer> offerMap = new ConcurrentHashMap<UUID, Offer>();
 
 	private int maxMarketplaceOffersToCompare;
 
@@ -73,22 +73,26 @@ public class Consumer {
 		return ownOffer;
 	}
 
-	private Fridge[] getAllDevices() {
-		RestTemplate rest = new RestTemplate();
-
-		ResponseEntity<Fridge[]> devices = rest.exchange("http://localhost:8080/devices", HttpMethod.GET, null,
-				Fridge[].class);
-
-		return devices.getBody();
-	}
-
+	/*
+	 * gibt alle consumer zurück, ohne sich selber
+	 */
 	private Consumer[] getAllConsumers() {
 		RestTemplate rest = new RestTemplate();
 
 		ResponseEntity<Consumer[]> consumers = rest.exchange("http://localhost:8080/consumers", HttpMethod.GET, null,
 				Consumer[].class);
 
-		return consumers.getBody();
+		Consumer[] list = new Consumer[consumers.getBody().length - 1];
+
+		int i = 0;
+		for (Consumer c : consumers.getBody()) {
+			if (!c.getUUID().equals(uuid)) {
+				list[i] = c;
+				i++;
+			}
+		}
+
+		return list;
 	}
 
 	public Offer[] getOffers() {
@@ -185,6 +189,8 @@ public class Consumer {
 		if (notification == null) {
 			Log.d("No current notifications available");
 			return;
+		} else {
+			Log.d("Current count in notificationQueue: " + notificationQueue.size());
 		}
 
 		Offer offer = getOfferFromNotification(notification);
@@ -199,17 +205,24 @@ public class Consumer {
 			return;
 		}
 
+		if (!DateTime.ToString(offer.getAggLoadprofile().getDate()).equals(DateTime.ToString(loadprofile.getDate()))) {
+			Log.e("offer dates different...");
+			return;
+		}
+
 		if (!isOfferBetter(offer)) {
 			Log.e("offer not better - but for testing continued");
 			// return;
 		}
 
+		Log.e(offer.toString());
+
 		if (offer.getAllLoadprofiles().containsKey(uuid)) {
-			Log.d("work on offer");
-			workOnContractOffer(offer);
+			Log.d("already part of offer, decide whether to decline or accept");
+			thinkAboutContract(offer);
 		} else {
-			Log.d("work on notification");
-			workOnLoadprofileOffer(offer);
+			Log.d("not yet part of offer, build new offer upon");
+			extendOffer(offer);
 		}
 	}
 
@@ -234,20 +247,19 @@ public class Consumer {
 		}
 
 		Log.d("offer is not better");
-
 		return false;
 	}
 
-	private void workOnLoadprofileOffer(Offer oldOffer) {
+	private void extendOffer(Offer oldOffer) {
 		// offer not yet part of
 		Offer newOffer = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, oldOffer.getAggLoadprofile()),
 				oldOffer);
-		offerMap.put(newOffer.getUUID(), newOffer);
+		ownOffer = newOffer;
 
 		OfferNotification notification = new OfferNotification(newOffer.getLocation(), oldOffer.getLocation());
 
 		String url = new API().consumers(oldOffer.getAuthor()).offers().toString();
-		Log.i("post offer for contract at: " + url);
+		Log.i("post offer " + newOffer.toString() + " for contract at: " + url);
 
 		try {
 			RequestEntity<OfferNotification> request = RequestEntity.post(new URI(url))
@@ -258,7 +270,7 @@ public class Consumer {
 		}
 	}
 
-	private void workOnContractOffer(Offer offer) {
+	private void thinkAboutContract(Offer offer) {
 		// confirm offer
 		API api = new API().consumers(offer.getAuthor()).offers(offer.getAuthor()).confirm(offer.getKey());
 		Log.i("confirm offer at: " + api.toString());
@@ -276,10 +288,18 @@ public class Consumer {
 		// check response
 		if (response == null || response.getBody() == false) {
 			Log.d("contract " + offer.getUUID() + " declined");
-			throw new DeclineContract();
 		} else {
 			Log.e("contract " + offer.getUUID() + " accepted");
-			throw new AcceptContract();
+
+			api = new API().marketplace().demand(offer.getUUID()).invalidate();
+			try {
+				RequestEntity.get(new URI(api.toString())).accept(MediaType.APPLICATION_JSON);
+			} catch (URISyntaxException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			this.ownOffer = offer;
 		}
 	}
 
@@ -288,11 +308,11 @@ public class Consumer {
 		return new Offer[0];
 	}
 
-	public void confirmOffer(UUID uuidOffer, UUID key) {
+	public boolean confirmOffer(UUID uuidOffer, UUID key) {
 		if (!ownOffer.getKey().equals(key)) {
-			throw new InvalidOrOutdatedKey();
+			return false;
 		} else {
-			throw new OfferAccepted();
+			return true;
 		}
 	}
 
@@ -339,8 +359,7 @@ public class Consumer {
 	}
 
 	public void receiveOfferNotification(OfferNotification offerNotification) {
-		Log.i(uuid + " [consumer] received offer");
-		Log.i(offerNotification.toString());
+		Log.i(uuid + " [consumer] received offer: " + offerNotification.toString());
 
 		notificationQueue.add(offerNotification);
 	}

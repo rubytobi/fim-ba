@@ -8,12 +8,12 @@ public class Main {
 		double[] valuesOffer2 = {0.0, -2.5, -5.5, 2.0};
 		double priceOffer1 = 0.5;
 		double priceOffer2 = 0.8;
-		double[] deviation = 
+		double[] deviation = null;
 	}
 	
 	private void mergeOffers (double[] valuesOffer1, double[] valuesOffer2, 
 			double priceOffer1, double priceOffer2, double[] deviation) {		
-		Offer offerDemand, offerSupply;
+		Offer offerDemand = null, offerSupply = null;
 		
 		double eexPrice = 20;
 		int numSlots = 4;

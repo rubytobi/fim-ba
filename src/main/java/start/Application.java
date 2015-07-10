@@ -50,7 +50,7 @@ public class Application {
 		return jsonConverter;
 	}
 
-	@Scheduled(initialDelay = 10000, fixedRate = 100)
+	@Scheduled(fixedRate = 100)
 	public static void init() {
 		if (countFridges < maxFridges) {
 			countFridges++;
@@ -96,7 +96,7 @@ public class Application {
 		return headers;
 	}
 
-	@Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 2500)
 	public static void pingAllDevices() {
 		RestTemplate rest = new RestTemplate();
 
@@ -111,7 +111,7 @@ public class Application {
 		}
 	}
 
-	@Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 2500)
 	public static void pingAllConsumers() {
 		RestTemplate rest = new RestTemplate();
 

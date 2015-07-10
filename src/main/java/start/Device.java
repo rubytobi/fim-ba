@@ -28,5 +28,5 @@ public interface Device {
 
 	public void changeLoadprofile(ChangeRequest cr);
 	
-	public void confirmLoadprofile (String time);
+	public void confirmLoadprofile (GregorianCalendar time);
 }
