@@ -210,7 +210,8 @@ public class Marketplace {
 		double sumDeviationSupply = 0;
 		for (int i=0; i<numSlots; i++) {
 			if (deviation[i] != 0) {
-				if (deviation[i] == valuesOfferDemand[i] + valuesOfferSupply[i]) {
+				if (Math.abs(deviation[i]) == Math.abs(valuesOfferDemand[i])
+						+ Math.abs(valuesOfferSupply[i])) {
 					sumDeviationDemand += Math.abs(valuesOfferDemand[i]);
 					sumDeviationSupply += Math.abs(valuesOfferSupply[i]);
 				}				
@@ -228,7 +229,7 @@ public class Marketplace {
 		sumDeviationSupply = sumDeviationSupply*eexPrice;
 		
 		// Berechne Strafe pro kWh und füge sie zum Preis hinzu
-		priceDemand = priceDemand + sumDeviationDemand/sumOfferDemand;
+		priceDemand = priceDemand - sumDeviationDemand/sumOfferDemand;
 		priceSupply = priceSupply - sumDeviationSupply/sumOfferSupply;
 		
 		// Schicke Bestätigung für beide Angebote
