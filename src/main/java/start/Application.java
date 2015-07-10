@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import Entity.Consumer;
 import Entity.Fridge;
+import Entity.Marketplace;
 import Packet.FridgeCreation;
 import Util.Log;
 
@@ -126,6 +127,17 @@ public class Application {
 			} catch (HttpServerErrorException e) {
 				Log.e("#500 @ pinging " + url);
 			}
+		}
+	}
+	
+	@Scheduled(fixedRate = 5000)
+	public static void pingMarketplace() {
+		RestTemplate rest = new RestTemplate();
+
+		try {
+			rest.exchange(BASE_URI + "/marketplace/ping", HttpMethod.POST, null, Void.class);
+		} catch (HttpServerErrorException e) {
+			Log.e("#500 @ pinging " + BASE_URI + "/marketplace/ping");
 		}
 	}
 }
