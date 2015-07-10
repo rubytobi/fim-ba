@@ -54,16 +54,22 @@ public class Marketplace {
 
 	public void ping() {
 	}
-
-	public void putDemand(Offer demandOffer) {
-		if (!findFittingOffer(demandOffer, false)) {
-			demand.put(demandOffer.getUUID(), demandOffer);
+	
+	public void putOffer (Offer offer) {
+		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
+		double sumLoadprofile = 0;
+		for (int i=0; i<numSlots; i++) {
+			sumLoadprofile += valuesLoadprofile[i];
 		}
-	}
-
-	public void putSupply(Offer supplyOffer) {
-		if (!findFittingOffer(supplyOffer, true)) {
-			supply.put(supplyOffer.getUUID(), supplyOffer);
+		if (sumLoadprofile > 0) {
+			if (! findFittingOffer(offer, true)) {
+				supply.put(offer.getUUID(), offer);
+			}
+		}
+		else {
+			if (! findFittingOffer(offer, false)) {
+				demand.put(offer.getUUID(), offer);
+			}
 		}
 	}
 
@@ -92,35 +98,38 @@ public class Marketplace {
 		Offer offerLeastDeviation = offer;
 		double[] offerLoadprofile = offer.getAggLoadprofile().getValues();
 		
-		// Setzte leastDeviation initial auf aufsummiertes Lastprofil des Verbrauchers
+		// Setzte leastDeviation initial auf aufsummiertes Lastprofil des Angebots
 		for (int i=0; i<numSlots; i++) {
 			sumLeastDeviation += Math.abs(offerLoadprofile[i]);
 		}
 		
 		double[] currentDeviation;
 		double[] leastDeviation = offerLoadprofile;
+		double sumCurrentDeviation;
 		
 		// Suche aus allen Angeboten des Marktplatzes, das mit der geringsten
 		// Abweichung
 		for (UUID uuid : set) {
 			Offer compareOffer;
+			
 			if (offerIsSupplyOffer) {
 				compareOffer = supply.get(uuid);
-			} else {
+			}
+			else {
 				compareOffer = demand.get(uuid);
 			}
-				sumCurrentDeviation += Math.abs(currentDeviation[i]);
 
 			// Prüfe, ob Angebote für gleichen Zeitraum sind, gehe sonst zum
 			// nächsten Angebot
 			if (DateTime.ToString(compareOffer.getAggLoadprofile().getDate()) == DateTime
 					.ToString(offer.getAggLoadprofile().getDate())) {
-				double[] supplyLoadprofile = compareOffer.getAggLoadprofile().getValues();
-				double currentDeviation = 0;
+				double[] compareLoadprofile = compareOffer.getAggLoadprofile().getValues();
+				currentDeviation = new double[4];
+				sumCurrentDeviation = 0;
 
 				for (int i = 0; i < numSlots; i++) {
-					currentDeviation = supplyLoadprofile[i] - offerLoadprofile[i];
-
+					currentDeviation[i] = offerLoadprofile[i] + compareLoadprofile[i];
+					sumCurrentDeviation += Math.abs(currentDeviation[i]);
 				}
 				if (sumCurrentDeviation < sumLeastDeviation) {
 					sumLeastDeviation = sumCurrentDeviation;
@@ -132,113 +141,119 @@ public class Marketplace {
 		
 		// Prüfe, ob geringste Abweichung klein genug, um Angebote zusammenzufuehren
 		if (Math.abs(sumLeastDeviation) < 5 && offerLeastDeviation.getUUID() != offer.getUUID()) {
-			mergeOffers(offer, offerLeastDeviation, leastDeviation, sumLeastDeviation);
+			mergeOffers(offer, offerLeastDeviation, leastDeviation);
 			return true;
 		}
 
 		return false;
 	}
 
-	private void mergeOffers (Offer offer1, Offer offer2, double[] deviation, double sumDeviation) {		
+	private void mergeOffers (Offer offer1, Offer offer2, double[] deviation) {		
 		Offer offerDemand, offerSupply;
-		if(offer1.getAggLoadprofile().getPrice() < 0) {
+		
+		double[] valuesOffer1 = offer1.getAggLoadprofile().getValues();
+		double[] valuesOffer2 = offer1.getAggLoadprofile().getValues();
+		double sumOffer1 = 0;
+		double sumOffer2 = 0;
+		double sumOfferDemand, sumOfferSupply;
+		double[] valuesOfferDemand, valuesOfferSupply;
+		for (int i=0; i<4; i++) {
+			sumOffer1 += valuesOffer1[i];
+			sumOffer2 += valuesOffer2[i];
+		}
+		if (sumOffer1<0 && sumOffer2>0) {
 			offerDemand = offer1;
+			sumOfferDemand = sumOffer1;
+			valuesOfferDemand = valuesOffer1;
+			
 			offerSupply = offer2;
+			sumOfferSupply = sumOffer2;
+			valuesOfferSupply = valuesOffer2;
+		}
+		else if (sumOffer1 > 0 && sumOffer2 < 0) {
+			offerDemand = offer2;
+			sumOfferDemand = sumOffer2;
+			valuesOfferDemand = valuesOffer2;
+			
+			offerSupply = offer1;
+			sumOfferSupply = sumOffer1;
+			valuesOfferSupply = valuesOffer1;
 		}
 		else {
-			offerSupply = offer1;
-			offerDemand = offer2;
+			// TODO Throw exception
+			return;
 		}
-
-		double sumOfferDemand = 0;
-		double sumOfferSupply = 0;
+		
 		double priceDemand, priceSupply;
-		for (int i=0; i<numSlots; i++) {
-			sumOfferDemand += offerDemand.getAggLoadprofile().getValues()[i];
-			sumOfferSupply += offerSupply.getAggLoadprofile().getValues()[i];
-		}
+		
+		// Lege Preis für beide Angebote ohne "Strafe" fest
 		if (sumOfferDemand + sumOfferSupply == 0) {
 			priceDemand = (offerDemand.getPrice()+offerSupply.getPrice())/2;
 			priceSupply = priceDemand;
 		}
 		else {
+			// Ermittle Gesamtpreis für beide Angebote
 			priceDemand = sumOfferDemand*offerDemand.getPrice();
 			priceSupply = sumOfferSupply*offerSupply.getPrice();
-			
+			// Ermittle Mittelwert von Betrag des Gesamtpreises beider Angebote
 			double price = (Math.abs(priceDemand)+Math.abs(priceSupply))/2;
-			if (priceDemand < 0) {
-				priceDemand = -price;
-			}
-			else {
-				priceDemand = price;
-			}
-			if (priceSupply < 0) {
-				priceSupply = -price;
-			}
-			else {
-				priceDemand = price;
-			}
-			
+			// Weise den Gesamtpreisen den jeweiligen Mittelwert zu
+			priceDemand = -price;
+			priceSupply = price;
+			// Berechne Preise pro kWh für Angebote
 			priceDemand = priceDemand/sumOfferDemand;
 			priceSupply = priceSupply/sumOfferSupply;
 		}
-	}
 		
-
-	private void mergeOffers(Offer offer1, Offer offer2) {
-		// Entferne beide Angebote vom Marktplatz
-		demand.remove(offer1.getUUID());
-		demand.remove(offer2.getUUID());
-		supply.remove(offer1.getUUID());
-		supply.remove(offer2.getUUID());
-
-		// Berechne neuen Preis und jeweils prozentuale Abweichung vom alten
-		// Preis
-		double price1 = Math.abs(offer1.getPrice());
-		double price2 = Math.abs(offer2.getPrice());
-		double mergedPrice = (price1 + price2) / 2;
-		double deviationPrice1 = (mergedPrice - price1) / price1;
-		double deviationPrice2 = (mergedPrice - price2) / price2;
-
-		Set<UUID> consumers1 = offer1.getAllLoadprofiles().keySet();
-		Set<UUID> consumers2 = offer2.getAllLoadprofiles().keySet();
-
-		// Berechne anteilige Einzelpreise für alle Consumer von offer1 und
-		// benachrichtige sie
-		for (UUID uuid : consumers1) {
-			Loadprofile loadprofile1 = offer1.getAllLoadprofiles().get(uuid);
-			double newPrice = loadprofile1.getMinPrice() * deviationPrice1;
-			confirmOffer(offer1, uuid, newPrice);
+		// Lege nun Gesamtstrafe für einzelne Angebote fest
+		double sumDeviationDemand = 0;
+		double sumDeviationSupply = 0;
+		for (int i=0; i<numSlots; i++) {
+			if (deviation[i] != 0) {
+				if (deviation[i] == valuesOfferDemand[i] + valuesOfferSupply[i]) {
+					sumDeviationDemand += Math.abs(valuesOfferDemand[i]);
+					sumDeviationSupply += Math.abs(valuesOfferSupply[i]);
+				}				
+				else {
+					if (Math.abs(valuesOfferDemand[i]) > Math.abs(valuesOfferSupply[i])) {
+						sumDeviationDemand += Math.abs(valuesOfferDemand[i]);
+					}
+					else {
+						sumDeviationSupply += Math.abs(valuesOfferSupply[i]);
+					}
+				}		
+			}
 		}
-
-		// Berechne anteilige Einzelpreise für alle Consumer von offer2 und
-		// benachrichtige sie
-		for (UUID uuid : consumers2) {
-			Loadprofile supplyLoadprofile = offer2.getAllLoadprofiles().get(uuid);
-			double newPrice = supplyLoadprofile.getMinPrice() * deviationPrice2;
-			confirmOffer(offer2, uuid, newPrice);
-		}
-
-		// Lege Zusammenführung der beiden Angebote ab
-		MergedOffers mergedOffer = new MergedOffers(mergedPrice, offer1, offer2);
-		mergedOffers.put(mergedOffer.getUUID(), mergedOffer);
+		sumDeviationDemand = sumDeviationDemand*eexPrice;
+		sumDeviationSupply = sumDeviationSupply*eexPrice;
+		
+		// Berechne Strafe pro kWh und füge sie zum Preis hinzu
+		priceDemand = priceDemand + sumDeviationDemand/sumOfferDemand;
+		priceSupply = priceSupply - sumDeviationSupply/sumOfferSupply;
+		
+		// Schicke Bestätigung für beide Angebote
+		confirmOffer(offerDemand, priceDemand);
+		confirmOffer(offerSupply, priceSupply);
 	}
 
-	private void confirmOffer(Offer offer, UUID consumer, double newPrice) {
+	private void confirmOffer(Offer offer, double newPrice) {
 		ConfirmOffer confirmOffer = new ConfirmOffer(offer.getUUID(), newPrice);
+		Set<UUID> set = offer.getAllLoadprofiles().keySet();
+		
+		for (UUID consumer: set) {
+			// Sende confirmOffer an consumer
+			RestTemplate rest = new RestTemplate();
+			HttpEntity<ConfirmOffer> entity = new HttpEntity<ConfirmOffer>(confirmOffer, Application.getRestHeader());
 
-		// Sende confirmOffer an consumer
-		RestTemplate rest = new RestTemplate();
-		HttpEntity<ConfirmOffer> entity = new HttpEntity<ConfirmOffer>(confirmOffer, Application.getRestHeader());
+			String url = "http://localhost:8080/consumers/" + consumer + "/offers/" + offer.getUUID()
+					+ "/confirmByMarketplace";
 
-		String url = "http://localhost:8080/consumers/" + consumer + "/offers/" + offer.getUUID()
-				+ "/confirmByMarketplace";
-
-		try {
-			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
-		} catch (Exception e) {
-			Log.i(url);
-			Log.e(e.getMessage());
+			try {
+				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+			} catch (Exception e) {
+				Log.i(url);
+				Log.e(e.getMessage());
+			}
 		}
 	}
 }

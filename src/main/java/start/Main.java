@@ -1,57 +1,103 @@
 package start;
 
+import Entity.Offer;
+
 public class Main {
 	public static void main(String[] args) {
-		double deviation = 1;
-		double price1 = 0.5;
-		double price2 = 0.8;
-		double sum1 = -5;
-		double sum2 = 5;
-		double costsBKV = 10;
-		double newPrice1, newPrice2;
+		double[] valuesOffer1 = {0.0, 3.0, 5.0, -2.0};
+		double[] valuesOffer2 = {0.0, -2.5, -5.5, 2.0};
+		double priceOffer1 = 0.5;
+		double priceOffer2 = 0.8;
+		double[] deviation = 
+	}
+	
+	private void mergeOffers (double[] valuesOffer1, double[] valuesOffer2, 
+			double priceOffer1, double priceOffer2, double[] deviation) {		
+		Offer offerDemand, offerSupply;
 		
-		if (deviation == 0) {
-			System.out.println("Keine Abweichung.");
-			newPrice1 = (price1+price2)/2;
-			newPrice2 = newPrice1;
-			System.out.println("Preis 1: " +newPrice1);
-			System.out.println("Preis 2: " +newPrice2);
+		double eexPrice = 20;
+		int numSlots = 4;
+		
+		double sumOffer1 = 0;
+		double sumOffer2 = 0;
+		double sumOfferDemand, sumOfferSupply, priceOfferDemand, priceOfferSupply;
+		double[] valuesOfferDemand, valuesOfferSupply;
+		for (int i=0; i<4; i++) {
+			sumOffer1 += valuesOffer1[i];
+			sumOffer2 += valuesOffer2[i];
 		}
-		else if (deviation > 0) {
-			System.out.println("Abweichung Erzeuger.");
-			// Wenn offer1 Erzeuger
-			if (sum1 > 0) {
-				System.out.println("1 Erzeuger");
-				newPrice1 = costsBKV/(sum2 - sum1);
-				newPrice2 = newPrice1 + costsBKV/sum2;
-				System.out.println("Preis 1: " +newPrice1);
-				System.out.println("Preis 2: " +newPrice2);
-			}
-			else {
-				System.out.println("2 Erzeuger");
-				newPrice1 = costsBKV/(sum1 - sum2);
-				newPrice2 = newPrice1 + costsBKV/sum2;
-				System.out.println("Preis 1: " +newPrice1);
-				System.out.println("Preis 2: " +newPrice2);
-			}
+		System.out.println("Summe Offer1: " +sumOffer1);
+		System.out.println("Summe Offer2: " +sumOffer2);
+		if (sumOffer1<0 && sumOffer2>0) {
+			System.out.println("Offer Demand: Offer1, Offer Supply: Offer2");
+			sumOfferDemand = sumOffer1;
+			valuesOfferDemand = valuesOffer1;
+			priceOfferDemand = priceOffer1;
+			
+			sumOfferSupply = sumOffer2;
+			valuesOfferSupply = valuesOffer2;
+			priceOfferSupply = priceOffer2;
+		}
+		else if (sumOffer1 > 0 && sumOffer2 < 0) {
+			System.out.println("Offer Demand: Offer1, Offer Supply: Offer2");
+			sumOfferDemand = sumOffer2;
+			valuesOfferDemand = valuesOffer2;
+			priceOfferDemand = priceOffer2;
+			
+			sumOfferSupply = sumOffer1;
+			valuesOfferSupply = valuesOffer1;
+			priceOfferSupply = priceOffer1;
 		}
 		else {
-			System.out.println("Abweichung Verbraucher.");
-			// Wenn offer2 Erzeuger
-			if (sum2 > 0) {
-				System.out.println("1 Verbraucher");
-				newPrice1 = costsBKV/(sum2 - sum1);
-				newPrice2 = newPrice1 + costsBKV/sum2;
-				System.out.println("Preis 1: " +newPrice1);
-				System.out.println("Preis 2: " +newPrice2);
-			}
-			else {
-				System.out.println("1 Verbraucher");
-				newPrice1 = costsBKV/(sum1 - sum2);
-				newPrice2 = newPrice1 + costsBKV/sum2;
-				System.out.println("Preis 1: " +newPrice1);
-				System.out.println("Preis 2: " +newPrice2);
+			// TODO Throw exception
+			return;
+		}
+		
+		double priceDemand, priceSupply;
+		
+		// Lege Preis für beide Angebote ohne "Strafe" fest
+		if (sumOfferDemand + sumOfferSupply == 0) {
+			priceDemand = (offerDemand.getPrice()+offerSupply.getPrice())/2;
+			priceSupply = priceDemand;
+		}
+		else {
+			// Ermittle Gesamtpreis für beide Angebote
+			priceDemand = sumOfferDemand*offerDemand.getPrice();
+			priceSupply = sumOfferSupply*offerSupply.getPrice();
+			// Ermittle Mittelwert von Betrag des Gesamtpreises beider Angebote
+			double price = (Math.abs(priceDemand)+Math.abs(priceSupply))/2;
+			// Weise den Gesamtpreisen den jeweiligen Mittelwert zu
+			priceDemand = -price;
+			priceSupply = price;
+			// Berechne Preise pro kWh für Angebote
+			priceDemand = priceDemand/sumOfferDemand;
+			priceSupply = priceSupply/sumOfferSupply;
+		}
+		
+		// Lege nun Gesamtstrafe für einzelne Angebote fest
+		double sumDeviationDemand = 0;
+		double sumDeviationSupply = 0;
+		for (int i=0; i<numSlots; i++) {
+			if (deviation[i] != 0) {
+				if (deviation[i] == valuesOfferDemand[i] + valuesOfferSupply[i]) {
+					sumDeviationDemand += Math.abs(valuesOfferDemand[i]);
+					sumDeviationSupply += Math.abs(valuesOfferSupply[i]);
+				}				
+				else {
+					if (Math.abs(valuesOfferDemand[i]) > Math.abs(valuesOfferSupply[i])) {
+						sumDeviationDemand += Math.abs(valuesOfferDemand[i]);
+					}
+					else {
+						sumDeviationSupply += Math.abs(valuesOfferSupply[i]);
+					}
+				}		
 			}
 		}
+		sumDeviationDemand = sumDeviationDemand*eexPrice;
+		sumDeviationSupply = sumDeviationSupply*eexPrice;
+		
+		// Berechne Strafe pro kWh und füge sie zum Preis hinzu
+		priceDemand = priceDemand + sumDeviationDemand/sumOfferDemand;
+		priceSupply = priceSupply - sumDeviationSupply/sumOfferSupply;
 	}
 }
