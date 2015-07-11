@@ -4,8 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;

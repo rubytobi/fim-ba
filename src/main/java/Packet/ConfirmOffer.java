@@ -11,7 +11,7 @@ public class ConfirmOffer {
 		this.offer = offer;
 	}
 	
-	public UUID getOffer() {
+	public UUID getUuid() {
 		return offer;
 	}
 	

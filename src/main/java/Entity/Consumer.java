@@ -441,11 +441,11 @@ public class Consumer {
 	}
 
 	public void confirmOfferByMarketplace(ConfirmOffer confirmOffer) {
-		boolean deltaOffer = deltaOffers.get(confirmOffer.getOffer()) != null;
+		boolean deltaOffer = deltaOffers.get(confirmOffer.getUuid()) != null;
 		if (deltaOffer) {
-			deltaOffers.remove(confirmOffer.getOffer());
+			deltaOffers.remove(confirmOffer.getUuid());
 		} else {
-			if (ownOffer.getUUID() == confirmOffer.getOffer()) {
+			if (ownOffer.getUUID() == confirmOffer.getUuid()) {
 				// Schicke Bestätigung zu Loadprofile an Device
 				String date = DateTime.ToString(ownOffer.getAggLoadprofile().getDate());
 
