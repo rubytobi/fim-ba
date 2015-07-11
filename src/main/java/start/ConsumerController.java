@@ -55,8 +55,8 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
-	public Offer[] getAllOffers(@PathVariable UUID uuid) {
-		return ConsumerContainer.instance().get(uuid).getOffers();
+	public Offer getAllOffers(@PathVariable UUID uuid) {
+		return ConsumerContainer.instance().get(uuid).getOffer();
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}", method = RequestMethod.GET)
@@ -96,8 +96,9 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirm/{uuidKey}", method = RequestMethod.GET)
-	public void confirmOfferByDevice(@PathVariable UUID uuidConsumer, UUID uuidOffer, UUID uuidKey) {
-		ConsumerContainer.instance().get(uuidConsumer).confirmOffer(uuidOffer, uuidKey);
+	public boolean confirmOfferByDevice(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer,
+			@PathVariable UUID uuidKey) {
+		return ConsumerContainer.instance().get(uuidConsumer).confirmOffer(uuidOffer, uuidKey);
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/cancel", method = RequestMethod.GET)

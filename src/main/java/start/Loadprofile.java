@@ -80,7 +80,7 @@ public class Loadprofile {
 	public GregorianCalendar getDate() {
 		return date;
 	}
-	
+
 	public void setMinPrice(double newPrice) {
 		minPrice = newPrice;
 	}

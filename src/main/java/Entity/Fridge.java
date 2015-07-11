@@ -24,7 +24,7 @@ import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
-	private double[][] scheduleMinutes = new double[2][15*numSlots];
+	private double[][] scheduleMinutes = new double[2][15 * numSlots];
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
@@ -275,9 +275,6 @@ public class Fridge implements Device {
 				}
 			}
 			if (change) {
-				System.out.println("Versende deltaLastprofil und speichere Neues Lastprofil für "
-						+ DateTime.ToString(startLoadprofile));
-
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
 				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0);
 				sendLoadprofileToConsumer(deltaLoadprofile, true);
@@ -285,7 +282,7 @@ public class Fridge implements Device {
 				// Abspeichern des neuen Lastprofils
 				loadprofilesFixed.put(DateTime.ToString(startLoadprofile), newValues);
 			} else {
-				System.out.println("Keine Aenderungen für " + DateTime.ToString(startLoadprofile));
+				// keine änderung
 			}
 			startLoadprofile.add(Calendar.HOUR_OF_DAY, 1);
 			aenderung.add(Calendar.HOUR_OF_DAY, 1);
@@ -442,13 +439,9 @@ public class Fridge implements Device {
 		currentTime.set(Calendar.MILLISECOND, 0);
 
 		double tempPlanned, tempScaled;
-		System.out.println(status);
-		System.out.println(DateTime.ToString(currentTime));
 		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
 		// tempScaled = simulationFridge.getTemperature(currentTime);
 		tempScaled = 7.5;
-		System.out.println("ping: @" + uuid + " " + DateTime.timestamp() + " Temperatur geplant: "
-				+ schedulesFixed.get(DateTime.ToString(currentTime))[1] + "	Temperatur gemessen: " + tempScaled);
 
 		if (tempPlanned != tempScaled) {
 			sendDeltaLoadprofile(currentTime, tempScaled);
@@ -504,9 +497,9 @@ public class Fridge implements Device {
 			e.printStackTrace();
 		}
 	}
-	
-	public void confirmLoadprofile (String time) {
-		if (time == DateTime.ToString(timeFixed)) {
+
+	public void confirmLoadprofile(GregorianCalendar time) {
+		if (DateTime.ToString(timeFixed).equals(DateTime.ToString(time))) {
 			saveSchedule(scheduleMinutes, timeFixed);
 			sendNewLoadprofile();
 		}

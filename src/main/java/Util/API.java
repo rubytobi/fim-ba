@@ -2,6 +2,8 @@ package Util;
 
 import java.util.UUID;
 
+import Entity.Offer;
+
 public class API {
 	private String uri = "http://localhost:8080";
 
@@ -56,6 +58,21 @@ public class API {
 
 	public API confirm(UUID key) {
 		uri += "/confirm/" + key;
+		return this;
+	}
+
+	public API marketplace() {
+		uri += "/marketplace";
+		return this;
+	}
+
+	public API demand(UUID uuid) {
+		uri += "/demands/" + uuid;
+		return this;
+	}
+
+	public API invalidate() {
+		uri += "/invalidate";
 		return this;
 	}
 

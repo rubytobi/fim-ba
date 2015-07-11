@@ -1,7 +1,10 @@
 package start;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.springframework.boot.SpringApplication;
@@ -34,8 +37,10 @@ public class Application {
 	private static String BASE_URI = "http://localhost:8080";
 	private static int countFridges = 0;
 	private static final int maxFridges = 3;
+	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 
 	public static void main(String[] args) {
+		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
 		SpringApplication.run(Application.class, args);
 	}
 
@@ -47,11 +52,13 @@ public class Application {
 		mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 		mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
 
+		mapper.setDateFormat(myDateFormat);
+
 		jsonConverter.setObjectMapper(mapper);
 		return jsonConverter;
 	}
 
-	@Scheduled(initialDelay = 10000, fixedRate = 100)
+	@Scheduled(fixedRate = 100)
 	public static void init() {
 		if (countFridges < maxFridges) {
 			countFridges++;
@@ -97,7 +104,7 @@ public class Application {
 		return headers;
 	}
 
-	@Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 2500)
 	public static void pingAllDevices() {
 		RestTemplate rest = new RestTemplate();
 
@@ -112,7 +119,7 @@ public class Application {
 		}
 	}
 
-	@Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 2500)
 	public static void pingAllConsumers() {
 		RestTemplate rest = new RestTemplate();
 
@@ -129,7 +136,7 @@ public class Application {
 			}
 		}
 	}
-	
+
 	@Scheduled(fixedRate = 5000)
 	public static void pingMarketplace() {
 		RestTemplate rest = new RestTemplate();

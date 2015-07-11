@@ -41,6 +41,11 @@ public class Offer {
 		key = null;
 	}
 
+	public String toString() {
+		return "{countPartner=" + allLoadprofiles.size() + ",partners=" + allLoadprofiles.keySet() + ",author=" + author
+				+ "}";
+	}
+
 	public Offer(UUID author, Loadprofile loadprofile) {
 		this();
 
