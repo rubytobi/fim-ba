@@ -46,6 +46,10 @@ public class Offer {
 				+ "}";
 	}
 
+	public int getCount() {
+		return allLoadprofiles.size();
+	}
+
 	public Offer(UUID author, Loadprofile loadprofile) {
 		this();
 

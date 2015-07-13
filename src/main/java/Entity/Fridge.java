@@ -10,6 +10,8 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
@@ -24,29 +26,47 @@ import start.View;
 
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
+	@JsonView(View.Detail.class)
 	private double[][] scheduleMinutes = new double[2][15 * numSlots];
 
 	// Zeitpunkt, ab dem scheduleMinutes gilt
 	@JsonView(View.Summary.class)
 	private GregorianCalendar timeFixed;
+
 	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
+	@JsonView(View.Detail.class)
 	private TreeMap<String, double[]> schedulesFixed = new TreeMap<String, double[]>();
+
+	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
+	@JsonView(View.Detail.class)
 	private TreeMap<String, double[]> loadprofilesFixed = new TreeMap<String, double[]>();
 
 	// currTemp: Temperatur, bei der der nächste neue Fahrplan beginnen soll
+	@JsonView(View.Detail.class)
 	private double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
+
 	// currCooling: Gibt an, ob der nächste Fahrplan mit Kühlen beginnen soll
+	@JsonView(View.Detail.class)
 	private boolean currCooling;
+
 	// Wie viel Grad pro Minute erwärmt bzw. kühlt der Kühlschrank?
+	@JsonView(View.Detail.class)
 	private double fallCooling, riseWarming;
+
 	// Verbrauch zum Kühlen pro Minute in Wh
+	@JsonView(View.Detail.class)
 	private double consCooling;
+
 	@JsonView(View.Summary.class)
 	private DeviceStatus status;
+
 	@JsonView(View.Summary.class)
 	private UUID uuid;
+
 	@JsonView(View.Summary.class)
 	private UUID consumerUUID;
+
+	@JsonView(View.Detail.class)
 	private SimulationFridge simulationFridge;
 
 	private Fridge() {
@@ -84,10 +104,6 @@ public class Fridge implements Device {
 
 	public DeviceStatus getStatus() {
 		return status;
-	}
-
-	public double[][] getScheduleMinutes() {
-		return scheduleMinutes;
 	}
 
 	public TreeMap<String, double[]> getSchedulesFixed() {
@@ -205,6 +221,21 @@ public class Fridge implements Device {
 			currCooling = false;
 			currTemp = scheduleMinutes[1][numSlots * 15 - 1] + riseWarming;
 		}
+
+		scheduleMinutes = roundSchedule(scheduleMinutes);
+	}
+
+	private double[][] roundSchedule(double[][] schedule) {
+		/*
+		 * Werte runden
+		 */
+		for (int i = 0; i < 2; i++) {
+			for (int j = 0; j < 60; j++) {
+				schedule[i][j] = Math.round(schedule[i][j] * 100) / 100;
+			}
+		}
+
+		return schedule;
 	}
 
 	// Berechnet viertelstündlich die aufsummierten Verbrauchswerte für den
@@ -370,7 +401,8 @@ public class Fridge implements Device {
 			tooWarm = (change > 0);
 			change = Math.abs(change);
 		}
-		return deltaSchedule;
+
+		return roundSchedule(deltaSchedule);
 	}
 
 	public int testDeltaSchedule(double[][] schedule, double newTemperature, int minuteChange, boolean firstSchedule) {
