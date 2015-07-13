@@ -8,7 +8,7 @@ import Packet.ChangeRequest;
 import Util.DeviceStatus;
 
 public interface Device {
-	int numSlots = 4;
+	int numSlots = 4;	
 
 	public double[] createValuesLoadprofile(double[] values);
 

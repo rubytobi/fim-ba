@@ -411,7 +411,7 @@ public class Consumer {
 		// Versende Deltalastprofile mit Summe>5 oder aus der aktuellen Stunde
 		// sofort
 		if (currentHour || sum >= 5) {
-			deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile);
+			deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile, true);
 
 			// Erstelle Angebot aus deltaLoadprofile, speichere es in
 			// deltaOffers und verschicke es

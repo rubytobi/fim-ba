@@ -19,7 +19,7 @@ public class Offer {
 
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
-	Map<UUID, Loadprofile> allLoadprofiles = new HashMap<UUID, Loadprofile>();
+	Map<UUID, ArrayList<Loadprofile>> allLoadprofiles = new HashMap<UUID, ArrayList<Loadprofile>>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
 	@JsonView(View.Summary.class)
@@ -55,7 +55,10 @@ public class Offer {
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
-		allLoadprofiles.put(author, loadprofile);
+		
+		ArrayList<Loadprofile> loadprofiles = new ArrayList<Loadprofile>();
+		loadprofiles.add(loadprofile);
+		allLoadprofiles.put(author,  loadprofiles);
 
 		this.author = author;
 		this.aggPrice = loadprofile.getMinPrice();
@@ -67,13 +70,23 @@ public class Offer {
 		return new API().consumers(author).offers(uuid).toString();
 	}
 
-	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenzeOffer) {
+	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenceOffer) {
 		this();
 
-		// lastprofile aus bestehendem angebot einbeziehen
-		this.allLoadprofiles.putAll(referenzeOffer.getAllLoadprofiles());
-		this.allLoadprofiles.put(author, loadprofile);
-
+		// Lastprofile aus bestehendem Angebot einbeziehen
+		this.allLoadprofiles.putAll(referenceOffer.getAllLoadprofiles());
+		
+		// Neues Lastprofil hinzufügen
+		ArrayList<Loadprofile> existingLoadprofiles = allLoadprofiles.get(author);
+		if (existingLoadprofiles == null) {
+			ArrayList<Loadprofile> loadprofiles = new ArrayList<Loadprofile>();
+			loadprofiles.add(loadprofile);
+		}
+		else {
+			existingLoadprofiles.add(loadprofile);
+			this.allLoadprofiles.put(author, existingLoadprofiles);
+		}
+		
 		this.author = author;
 		this.aggLoadprofile = aggLoadprofile;
 		this.aggPrice = aggLoadprofile.getMinPrice();
@@ -87,7 +100,7 @@ public class Offer {
 		return aggLoadprofile;
 	}
 
-	public Map<UUID, Loadprofile> getAllLoadprofiles() {
+	public Map<UUID, ArrayList<Loadprofile>> getAllLoadprofiles() {
 		return allLoadprofiles;
 	}
 

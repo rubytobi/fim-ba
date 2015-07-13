@@ -152,7 +152,7 @@ public class Fridge implements Device {
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, false);
 		sendLoadprofileToConsumer(loadprofile, false);
 	}
 
@@ -307,7 +307,7 @@ public class Fridge implements Device {
 			}
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0, true);
 				sendLoadprofileToConsumer(deltaLoadprofile, true);
 
 				// Abspeichern des neuen Lastprofils
@@ -717,7 +717,21 @@ public class Fridge implements Device {
 	}
 	
 	public void confirmChangedLoadprofile(ChangeRequest cr) {
-		// TODO Sende bestätigung, dass in ChangeRequest gesendete Änderung möglich ist
+		double[] changes = cr.getChangesLoadprofile();
+		double sum = 0;
+		
+		for (int i=0; i<numSlots; i++) {
+			sum += changes[i];
+		}
+		
+		double costs;
+		costs = sum*consCooling;
+		if (costs < 0) {
+			costs = 0;
+		}
+		// TODO Sende Bestätigung, dass in ChangeRequest gesendete Änderung möglich ist
+		// Teile Kosten für diese Änderung mit. Der Consumer muss dann das Angebot so ändern,
+		// dass die zusätzlichen Kosten ausgeglichen werden
 	}
 	
 	public void declineChangedLoadprofile(ChangeRequest cr) {

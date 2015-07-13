@@ -21,13 +21,16 @@ public class Loadprofile {
 	// Preis
 	@JsonProperty("minPrice")
 	private double minPrice;
+	
+	// Ist Lastprofil Delta-Lastprofil?
+	boolean deltaLoadprofile;
 
 	public Loadprofile() {
 		minPrice = 0.0;
 	}
 
 	// Erstellt ausübergebenem Array neues Lastprofil
-	public Loadprofile(double[] values, GregorianCalendar date) {
+	public Loadprofile(double[] values, GregorianCalendar date, boolean deltaLoadprofile) {
 		this();
 
 		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil
@@ -38,10 +41,11 @@ public class Loadprofile {
 
 		this.values = values;
 		this.date = date;
+		this.deltaLoadprofile = deltaLoadprofile;
 	}
 
-	public Loadprofile(double[] values, GregorianCalendar date, double minPrice) {
-		this(values, date);
+	public Loadprofile(double[] values, GregorianCalendar date, double minPrice, boolean deltaLoadprofile) {
+		this(values, date, deltaLoadprofile);
 
 		this.minPrice = minPrice;
 	}
