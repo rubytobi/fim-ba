@@ -477,12 +477,12 @@ public class Fridge implements Device {
 		for (int i=0; i<numSlots; i++) {
 			maxSlots[1][i] = plannedSchedule[1][i*15];
 			minSlots[1][i] = maxSlots[1][i];
-			for (int j=i+1; j<i*15; j++) {
+			for (int j=i*15; j<(i+1)*15; j++) {
 				if (plannedSchedule[1][j] > maxSlots[1][i]) {
 					maxSlots[1][i] = plannedSchedule[1][j];
 					maxSlots[0][i] = j;
 				}
-				if (plannedSchedule[1][j] > minSlots[j][i]) {
+				if (plannedSchedule[1][j] < minSlots[1][i]) {
 					minSlots[1][i] = plannedSchedule[1][j];
 					minSlots[0][i] = j;
 				}
@@ -499,7 +499,7 @@ public class Fridge implements Device {
 
 		for (int i=1; i<numSlots; i++) {
 			if (changesBefore != 0) {
-				if (changesBefore > 0) {
+				if (changesBefore < 0) {
 					minSlots[1][i] -= changesBefore*fallCooling;
 					if (minSlots[1][i] < minTemp2) {
 						// ÄNDERUNG NICHT MÖGLICH
@@ -508,7 +508,7 @@ public class Fridge implements Device {
 					}
 				}
 				else {
-					maxSlots[1][i] -= changesBefore*riseWarming;
+					maxSlots[1][i] += changesBefore*riseWarming;
 					if (maxSlots[1][i] > maxTemp2) {
 						// ÄNDERUNG NICHT MÖGLICH
 						// TODO Schicke Consumer Absage
@@ -582,14 +582,18 @@ public class Fridge implements Device {
 			}
 		}		
 		double[][] newSchedule = chargeChangedSchedule(changesMinute, minutePossibleChange);
+		
+		for (int i = 0; i<numSlots*15; i++) {
+		}
 		if (newSchedule != null) {
-			// TODO Sende Bestätigung für geändertes Lastprofil an Consumer
+			// TODO Sende Bestätigung für geändertes Lastprofil bzw. Lastprofil selbst an Consumer
 		}
 	}
 	
 	private double[][] chargeChangedSchedule (int[] changesLoadprofile, int[][] minutePossibleChanges) {
 		double[][] newSchedule =scheduleMinutes;
 		int currentChange;
+		boolean changed = false;
 		
 		// Berechne Slotsweise neuen Plan
 		for (int slot=0; slot<numSlots; slot++) {
@@ -607,13 +611,16 @@ public class Fridge implements Device {
 			int minuteExtreme = minutePossibleChanges[0][slot];
 			int amountBefore = minutePossibleChanges[1][slot];
 			int amountAfter = Math.abs(currentChange) - amountBefore;
-			int currentMinute = slot;
-			boolean changed = false;
+			int currentMinute = slot*15;
+			
 			// Mache die mögliche Anzahl an Änderungen vor dem Extremum
-			while (amountBefore != 0 && currentMinute<=minuteExtreme) {
+			while (currentMinute<=minuteExtreme) {
+				if (currentMinute == 0) {
+					currentMinute = 1;
+				}
 				// Passe so bald wie möglich Plan an und berechne pro Änderung
 				// amountBefore--
-				if (newSchedule[0][currentMinute] == searchFor) {
+				if (newSchedule[0][currentMinute] == searchFor && amountBefore != 0) {
 					newSchedule[0][currentMinute] = change;
 					amountBefore--;
 					changed = true;
@@ -623,37 +630,40 @@ public class Fridge implements Device {
 						newSchedule[1][currentMinute] = newSchedule[1][currentMinute-1] + riseWarming;
 					}
 					else {
-						newSchedule[1][currentMinute] = newSchedule[1][currentMinute-1] - fallCooling;
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute-1] + fallCooling;
 					}
 				}
 				
 				currentMinute++;
 				if (currentMinute == slot*15 && amountBefore != 0) {
 					// TODO AENDERUNG NICHT MÖGLICH
+					System.out.println("Aenderung nicht möglich 1");
 					return null;
 				}
 			}
 			
 			// Mache die restliche Anzahl an Änderungen nach dem Extremum
-			while (amountAfter != 0 && currentMinute<slot*15) {
+			while (currentMinute<(slot+1)*15) {
 				// Passe so bald wie möglich Plan an und berechne pro Änderung
 				// amountAfter--
-				if (newSchedule[0][currentMinute] == searchFor) {
+				if (newSchedule[0][currentMinute] == searchFor && amountAfter != 0) {
 					newSchedule[0][currentMinute] = change;
 					amountAfter--;
+					changed = true;
 				}
 				if (changed && currentMinute>0) {
 					if (newSchedule[0][currentMinute] == 0) {
 						newSchedule[1][currentMinute] = newSchedule[1][currentMinute-1] + riseWarming;
 					}
 					else {
-						newSchedule[1][currentMinute] = newSchedule[1][currentMinute-1] - fallCooling;
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute-1] + fallCooling;
 					}
 				}
 				
 				currentMinute++;
 				if (currentMinute == slot*15 && amountAfter != 0) {
 					// TODO AENDERUNG NICHT MÖGLICH
+					System.out.println("Aenderung nicht möglich 2");
 					return null;
 				}
 			}			
