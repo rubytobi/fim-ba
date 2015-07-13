@@ -332,39 +332,8 @@ public class Fridge implements Device {
 		GregorianCalendar start = (GregorianCalendar) aenderung.clone();
 		start.set(Calendar.MINUTE, 0);
 
-		/*
-		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
-		 * scheduleMinutes
-		 */
-		if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed))) {
-			for (int i = 0; i < 15 * numSlots; i++) {
-				double cons = scheduleMinutes[0][i];
-				double temp = scheduleMinutes[1][i];
-				deltaSchedule[0][i] = cons;
-				deltaSchedule[1][i] = temp;
-				// System.out.println("Minute " + i + " Verbrauch: " +
-				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
-			}
-		}
-		/*
-		 * Ansonsten muss der entsprechende Fahrplan aus schedulesFixed geändert
-		 * werden
-		 */
-		else {
-			for (int i = 0; i < 15 * numSlots; i++) {
-				if (schedulesFixed.get(DateTime.ToString(start)) == null) {
-					deltaSchedule[0][i] = 0.0;
-					deltaSchedule[1][i] = 0;
-				} else {
-					deltaSchedule[0][i] = schedulesFixed.get(DateTime.ToString(start))[0];
-					deltaSchedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
-				}
-				start.add(Calendar.MINUTE, 1);
-				// System.out.println("Minute " + i + " Verbrauch: " +
-				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
-			}
-			start.add(Calendar.HOUR_OF_DAY, -1);
-		}
+		// Lade aktuellen Plan für die Stunde ab start
+		deltaSchedule = getSchedule(start);
 
 		// Prüf mit testSchedule, in welcher Minute der Wert zu hoch/ zu niedrig
 		// ist
@@ -405,6 +374,44 @@ public class Fridge implements Device {
 		return roundSchedule(deltaSchedule);
 	}
 
+	public double[][] getSchedule(GregorianCalendar start) {
+		double[][] schedule = new double[2][15 * numSlots];
+		/*
+		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
+		 * scheduleMinutes
+		 */
+		if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed))) {
+			for (int i = 0; i < 15 * numSlots; i++) {
+				double cons = scheduleMinutes[0][i];
+				double temp = scheduleMinutes[1][i];
+				schedule[0][i] = cons;
+				schedule[1][i] = temp;
+				// System.out.println("Minute " + i + " Verbrauch: " +
+				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
+			}
+		}
+		/*
+		 * Ansonsten muss der entsprechende Fahrplan aus schedulesFixed geändert
+		 * werden
+		 */
+		else {
+			for (int i = 0; i < 15 * numSlots; i++) {
+				if (schedulesFixed.get(DateTime.ToString(start)) == null) {
+					schedule[0][i] = 0.0;
+					schedule[1][i] = 0;
+				} else {
+					schedule[0][i] = schedulesFixed.get(DateTime.ToString(start))[0];
+					schedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
+				}
+				start.add(Calendar.MINUTE, 1);
+				// System.out.println("Minute " + i + " Verbrauch: " +
+				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
+			}
+			start.add(Calendar.HOUR_OF_DAY, -1);
+		}
+		return schedule;
+	}
+
 	public int testDeltaSchedule(double[][] schedule, double newTemperature, int minuteChange, boolean firstSchedule) {
 		if (!firstSchedule) {
 			if (schedule[0][minuteChange] == consCooling) {
@@ -416,26 +423,17 @@ public class Fridge implements Device {
 			schedule[1][minuteChange] = newTemperature;
 		}
 
-		// System.out.println("Neu Minute " + minuteChange + " : Verbrauch: " +
-		// schedule[0][minuteChange] + " Temperatur: "
-		// + schedule[1][minuteChange]);
-
-		for (int i = minuteChange + 1; i < 15 * numSlots; i++) {
+		for (int i = minuteChange + 1; i < schedule[1].length; i++) {
 			if (schedule[0][i] > 0) {
 				schedule[1][i] = schedule[1][i - 1] + fallCooling;
 			} else {
 				schedule[1][i] = schedule[1][i - 1] + riseWarming;
 			}
-			// System.out
-			// .println("Neu Minute " + i + " : Verbrauch: " + schedule[0][i] +
-			// " Temperatur: " + schedule[1][i]);
 			if (schedule[1][i] > maxTemp2) {
-				// System.out.println("Änderung notwendig in Minute " + i);
 				// Wenn Änderung notwendig ist, wird die Minute, in welcher
 				// Temperatur zu hoch zurückgegeben
 				return i;
 			} else if (schedule[1][i] < minTemp2) {
-				// System.out.println("Änderung notwendig in Minute " + (-i));
 				// Wenn Änderung notwendig ist, wird die -Minute, in welcher
 				// Temperatur zu niedrig zurückgegeben
 				return -i;
@@ -492,28 +490,214 @@ public class Fridge implements Device {
 		sendNewLoadprofile();
 	}
 
-	@Override
 	public void changeLoadprofile(ChangeRequest cr) {
-		double[] changesLoadprofile = cr.getChangesLoadprofile();
-		GregorianCalendar startChangedLoadprofile = cr.getStartLoadprofile();
-		double[][] plannedSchedule = new double[2][15 * numSlots];
+		double[] changesKWH = cr.getChangesLoadprofile();
+		int[] changesMinute = new int[numSlots];
+		double[][] plannedSchedule = scheduleMinutes;
+		// Minute Max(0), Temperatur Max(1)
+		double[][] maxSlots = new double[2][numSlots], minSlots = new double[2][numSlots];
 
-		if (DateTime.ToString(startChangedLoadprofile) == DateTime.ToString(timeFixed)) {
-			plannedSchedule = scheduleMinutes;
-		} else {
-			for (int i = 0; i < 15 * numSlots; i++) {
-				plannedSchedule[0][i] = schedulesFixed.get(DateTime.ToString(startChangedLoadprofile))[0];
-				plannedSchedule[0][i] = schedulesFixed.get(DateTime.ToString(startChangedLoadprofile))[0];
-				startChangedLoadprofile.add(Calendar.MINUTE, 0);
-			}
-			startChangedLoadprofile.add(Calendar.HOUR_OF_DAY, -1);
+		// Berechne, wie viele Minuten zusätzlich bzw. weniger
+		// gekühlt werden muss
+		for (int i = 0; i < numSlots; i++) {
+			changesMinute[i] = (int) Math.ceil(changesKWH[i] / consCooling);
 		}
 
-		// Hole aktuellen Schedule zu dieser Zeit und prüfe, ob die Änderungen
-		// eingefügt werden können, ohne
-		// dass die harten Grenzen verletzt werden
+		// Berechne für jeden Slot das aktuelle Maximum und Minimum und in
+		// welcher Minute es eintritt
+		for (int i = 0; i < numSlots; i++) {
+			maxSlots[1][i] = plannedSchedule[1][i * 15];
+			minSlots[1][i] = maxSlots[1][i];
+			for (int j = i * 15; j < (i + 1) * 15; j++) {
+				if (plannedSchedule[1][j] > maxSlots[1][i]) {
+					maxSlots[1][i] = plannedSchedule[1][j];
+					maxSlots[0][i] = j;
+				}
+				if (plannedSchedule[1][j] < minSlots[1][i]) {
+					minSlots[1][i] = plannedSchedule[1][j];
+					minSlots[0][i] = j;
+				}
+			}
+		}
 
-		// TODO Auto-generated method stub
+		/*
+		 * Prüfe, ob die Änderungen der vorhergehenden Slots ein über-/ unter-
+		 * schreiten der maximalen/ minimalen Temperatur erzwingen. Passe das
+		 * Minimum und das Maximum mit Beachtung der Änderungen in den
+		 * vorhergehenden Slots an
+		 */
+		int changesBefore = changesMinute[0];
+
+		for (int i = 1; i < numSlots; i++) {
+			if (changesBefore != 0) {
+				if (changesBefore < 0) {
+					minSlots[1][i] -= changesBefore * fallCooling;
+					if (minSlots[1][i] < minTemp2) {
+						// ÄNDERUNG NICHT MÖGLICH
+						// TODO Schicke Consumer Absage
+						return;
+					}
+				} else {
+					maxSlots[1][i] += changesBefore * riseWarming;
+					if (maxSlots[1][i] > maxTemp2) {
+						// ÄNDERUNG NICHT MÖGLICH
+						// TODO Schicke Consumer Absage
+						return;
+					}
+				}
+			}
+			changesBefore += changesMinute[i];
+		}
+
+		// Wie viele Changes (1) darf ich erst ab Minute (0) machen?
+		int[][] minutePossibleChange = new int[2][numSlots];
+		int change;
+
+		for (int i = 0; i < numSlots; i++) {
+			change = changesMinute[i];
+			if (change != 0) {
+				if (change > 0) {
+					minSlots[1][i] -= change * fallCooling;
+					if (minSlots[1][i] < minTemp2) {
+						minutePossibleChange[0][i] = (int) minSlots[0][i] + 1;
+
+						// Berechne, wie viele Changes vor dem Eintritt des
+						// Minimums möglich sind
+						double currentMin = minSlots[1][i];
+						int amountChanges = 0;
+						while (currentMin >= minTemp2 && change > 0) {
+							currentMin -= fallCooling;
+							change--;
+							amountChanges++;
+						}
+						minutePossibleChange[1][i] = change - amountChanges;
+
+						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
+							// AENDERUNG NICHT MÖGLICH
+							// TODO Schicke Consumer Absage
+							return;
+						}
+					}
+
+					else {
+						minutePossibleChange[0][i] = 0;
+						minutePossibleChange[1][i] = change;
+					}
+				} else {
+					maxSlots[1][i] -= change * riseWarming;
+					if (maxSlots[1][i] > maxTemp2) {
+						minutePossibleChange[0][i] = (int) maxSlots[0][i] + 1;
+
+						// Berechne, wie viele Changes vor dem Eintritt des
+						// Minimums möglich sind
+						double currentMax = minSlots[1][i];
+						int amountChanges = 0;
+						while (currentMax <= maxTemp2 && change < 0) {
+							currentMax += riseWarming;
+							change++;
+							amountChanges++;
+						}
+						minutePossibleChange[1][i] = change - amountChanges;
+
+						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
+							// AENDERUNG NICHT MÖGLICH
+							// TODO Schicke Consumer Absage
+							return;
+						}
+					} else {
+						minutePossibleChange[0][i] = 0;
+						minutePossibleChange[1][i] = change;
+					}
+				}
+			}
+		}
+		double[][] newSchedule = chargeChangedSchedule(changesMinute, minutePossibleChange);
+
+		for (int i = 0; i < numSlots * 15; i++) {
+		}
+		if (newSchedule != null) {
+			// TODO Sende Bestätigung für geändertes Lastprofil bzw. Lastprofil
+			// selbst an Consumer
+		}
+	}
+
+	private double[][] chargeChangedSchedule(int[] changesLoadprofile, int[][] minutePossibleChanges) {
+		double[][] newSchedule = scheduleMinutes;
+		int currentChange;
+		boolean changed = false;
+
+		// Berechne Slotsweise neuen Plan
+		for (int slot = 0; slot < numSlots; slot++) {
+			currentChange = changesLoadprofile[slot];
+			double searchFor, change;
+			if (currentChange > 0) {
+				searchFor = 0.0;
+				change = consCooling;
+			} else {
+				searchFor = consCooling;
+				change = 0.0;
+			}
+
+			int minuteExtreme = minutePossibleChanges[0][slot];
+			int amountBefore = minutePossibleChanges[1][slot];
+			int amountAfter = Math.abs(currentChange) - amountBefore;
+			int currentMinute = slot * 15;
+
+			// Mache die mögliche Anzahl an Änderungen vor dem Extremum
+			while (currentMinute <= minuteExtreme) {
+				if (currentMinute == 0) {
+					currentMinute = 1;
+				}
+				// Passe so bald wie möglich Plan an und berechne pro Änderung
+				// amountBefore--
+				if (newSchedule[0][currentMinute] == searchFor && amountBefore != 0) {
+					newSchedule[0][currentMinute] = change;
+					amountBefore--;
+					changed = true;
+				}
+				if (changed && currentMinute > 0) {
+					if (newSchedule[0][currentMinute] == 0) {
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + riseWarming;
+					} else {
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + fallCooling;
+					}
+				}
+
+				currentMinute++;
+				if (currentMinute == slot * 15 && amountBefore != 0) {
+					// TODO AENDERUNG NICHT MÖGLICH
+					System.out.println("Aenderung nicht möglich 1");
+					return null;
+				}
+			}
+
+			// Mache die restliche Anzahl an Änderungen nach dem Extremum
+			while (currentMinute < (slot + 1) * 15) {
+				// Passe so bald wie möglich Plan an und berechne pro Änderung
+				// amountAfter--
+				if (newSchedule[0][currentMinute] == searchFor && amountAfter != 0) {
+					newSchedule[0][currentMinute] = change;
+					amountAfter--;
+					changed = true;
+				}
+				if (changed && currentMinute > 0) {
+					if (newSchedule[0][currentMinute] == 0) {
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + riseWarming;
+					} else {
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + fallCooling;
+					}
+				}
+
+				currentMinute++;
+				if (currentMinute == slot * 15 && amountAfter != 0) {
+					// TODO AENDERUNG NICHT MÖGLICH
+					System.out.println("Aenderung nicht möglich 2");
+					return null;
+				}
+			}
+		}
+		scheduleMinutes = newSchedule;
+		return newSchedule;
 	}
 
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile, boolean isDeltaLoadprofile) {
