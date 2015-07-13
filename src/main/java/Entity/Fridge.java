@@ -502,16 +502,14 @@ public class Fridge implements Device {
 				if (changesBefore < 0) {
 					minSlots[1][i] -= changesBefore*fallCooling;
 					if (minSlots[1][i] < minTemp2) {
-						// ÄNDERUNG NICHT MÖGLICH
-						// TODO Schicke Consumer Absage
+						declineChangedLoadprofile(cr);
 						return;
 					}
 				}
 				else {
 					maxSlots[1][i] += changesBefore*riseWarming;
 					if (maxSlots[1][i] > maxTemp2) {
-						// ÄNDERUNG NICHT MÖGLICH
-						// TODO Schicke Consumer Absage
+						declineChangedLoadprofile(cr);
 						return;
 					}
 				}
@@ -542,8 +540,7 @@ public class Fridge implements Device {
 						minutePossibleChange[1][i] = change-amountChanges;
 						
 						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
-							// AENDERUNG NICHT MÖGLICH
-							// TODO Schicke Consumer Absage
+							declineChangedLoadprofile(cr);
 							return;
 						}
 					}
@@ -569,8 +566,7 @@ public class Fridge implements Device {
 						minutePossibleChange[1][i] = change-amountChanges;
 						
 						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
-							// AENDERUNG NICHT MÖGLICH
-							// TODO Schicke Consumer Absage
+							declineChangedLoadprofile(cr);
 							return;
 						}
 					}
@@ -583,10 +579,11 @@ public class Fridge implements Device {
 		}		
 		double[][] newSchedule = chargeChangedSchedule(changesMinute, minutePossibleChange);
 		
-		for (int i = 0; i<numSlots*15; i++) {
-		}
 		if (newSchedule != null) {
-			// TODO Sende Bestätigung für geändertes Lastprofil bzw. Lastprofil selbst an Consumer
+			confirmChangedLoadprofile(cr);
+		}
+		else {
+			declineChangedLoadprofile(cr);
 		}
 	}
 	
@@ -636,8 +633,6 @@ public class Fridge implements Device {
 				
 				currentMinute++;
 				if (currentMinute == slot*15 && amountBefore != 0) {
-					// TODO AENDERUNG NICHT MÖGLICH
-					System.out.println("Aenderung nicht möglich 1");
 					return null;
 				}
 			}
@@ -662,8 +657,6 @@ public class Fridge implements Device {
 				
 				currentMinute++;
 				if (currentMinute == slot*15 && amountAfter != 0) {
-					// TODO AENDERUNG NICHT MÖGLICH
-					System.out.println("Aenderung nicht möglich 2");
 					return null;
 				}
 			}			
@@ -691,5 +684,13 @@ public class Fridge implements Device {
 			saveSchedule(scheduleMinutes, timeFixed);
 			sendNewLoadprofile();
 		}
+	}
+	
+	public void confirmChangedLoadprofile(ChangeRequest cr) {
+		// TODO Sende bestätigung, dass in ChangeRequest gesendete Änderung möglich ist
+	}
+	
+	public void declineChangedLoadprofile(ChangeRequest cr) {
+		// TODO Sende Absage, dass in ChangeRequest gesendete Änderung nicht möglich ist
 	}
 }
