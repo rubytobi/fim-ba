@@ -11,25 +11,35 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import Entity.Consumer;
 import Util.DateTime;
 
+/**
+ * Klasse fuer Lastprofile
+ *
+ */
 public class Loadprofile {
-	// 4 Werte für 15 Minuten Slots
+	// Verbrauch pro 15 Minuten
 	private double[] values;
 
 	// Zeitpunkt, ab wann das Lastprofil gelten soll
 	private GregorianCalendar date;
-
-	// Preis
+	
+	// Preis, den der Consumer mindestens einnehmen bzw. maximal zahlen will
 	@JsonProperty("minPrice")
 	private double minPrice;
 	
-	// Ist Lastprofil Delta-Lastprofil?
-	boolean deltaLoadprofile;
-
-	public Loadprofile() {
+	// Gibt, an, ob das Lastprofil ein Delta-Lastprofil ist
+	private boolean deltaLoadprofile;
+	
+	// Setzt minPrice auf 0
+	private Loadprofile() {
 		minPrice = 0.0;
 	}
 
-	// Erstellt ausübergebenem Array neues Lastprofil
+	/**
+	 * Erstellt neues Lastprofil aus uebergebenen Werten und mit minPrice = 0
+	 * @param	values				Werte fuer das neue Lastprofil
+	 * @param	date				Startzeitpunkt des neuen Lastprofils
+	 * @param	deltaLoadprofile	Gibt an, ob das Lastprofil ein Deltalastprofil ist
+	 */
 	public Loadprofile(double[] values, GregorianCalendar date, boolean deltaLoadprofile) {
 		this();
 
@@ -43,14 +53,25 @@ public class Loadprofile {
 		this.date = date;
 		this.deltaLoadprofile = deltaLoadprofile;
 	}
-
+	
+	/**
+	 * Erstellt neues Lastprofil aus uebergebenen Werten
+	 * @param	values				Werte fuer das neue Lastprofil
+	 * @param	date				Startzeitpunkt des neuen Lastprofils
+	 * @param	minPrice			Preis pro kWh, den der Consumer für dieses Lastprofil mindestens einnehmen bzw. maximal zahlen
+	 * @param	deltaLoadprofile	Gibt an, ob das Lastprofil ein Deltalastprofil ist
+	 */
 	public Loadprofile(double[] values, GregorianCalendar date, double minPrice, boolean deltaLoadprofile) {
 		this(values, date, deltaLoadprofile);
 
 		this.minPrice = minPrice;
 	}
-
-	// Erstellt aus beiden Lastprofilen Aggregiertes Lastprofil
+	
+	/**
+	 * Erstellt aggregiertes Lastprofil aus uebergebenen Lastprofilen
+	 * @param lp1	Erstes Lastprofil fuer Aggregierung
+	 * @param lp2	Zweites Lastprofil fuer Aggregierung
+	 */
 	public Loadprofile(Loadprofile lp1, Loadprofile lp2) {
 		this();
 
@@ -72,29 +93,53 @@ public class Loadprofile {
 		// TODO: annahme: nehme stets den billigeren preis
 		this.minPrice = Math.min(lp1.getMinPrice(), lp2.getMinPrice());
 	}
-
+	
+	/**
+	 * Liefert den Preis des Lastprofils
+	 * @return	Preis pro kWh, den der Consumer fuer 
+	 * dieses Lastprofil mindestens einnehmen bzw. maximal zahlen will
+	 */
 	public double getMinPrice() {
 		return minPrice;
 	}
-
+	
+	/**
+	 * Liefert die Werte des Lastprofils
+	 * @return Array mit Werten des Lastprofils
+	 */
 	public double[] getValues() {
 		return values;
 	}
-
+	
+	/**
+	 * Liefert den Startzeitpunkt des Lastprofils
+	 * @return	Startzeitpunkt des Lastprofils als GregorianCalendar
+	 */
 	public GregorianCalendar getDate() {
 		return date;
 	}
-
+	
+	/**
+	 * Setzt den Preis des Lastprofils
+	 * @param newPrice	Preis pro kWh, den der COnsumer fuer dieses Lastprofil mindestens einnehmen bzw. maximal zahlen will
+	 */
 	public void setMinPrice(double newPrice) {
 		minPrice = newPrice;
 	}
-
+	
+	/**
+	 * Liefert die wichtigsten Informationen des Lastprofils als String
+	 * @return	String, der die aktuellen Werte, das Startdatum und den Preis des Lastprofils enthaelt
+	 */
 	public String toString() {
 		return "{\"values\"=" + Arrays.toString(values) + ",\"date\"=\"" + DateTime.ToString(date) + "\",\"minPrice\"="
 				+ minPrice + "}";
 	}
-
-	// Berechnet die Abweichung des Lastprofils von seinem Mittelwert
+	
+	/**
+	 * Berechnet die Abweichung des Lastprofils von seinem Mittelwert
+	 * @return Die Summe aller Abweichungen vom Mittelwert
+	 */
 	public double chargeDeviationAverage() {
 		double average;
 		double deviationAverage = 0;
@@ -107,8 +152,12 @@ public class Loadprofile {
 
 		return deviationAverage;
 	}
-
-	// Berechnet die Abweichung von einem anderen Lastprofil
+	
+	/**
+	 * Berechnet die Abweichung des Lastprofils von einem anderen Lastprofil
+	 * @param otherProfile	Anderes Lastprofil, von welchem die Abweichung berechnet werden soll
+	 * @return Die Summe aller Abweichungen vom Mittelwert
+	 */
 	public double chargeDeviationOtherProfile(Loadprofile otherProfile) {
 		double deviationOtherProfile = 0;
 

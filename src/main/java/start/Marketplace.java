@@ -17,6 +17,10 @@ import Util.MergedOffers;
 import Util.DateTime;
 import Util.Log;
 
+/**
+ * Marktplatz, auf welchem alle Angebote eintreffen und zusammengefuehrt werden
+ *
+ */
 public class Marketplace {
 	private static Marketplace instance = null;
 	private Map<UUID, Offer> demand = new HashMap<UUID, Offer>();
@@ -35,11 +39,20 @@ public class Marketplace {
 		}
 		return instance;
 	}
-
+	
+	/**
+	 * Liefert den aktuellen EEX-Preis
+	 * @return Aktuellen EEX-Preis
+	 */
 	public static double getEEXPrice() {
 		return Marketplace.eexPrice;
 	}
-
+	
+	/**
+	 * Liefert 
+	 * @param uuid
+	 * @return
+	 */
 	public Offer getDemand(UUID uuid) {
 		return demand.get(uuid);
 	}
@@ -47,7 +60,15 @@ public class Marketplace {
 	public Offer getSupply(UUID uuid) {
 		return supply.get(uuid);
 	}
-
+	
+	/**
+	 * Enthaelt neues Angebot. 
+	 * Gibt es auf dem Marktplatz ein bereits passendes Angebot, werden die Angebote direkt zusammengefuehrt
+	 * und bestaetigt.
+	 * Gibt es auf dem Marktplatz kein passendes Angebot, wird das neue Angebot als Erzeuger- oder Verbraucherangebot
+	 * in der jeweiligen Map abgelegt.
+	 * @param offer	Neues Angebot, das am Markt teilnehmen will
+	 */
 	public void putOffer(Offer offer) {
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
@@ -64,12 +85,20 @@ public class Marketplace {
 			}
 		}
 	}
-
+	
+	/**
+	 * Entfernt das uebergebene Angebot vom Marktplatz
+	 * @param offer Angebot, das entfernt werden soll
+	 */
 	public void removeOffer(UUID offer) {
 		supply.remove(offer);
 		demand.remove(offer);
 	}
 
+	/**
+	 * Liefert den Status des Marktplatzes
+	 * @return Map mit der Anzahl an Verbraucherangeboten, der Anzahl an Erzeugerangeboten und Hoehe des EEX-Preises
+	 */
 	public Map<String, Object> status() {
 		Map<String, Object> map = new TreeMap<String, Object>();
 
@@ -79,7 +108,14 @@ public class Marketplace {
 
 		return map;
 	}
-
+	
+	/**
+	 * Prueft, ob auf dem Marktplatz ein passendes Angebot verfuegbar ist.
+	 * Wenn ein passendes Angebot verfuegbar ist, werden die Angebote zusammengefuehert und bestaetigt.
+	 * @param offer					Angebot, fuer das ein anderes Angebot auf dem Marktplatz gesucht wird
+	 * @param offerIsSupplyOffer	Information, ob das Angebot ein Erzeugerangebot ist
+	 * @return false, wenn kein passendes Angebot gefunden wurde. true, wenn ein passendes Angebot gefunden wurde
+	 */
 	public boolean findFittingOffer(Offer offer, boolean offerIsSupplyOffer) {
 		Set<UUID> set;
 		if (offerIsSupplyOffer) {
@@ -145,7 +181,13 @@ public class Marketplace {
 
 		return false;
 	}
-
+	
+	/**
+	 * Fuehrt zwei Angebote zusammen und bestaetigt allen beteilgten Consumern das Angebot
+	 * @param offer1   		Erstes Angebot der Zusammenfuehrung
+	 * @param offer2		Zweites Angebot der Zusammenfuehrung
+	 * @param deviation     Viertelstuendliche Abweichung der beiden Angebote
+	 */
 	private void mergeOffers(Offer offer1, Offer offer2, double[] deviation) {
 		double[] valuesOffer1 = offer1.getAggLoadprofile().getValues();
 		double[] valuesOffer2 = offer1.getAggLoadprofile().getValues();
@@ -233,7 +275,12 @@ public class Marketplace {
 		confirmOffer(offer1, price1);
 		confirmOffer(offer2, price2);
 	}
-
+	
+	/**
+	 * Schickt an alle Consumer des Angebots eine Bestaetigung mit dem neuen Preis
+	 * @param offer		Angebot, das bestaetigt wird
+	 * @param newPrice	Neuer, vom Marktplatz festgelegter Preis des Angebots
+	 */
 	private void confirmOffer(Offer offer, double newPrice) {
 		ConfirmOffer confirmOffer = new ConfirmOffer(offer.getUUID(), newPrice);
 		Set<UUID> set = offer.getAllLoadprofiles().keySet();
@@ -254,15 +301,19 @@ public class Marketplace {
 			}
 		}
 	}
-
+	
+	/**
+	 * Bestaetigt ein zufaellig ausgewaehltes Verbraucherangebot des Marktplatzes.
+	 */
 	public void ping() {
 		Set<UUID> set = demand.keySet();
+		Offer offer;
 
 		if (set.size() == 0) {
 			System.out.println("ping: @ marketplace " + DateTime.timestamp() + " no demand offers in Marketplace");
 		}
 		for (UUID uuidOffer : set) {
-			Offer offer = demand.get(uuidOffer);
+			offer = demand.get(uuidOffer);
 			System.out.println("ping: @ marketplace " + DateTime.timestamp() + " confirm demand offer " + uuidOffer);
 			confirmOffer(offer, offer.getAggLoadprofile().getMinPrice());
 			demand.remove(offer.getUUID());
