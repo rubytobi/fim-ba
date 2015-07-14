@@ -37,11 +37,11 @@ public class Fridge implements Device {
 	@JsonView(View.Summary.class)
 	private GregorianCalendar timeFixed;
 
-	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
+	// Fahrpläne, die schon ausgehandelt sind und fest stehen
 	@JsonView(View.Detail.class)
 	private TreeMap<String, double[]> schedulesFixed = new TreeMap<String, double[]>();
 
-	// Fahrpläne und Lastprofile, die schon ausgehandelt sind und fest stehen
+	// Lastprofile, die schon ausgehandelt sind und fest stehen
 	@JsonView(View.Detail.class)
 	private TreeMap<String, double[]> loadprofilesFixed = new TreeMap<String, double[]>();
 
@@ -772,10 +772,11 @@ public class Fridge implements Device {
 			e.printStackTrace();
 		}
 	}
-
+	
 	public void confirmLoadprofile(GregorianCalendar time) {
 		if (DateTime.ToString(timeFixed).equals(DateTime.ToString(time))) {
 			saveSchedule(scheduleMinutes, timeFixed);
+			// TODO speichere Lastprofil?
 			sendNewLoadprofile();
 		}
 	}
