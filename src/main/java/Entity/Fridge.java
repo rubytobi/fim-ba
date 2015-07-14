@@ -20,6 +20,10 @@ import start.Device;
 import start.Loadprofile;
 import start.View;
 
+/**
+ * Klasse fuer Kuehlschraenke
+ *
+ */
 public class Fridge implements Device {
 	// Fahrplan, den der Consumer gerade aushandelt
 	@JsonView(View.Detail.class)
@@ -70,6 +74,31 @@ public class Fridge implements Device {
 		uuid = UUID.randomUUID();
 	}
 
+	/**
+	 * Erstellt einen neuen Kuehlschrank aus uebergebenen Werten
+	 * 
+	 * @param maxTemp1
+	 *            maximale Temperatur, die im Regelbetrieb nicht ueberschritten
+	 *            werden soll
+	 * @param maxTemp2
+	 *            maximale Temperatur, die auch bei Ausnahmen während des
+	 *            Betriebs nie ueberschritten werden darf
+	 * @param minTemp1
+	 *            minimale Temperatur, die im Regelbetrieb nicht unterschritten
+	 *            werden soll
+	 * @param minTemp2
+	 *            minimale Temperatur, die auch bei Ausnahmen wärehnd des
+	 *            Betriebs nie unterschritten werden darf
+	 * @param fallCooling
+	 *            Grad, die der Kuehlschrank pro Minute kuehlen kann
+	 * @param riseWarming
+	 *            Grad, um die sich der Kuhelschrank pro Minute erwaermt
+	 * @param consCooling
+	 *            kWh, die der Kuhelschrank pro Minute fuer die Kuhelung
+	 *            verbraucht
+	 * @param currTemp
+	 *            aktuelle Temperatur des Kuehlschranks
+	 */
 	public Fridge(double maxTemp1, double maxTemp2, double minTemp1, double minTemp2, double fallCooling,
 			double riseWarming, double consCooling, double currTemp) {
 		this();
@@ -98,25 +127,45 @@ public class Fridge implements Device {
 		status = DeviceStatus.INITIALIZED;
 	}
 
+	/**
+	 * Liefert den aktuellen Status des Kuehlschranks
+	 * 
+	 * @return Aktueller Status des Kuehlschranks
+	 */
 	public DeviceStatus getStatus() {
 		return status;
 	}
 
+	/**
+	 * Liefert die bereits festen Fahrplaene des Kuehlschranks
+	 * 
+	 * @return Alle festen Fahrplaene als TreeMap, mit dem
+	 */
 	public TreeMap<String, double[]> getSchedulesFixed() {
 		return schedulesFixed;
 	}
 
+	/**
+	 * Liefert die bereits festen Lastprofile des Kuhelschranks
+	 * 
+	 * @return TreeMap mit allen festen Lastprofilen
+	 */
 	public TreeMap<String, double[]> getLoadprofilesFixed() {
 		return loadprofilesFixed;
 	}
 
+	/**
+	 * Liefert die uuid des Kuehlschranks
+	 * 
+	 * @return Uuid des Kuehlschranks
+	 */
 	@Override
 	public UUID getUUID() {
 		return uuid;
 	}
 
-	/*
-	 * Erzeugt einen neuen Fahrplan und das zugehörige Lastprofil. Das
+	/**
+	 * Erzeugt einen neuen Fahrplan und das zugehoerige Lastprofil. Das
 	 * Lastprofil wird an den Consumer geschickt.
 	 */
 	public void sendNewLoadprofile() {
@@ -148,7 +197,7 @@ public class Fridge implements Device {
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0, false);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 
@@ -230,12 +279,19 @@ public class Fridge implements Device {
 				schedule[i][j] = Math.round(schedule[i][j] * 100) / 100;
 			}
 		}
-
 		return schedule;
 	}
 
-	// Berechnet viertelstündlich die aufsummierten Verbrauchswerte für den
-	// übergebenen Minutenplan
+	/**
+	 * Berechnet Lastprofil auf Viertel-Stunden-Basis fuer uebergebenen
+	 * Minutenfahrplan. Hierbei werden die Werte pro Viertelstunde aufsummiert
+	 * und als Lastprofil gespeichert.
+	 * 
+	 * @param schedule
+	 *            Minuetlicher Fahrplan, fuer den Lastprofil erstellt werden
+	 *            soll
+	 * @return Array mit den Werten des Lastprofils
+	 */
 	public double[] createValuesLoadprofile(double[] schedule) {
 		double[] valuesLoadprofile = new double[numSlots];
 		double summeMin = 0;
@@ -254,6 +310,16 @@ public class Fridge implements Device {
 		return valuesLoadprofile;
 	}
 
+	/**
+	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird
+	 * aufgerufen, wenn eine andere Temperatur gemessen wurde, als in der Minute
+	 * geplant war.
+	 * 
+	 * @param aenderung
+	 *            Zeitpunkt, wann die Temperaturabweichung gemessen wurde
+	 * @param newTemperature
+	 *            Temperatur, die gemessen wurde
+	 */
 	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
 		GregorianCalendar startLoadprofile = (GregorianCalendar) aenderung.clone();
 		startLoadprofile.set(Calendar.MINUTE, 0);
@@ -316,9 +382,17 @@ public class Fridge implements Device {
 		}
 	}
 
-	/*
-	 * Generiert einen neuen Fahrplan bei Temperaturabweichungen
+	/**
+	 * Berechnet den neuen Fahrplan bei Temperaturabweichungen
 	 * 
+	 * @param aenderung
+	 *            Zeitpunkt, bei dem die Temperaturabweichung eingetreten ist
+	 * @param newTemperature
+	 *            Temperatur, die gemessen wurde
+	 * @param firstSchedule
+	 *            Information, ob das der erste Fahrplan ist, den die
+	 *            Temperaturabweichung beeinflusst
+	 * @return Array mit Verbrauch[0] und Temperatur[1] des neuen Fahrplans
 	 */
 	public double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
 		int change = 0;
@@ -370,6 +444,13 @@ public class Fridge implements Device {
 		return roundSchedule(deltaSchedule);
 	}
 
+	/**
+	 * Liefert den Fahrplan, der zur gewuenschten Zeit startet
+	 * 
+	 * @param start
+	 *            Zeit, zu der der Fahrplan starten soll
+	 * @return Fahrplan, der zur gewuenschten Zeit startet
+	 */
 	public double[][] getSchedule(GregorianCalendar start) {
 		double[][] schedule = new double[2][15 * numSlots];
 		/*
@@ -408,7 +489,11 @@ public class Fridge implements Device {
 		return schedule;
 	}
 
-	public int testDeltaSchedule(double[][] schedule, double newTemperature, int minuteChange, boolean firstSchedule) {
+	// Prueft, ob der uebergebene Schedule maxTemp2 oder minTemp2
+	// ueber-/unterschreitet
+	// und gibt die Minute zurueck, in welcher die Temperatur unterschritten
+	// wird
+	private int testDeltaSchedule(double[][] schedule, double newTemperature, int minuteChange, boolean firstSchedule) {
 		if (!firstSchedule) {
 			if (schedule[0][minuteChange] == consCooling) {
 				schedule[1][minuteChange] = newTemperature + fallCooling;
@@ -441,6 +526,14 @@ public class Fridge implements Device {
 		return 15 * numSlots;
 	}
 
+	/**
+	 * Speichert den uebergebenen Fahrplan als festen Fahrplan ab
+	 * 
+	 * @param schedule
+	 *            Fahrplan, der abgespeichert werden soll
+	 * @param start
+	 *            Zeitpunkt, zu dem schedule startet
+	 */
 	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		int size = 15 * numSlots;
 
@@ -474,6 +567,12 @@ public class Fridge implements Device {
 		}
 	}
 
+	/**
+	 * Legt den Consumer fuer den Kuehlschrank fest
+	 * 
+	 * @param uuid
+	 *            Uuid des Consumers
+	 */
 	public void setConsumer(UUID uuid) {
 		if (status == DeviceStatus.INITIALIZED) {
 			status = DeviceStatus.READY;
@@ -486,6 +585,14 @@ public class Fridge implements Device {
 		sendNewLoadprofile();
 	}
 
+	/**
+	 * Ueberprueft, ob die gewuentsche Aenderung des Lastprofils moeglich ist
+	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
+	 * 
+	 * @param cr
+	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
+	 *            soll
+	 */
 	public void changeLoadprofile(ChangeRequest cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		int[] changesMinute = new int[numSlots];
@@ -529,15 +636,13 @@ public class Fridge implements Device {
 				if (changesBefore < 0) {
 					minSlots[1][i] -= changesBefore * fallCooling;
 					if (minSlots[1][i] < minTemp2) {
-						// ÄNDERUNG NICHT MÖGLICH
-						// TODO Schicke Consumer Absage
+						declineChangedLoadprofile(cr);
 						return;
 					}
 				} else {
 					maxSlots[1][i] += changesBefore * riseWarming;
 					if (maxSlots[1][i] > maxTemp2) {
-						// ÄNDERUNG NICHT MÖGLICH
-						// TODO Schicke Consumer Absage
+						declineChangedLoadprofile(cr);
 						return;
 					}
 				}
@@ -569,8 +674,7 @@ public class Fridge implements Device {
 						minutePossibleChange[1][i] = change - amountChanges;
 
 						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
-							// AENDERUNG NICHT MÖGLICH
-							// TODO Schicke Consumer Absage
+							declineChangedLoadprofile(cr);
 							return;
 						}
 					}
@@ -596,8 +700,7 @@ public class Fridge implements Device {
 						minutePossibleChange[1][i] = change - amountChanges;
 
 						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
-							// AENDERUNG NICHT MÖGLICH
-							// TODO Schicke Consumer Absage
+							declineChangedLoadprofile(cr);
 							return;
 						}
 					} else {
@@ -609,11 +712,11 @@ public class Fridge implements Device {
 		}
 		double[][] newSchedule = chargeChangedSchedule(changesMinute, minutePossibleChange);
 
-		for (int i = 0; i < numSlots * 15; i++) {
-		}
 		if (newSchedule != null) {
-			// TODO Sende Bestätigung für geändertes Lastprofil bzw. Lastprofil
-			// selbst an Consumer
+			confirmChangedLoadprofile(cr);
+		} else {
+			declineChangedLoadprofile(cr);
+
 		}
 	}
 
@@ -660,9 +763,8 @@ public class Fridge implements Device {
 				}
 
 				currentMinute++;
+
 				if (currentMinute == slot * 15 && amountBefore != 0) {
-					// TODO AENDERUNG NICHT MÖGLICH
-					System.out.println("Aenderung nicht möglich 1");
 					return null;
 				}
 			}
@@ -685,9 +787,8 @@ public class Fridge implements Device {
 				}
 
 				currentMinute++;
+
 				if (currentMinute == slot * 15 && amountAfter != 0) {
-					// TODO AENDERUNG NICHT MÖGLICH
-					System.out.println("Aenderung nicht möglich 2");
 					return null;
 				}
 			}
@@ -715,5 +816,30 @@ public class Fridge implements Device {
 			saveSchedule(scheduleMinutes, timeFixed);
 			sendNewLoadprofile();
 		}
+	}
+
+	private void confirmChangedLoadprofile(ChangeRequest cr) {
+		double[] changes = cr.getChangesLoadprofile();
+		double sum = 0;
+
+		for (int i = 0; i < numSlots; i++) {
+			sum += changes[i];
+		}
+
+		double costs;
+		costs = sum * consCooling;
+		if (costs < 0) {
+			costs = 0;
+		}
+		// TODO Sende Bestätigung, dass in ChangeRequest gesendete Änderung
+		// möglich ist
+		// Teile Kosten für diese Änderung mit. Der Consumer muss dann das
+		// Angebot so ändern,
+		// dass die zusätzlichen Kosten ausgeglichen werden
+	}
+
+	private void declineChangedLoadprofile(ChangeRequest cr) {
+		// TODO Sende Absage, dass in ChangeRequest gesendete Änderung nicht
+		// möglich ist
 	}
 }

@@ -12,6 +12,10 @@ import Util.OfferStatus;
 import start.Loadprofile;
 import start.View;
 
+/**
+ * Klasse fuer Angebote
+ *
+ */
 public class Offer {
 	// Aggregiertes Lastprofil über alle Lastprofile
 	@JsonView(View.Summary.class)
@@ -45,23 +49,40 @@ public class Offer {
 		authKey = null;
 	}
 
+	/**
+	 * 
+	 */
 	public String toString() {
 		return "{author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size()
 				+ "}";
 	}
 
+	/**
+	 * Liefert die Anzahl der Lastprofile des Angebots
+	 * 
+	 * @return Anzahl der Lastprofile des Angebots
+	 */
 	public int getCount() {
 		return allLoadprofiles.size();
 	}
 
+	/**
+	 * Erstellt neues Angebot auf Basis eines Lastprofils
+	 * 
+	 * @param author
+	 *            UUID des Consumers, der Angebot erstellen will
+	 * @param loadprofile
+	 *            Lastprofil, aus dem Angebot erstellt werden soll
+	 */
 	public Offer(UUID author, Loadprofile loadprofile) {
 		this();
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
-		ArrayList<Loadprofile> list = new ArrayList<Loadprofile>();
-		list.add(loadprofile);
-		allLoadprofiles.put(author, list);
+
+		ArrayList<Loadprofile> loadprofiles = new ArrayList<Loadprofile>();
+		loadprofiles.add(loadprofile);
+		allLoadprofiles.put(author, loadprofiles);
 
 		this.author = author;
 		this.aggPrice = loadprofile.getMinPrice();
@@ -70,28 +91,41 @@ public class Offer {
 	}
 
 	/**
-	 * Gibt die Location des Angebots zurück
+	 * Liefert URL des Angebots
 	 * 
-	 * @return Location-String
+	 * @return URL des Angebots als String
 	 */
 	public String getLocation() {
 		return new API().consumers(author).offers(uuid).toString();
 	}
 
-	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenzeOffer) {
+	/**
+	 * Erstellt neues Angebot auf Basis eines alten Angebots
+	 * 
+	 * @param author
+	 *            UUID des Consumers, der neues Angebot erstellen will
+	 * @param loadprofile
+	 *            Neues Lastprofil, das zu dem alten Angebot hinzugefuegt werden
+	 *            soll
+	 * @param aggLoadprofile
+	 *            Aggregiertes Lastprofil des neuen Angebots
+	 * @param referenceOffer
+	 *            Altes Angebot
+	 */
+	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenceOffer) {
 		this();
 
-		// lastprofile aus bestehendem angebot einbeziehen
-		this.allLoadprofiles.putAll(referenzeOffer.getAllLoadprofiles());
+		// Lastprofile aus bestehendem Angebot einbeziehen
+		this.allLoadprofiles.putAll(referenceOffer.getAllLoadprofiles());
 
-		if (allLoadprofiles.get(uuid) == null) {
-			ArrayList<Loadprofile> list = new ArrayList<Loadprofile>();
-			list.add(loadprofile);
-
-			this.allLoadprofiles.put(author, list);
+		// Neues Lastprofil hinzufügen
+		ArrayList<Loadprofile> existingLoadprofiles = allLoadprofiles.get(author);
+		if (existingLoadprofiles == null) {
+			ArrayList<Loadprofile> loadprofiles = new ArrayList<Loadprofile>();
+			loadprofiles.add(loadprofile);
 		} else {
-			ArrayList<Loadprofile> list = allLoadprofiles.get(uuid);
-			list.add(loadprofile);
+			existingLoadprofiles.add(loadprofile);
+			this.allLoadprofiles.put(author, existingLoadprofiles);
 		}
 
 		this.author = author;
@@ -103,28 +137,55 @@ public class Offer {
 		status = OfferStatus.VALID;
 	}
 
+	/**
+	 * Liefert das aggregierte Lastprofil des Angebots
+	 * 
+	 * @return Aggregiertes Lastprofil des Angebots
+	 */
 	public Loadprofile getAggLoadprofile() {
 		return aggLoadprofile;
 	}
 
+	/**
+	 * Liefert alle am Angebot beteiligten Lastprofile
+	 * 
+	 * @return Alle am Angebot beteiligten Lastprofile als Map, mit der UUID des
+	 *         Consumers als Key und einem Array aller dazugehoerigen
+	 *         Lastprofile
+	 */
 	public Map<UUID, ArrayList<Loadprofile>> getAllLoadprofiles() {
 		return allLoadprofiles;
 	}
 
+	/**
+	 * Liefert die UUID des aktuellen Autors des Angebots
+	 * 
+	 * @return UUID des aktuellen Autors des Angebots
+	 */
 	public UUID getAuthor() {
 		return author;
 	}
 
+	/**
+	 * Liefert den aktuellen Preis des Angebots
+	 * 
+	 * @return Aktueller Preis des Angebots
+	 */
 	public double getPrice() {
 		return aggPrice;
 	}
 
+	/**
+	 * Liefert UUID des Angebots
+	 * 
+	 * @return UUID des Angebots
+	 */
 	public UUID getUUID() {
 		return uuid;
 	}
 
-	/*
-	 * Invalidiert das Angebot
+	/**
+	 * Setzt den Status des Angebots auf INVALID
 	 */
 	public void invalidate() {
 		status = OfferStatus.INVALID;

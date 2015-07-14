@@ -6,52 +6,76 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import Util.DateTime;
 
+/**
+ * Klasse fuer Lastprofile
+ *
+ */
 public class Loadprofile {
-	// 4 Werte für 15 Minuten Slots
+	// Verbrauch pro 15 Minuten
 	private double[] values;
 
 	// Zeitpunkt, ab wann das Lastprofil gelten soll
 	private GregorianCalendar date;
 
-	// Preis
+	// Preis, den der Consumer mindestens einnehmen bzw. maximal zahlen will
 	@JsonProperty("minPrice")
 	private double minPrice;
 
+	// Gibt, an, ob das Lastprofil ein Delta-Lastprofil ist
 	@JsonProperty("isDelta")
 	private boolean isDelta;
 
-	public Loadprofile() {
+	// Setzt minPrice auf 0
+	private Loadprofile() {
 		minPrice = 0.0;
 		isDelta = false;
 	}
 
-	// Erstellt ausübergebenem Array neues Lastprofil
-	public Loadprofile(double[] values, GregorianCalendar date) {
+	/**
+	 * Erstellt neues Lastprofil aus uebergebenen Werten
+	 * 
+	 * @param values
+	 *            Werte fuer das neue Lastprofil
+	 * @param date
+	 *            Startzeitpunkt des neuen Lastprofils
+	 * @param minPrice
+	 *            Preis pro kWh, den der Consumer für dieses Lastprofil
+	 *            mindestens einnehmen bzw. maximal zahlen
+	 */
+	public Loadprofile(double[] values, GregorianCalendar date, double minPrice) {
 		this();
-
-		// Prüfe, dass der Consumer 4 15-Minuten-Slots will und dass das Profil
-		// zur vollen Stunde startet
-		if (values.length != 4 || date.get(Calendar.MINUTE) != 0) {
-			throw new IllegalArgumentException();
-		}
 
 		this.values = values;
 		this.date = date;
 	}
 
-	public Loadprofile(double[] values, GregorianCalendar date, double minPrice) {
-		this(values, date);
-
-		this.minPrice = minPrice;
-	}
-
+	/**
+	 * Erstellt neues Lastprofil aus uebergebenen Werten
+	 * 
+	 * @param values
+	 *            Werte fuer das neue Lastprofil
+	 * @param date
+	 *            Startzeitpunkt des neuen Lastprofils
+	 * @param minPrice
+	 *            Preis pro kWh, den der Consumer für dieses Lastprofil
+	 *            mindestens einnehmen bzw. maximal zahlen
+	 * @param isDelta
+	 *            Gibt an, ob das Lastprofil ein Deltalastprofil ist
+	 */
 	public Loadprofile(double[] values, GregorianCalendar date, double minPrice, boolean isDelta) {
 		this(values, date, minPrice);
 
 		this.isDelta = isDelta;
 	}
 
-	// Erstellt aus beiden Lastprofilen Aggregiertes Lastprofil
+	/**
+	 * Erstellt aggregiertes Lastprofil aus uebergebenen Lastprofilen
+	 * 
+	 * @param lp1
+	 *            Erstes Lastprofil fuer Aggregierung
+	 * @param lp2
+	 *            Zweites Lastprofil fuer Aggregierung
+	 */
 	public Loadprofile(Loadprofile lp1, Loadprofile lp2) {
 		this();
 
@@ -74,28 +98,61 @@ public class Loadprofile {
 		this.minPrice = Math.min(lp1.getMinPrice(), lp2.getMinPrice());
 	}
 
+	/**
+	 * Liefert den Preis des Lastprofils
+	 * 
+	 * @return Preis pro kWh, den der Consumer fuer dieses Lastprofil mindestens
+	 *         einnehmen bzw. maximal zahlen will
+	 */
 	public double getMinPrice() {
 		return minPrice;
 	}
 
+	/**
+	 * Liefert die Werte des Lastprofils
+	 * 
+	 * @return Array mit Werten des Lastprofils
+	 */
 	public double[] getValues() {
 		return values;
 	}
 
+	/**
+	 * Liefert den Startzeitpunkt des Lastprofils
+	 * 
+	 * @return Startzeitpunkt des Lastprofils als GregorianCalendar
+	 */
 	public GregorianCalendar getDate() {
 		return date;
 	}
 
+	/**
+	 * Setzt den Preis des Lastprofils
+	 * 
+	 * @param newPrice
+	 *            Preis pro kWh, den der COnsumer fuer dieses Lastprofil
+	 *            mindestens einnehmen bzw. maximal zahlen will
+	 */
 	public void setMinPrice(double newPrice) {
 		minPrice = newPrice;
 	}
 
+	/**
+	 * Liefert die wichtigsten Informationen des Lastprofils als String
+	 * 
+	 * @return String, der die aktuellen Werte, das Startdatum und den Preis des
+	 *         Lastprofils enthaelt
+	 */
 	public String toString() {
 		return "{\"values\":" + Arrays.toString(values) + ",\"date\":\"" + DateTime.ToString(date) + "\",\"minPrice\":"
 				+ minPrice + ",\"isDelta\":" + isDelta + "}";
 	}
 
-	// Berechnet die Abweichung des Lastprofils von seinem Mittelwert
+	/**
+	 * Berechnet die Abweichung des Lastprofils von seinem Mittelwert
+	 * 
+	 * @return Die Summe aller Abweichungen vom Mittelwert
+	 */
 	public double chargeDeviationAverage() {
 		double average;
 		double deviationAverage = 0;
@@ -109,7 +166,14 @@ public class Loadprofile {
 		return deviationAverage;
 	}
 
-	// Berechnet die Abweichung von einem anderen Lastprofil
+	/**
+	 * Berechnet die Abweichung des Lastprofils von einem anderen Lastprofil
+	 * 
+	 * @param otherProfile
+	 *            Anderes Lastprofil, von welchem die Abweichung berechnet
+	 *            werden soll
+	 * @return Die Summe aller Abweichungen vom Mittelwert
+	 */
 	public double chargeDeviationOtherProfile(Loadprofile otherProfile) {
 		double deviationOtherProfile = 0;
 

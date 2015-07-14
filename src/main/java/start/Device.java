@@ -7,8 +7,12 @@ import java.util.GregorianCalendar;
 import Packet.ChangeRequest;
 import Util.DeviceStatus;
 
+/**
+ * Interface fuer alle Verbrauchsgeraete
+ *
+ */
 public interface Device {
-	int numSlots = 4;
+	int numSlots = 4;	
 
 	public double[] createValuesLoadprofile(double[] values);
 
