@@ -35,7 +35,7 @@ import Util.Log;
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
 	private static int countFridges = 0;
-	private static final int maxFridges = 3;
+	private static final int maxFridges = 5;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 
 	public static void main(String[] args) {
@@ -70,22 +70,18 @@ public class Application {
 			HttpEntity<FridgeCreation> entityFridge = new HttpEntity<FridgeCreation>(fridgeCreation, getRestHeader());
 
 			url = BASE_URI + "/devices";
-			Log.i(url);
 			ResponseEntity<UUID> responseFridge = rest.exchange(BASE_URI + "/devices", HttpMethod.POST, entityFridge,
 					UUID.class);
 
 			HttpEntity<Void> entityConsumer = new HttpEntity<Void>(getRestHeader());
 
 			url = BASE_URI + "/consumers";
-			Log.i(url);
 			ResponseEntity<UUID> responseConsumer = rest.exchange(url, HttpMethod.POST, entityConsumer, UUID.class);
 
 			url = BASE_URI + "/consumers/" + responseConsumer.getBody() + "/link/" + responseFridge.getBody();
-			Log.i(url);
 			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
 
 			url = BASE_URI + "/devices/" + responseFridge.getBody() + "/link/" + responseConsumer.getBody();
-			Log.i(url);
 			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
 		}
 	}
@@ -103,7 +99,7 @@ public class Application {
 		return headers;
 	}
 
-	@Scheduled(fixedRate = 2500)
+	@Scheduled(fixedRate = 1000)
 	public static void pingAllDevices() {
 		RestTemplate rest = new RestTemplate();
 
@@ -113,12 +109,11 @@ public class Application {
 			try {
 				rest.exchange(BASE_URI + "/devices/" + d.getUUID() + "/ping", HttpMethod.GET, null, Void.class);
 			} catch (HttpServerErrorException e) {
-				Log.e("#500 @ pinging " + BASE_URI + "/devices/" + d.getUUID() + "/ping");
 			}
 		}
 	}
 
-	@Scheduled(fixedRate = 2500)
+	@Scheduled(fixedRate = 1000)
 	public static void pingAllConsumers() {
 		RestTemplate rest = new RestTemplate();
 
@@ -131,7 +126,6 @@ public class Application {
 			try {
 				rest.exchange(url, HttpMethod.GET, null, Void.class);
 			} catch (HttpServerErrorException e) {
-				Log.e("#500 @ pinging " + url);
 			}
 		}
 	}
@@ -143,7 +137,6 @@ public class Application {
 		try {
 			rest.exchange(BASE_URI + "/marketplace/ping", HttpMethod.POST, null, Void.class);
 		} catch (HttpServerErrorException e) {
-			Log.e("#500 @ pinging " + BASE_URI + "/marketplace/ping");
 		}
 	}
 }

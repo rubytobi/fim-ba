@@ -3,23 +3,19 @@ package Entity;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
+import Util.API;
 import Util.DateTime;
 import Util.DeviceStatus;
 import Util.Log;
 import Util.SimulationFridge;
-import start.Application;
 import start.Device;
 import start.Loadprofile;
 import start.View;
@@ -77,17 +73,31 @@ public class Fridge implements Device {
 		status = DeviceStatus.CREATED;
 		uuid = UUID.randomUUID();
 	}
-	
+
 	/**
 	 * Erstellt einen neuen Kuehlschrank aus uebergebenen Werten
-	 * @param maxTemp1		maximale Temperatur, die im Regelbetrieb nicht ueberschritten werden soll
-	 * @param maxTemp2		maximale Temperatur, die auch bei Ausnahmen während des Betriebs nie ueberschritten werden darf
-	 * @param minTemp1		minimale Temperatur, die im Regelbetrieb nicht unterschritten werden soll
-	 * @param minTemp2		minimale Temperatur, die auch bei Ausnahmen wärehnd des Betriebs nie unterschritten werden darf
-	 * @param fallCooling	Grad, die der Kuehlschrank pro Minute kuehlen kann
-	 * @param riseWarming	Grad, um die sich der Kuhelschrank pro Minute erwaermt
-	 * @param consCooling	kWh, die der Kuhelschrank pro Minute fuer die Kuhelung verbraucht
-	 * @param currTemp		aktuelle Temperatur des Kuehlschranks
+	 * 
+	 * @param maxTemp1
+	 *            maximale Temperatur, die im Regelbetrieb nicht ueberschritten
+	 *            werden soll
+	 * @param maxTemp2
+	 *            maximale Temperatur, die auch bei Ausnahmen während des
+	 *            Betriebs nie ueberschritten werden darf
+	 * @param minTemp1
+	 *            minimale Temperatur, die im Regelbetrieb nicht unterschritten
+	 *            werden soll
+	 * @param minTemp2
+	 *            minimale Temperatur, die auch bei Ausnahmen wärehnd des
+	 *            Betriebs nie unterschritten werden darf
+	 * @param fallCooling
+	 *            Grad, die der Kuehlschrank pro Minute kuehlen kann
+	 * @param riseWarming
+	 *            Grad, um die sich der Kuhelschrank pro Minute erwaermt
+	 * @param consCooling
+	 *            kWh, die der Kuhelschrank pro Minute fuer die Kuhelung
+	 *            verbraucht
+	 * @param currTemp
+	 *            aktuelle Temperatur des Kuehlschranks
 	 */
 	public Fridge(double maxTemp1, double maxTemp2, double minTemp1, double minTemp2, double fallCooling,
 			double riseWarming, double consCooling, double currTemp) {
@@ -116,26 +126,29 @@ public class Fridge implements Device {
 
 		status = DeviceStatus.INITIALIZED;
 	}
-	
+
 	/**
 	 * Liefert den aktuellen Status des Kuehlschranks
+	 * 
 	 * @return Aktueller Status des Kuehlschranks
 	 */
 	public DeviceStatus getStatus() {
 		return status;
 	}
-	
+
 	/**
 	 * Liefert die bereits festen Fahrplaene des Kuehlschranks
-	 * @return Alle festen Fahrplaene als TreeMap, mit dem 
+	 * 
+	 * @return Alle festen Fahrplaene als TreeMap, mit dem
 	 */
 	public TreeMap<String, double[]> getSchedulesFixed() {
 		return schedulesFixed;
 	}
-	
+
 	/**
 	 * Liefert die bereits festen Lastprofile des Kuhelschranks
-	 * @return	TreeMap mit allen festen Lastprofilen
+	 * 
+	 * @return TreeMap mit allen festen Lastprofilen
 	 */
 	public TreeMap<String, double[]> getLoadprofilesFixed() {
 		return loadprofilesFixed;
@@ -143,16 +156,17 @@ public class Fridge implements Device {
 
 	/**
 	 * Liefert die uuid des Kuehlschranks
+	 * 
 	 * @return Uuid des Kuehlschranks
 	 */
 	@Override
 	public UUID getUUID() {
 		return uuid;
 	}
-	
+
 	/**
-	 * Erzeugt einen neuen Fahrplan und das zugehoerige Lastprofil.
-	 * Das Lastprofil wird an den Consumer geschickt.
+	 * Erzeugt einen neuen Fahrplan und das zugehoerige Lastprofil. Das
+	 * Lastprofil wird an den Consumer geschickt.
 	 */
 	public void sendNewLoadprofile() {
 		double[] valuesLoadprofile;
@@ -183,10 +197,10 @@ public class Fridge implements Device {
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, false);
-		sendLoadprofileToConsumer(loadprofile, false);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0, false);
+		sendLoadprofileToConsumer(loadprofile);
 	}
-	
+
 	/*
 	 * Berechnet einen neuen Fahrplan im Minutentakt für die volle Stunde, in
 	 * welcher timeFixed liegt und mit Temperatur currTempt zum Zeitpunkt
@@ -267,12 +281,16 @@ public class Fridge implements Device {
 		}
 		return schedule;
 	}
-	
+
 	/**
-	 * Berechnet Lastprofil auf Viertel-Stunden-Basis fuer uebergebenen Minutenfahrplan.
-	 * Hierbei werden die Werte pro Viertelstunde aufsummiert und als Lastprofil gespeichert.
-	 * @param	schedule	Minuetlicher Fahrplan, fuer den Lastprofil erstellt werden soll
-	 * @return	Array mit den Werten des Lastprofils
+	 * Berechnet Lastprofil auf Viertel-Stunden-Basis fuer uebergebenen
+	 * Minutenfahrplan. Hierbei werden die Werte pro Viertelstunde aufsummiert
+	 * und als Lastprofil gespeichert.
+	 * 
+	 * @param schedule
+	 *            Minuetlicher Fahrplan, fuer den Lastprofil erstellt werden
+	 *            soll
+	 * @return Array mit den Werten des Lastprofils
 	 */
 	public double[] createValuesLoadprofile(double[] schedule) {
 		double[] valuesLoadprofile = new double[numSlots];
@@ -291,12 +309,16 @@ public class Fridge implements Device {
 		}
 		return valuesLoadprofile;
 	}
-	
+
 	/**
-	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer.
-	 * Methode wird aufgerufen, wenn eine andere Temperatur gemessen wurde, als in der Minute geplant war.
-	 * @param	aenderung		Zeitpunkt, wann die Temperaturabweichung gemessen wurde
-	 * @param	newTemperature	Temperatur, die gemessen wurde
+	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird
+	 * aufgerufen, wenn eine andere Temperatur gemessen wurde, als in der Minute
+	 * geplant war.
+	 * 
+	 * @param aenderung
+	 *            Zeitpunkt, wann die Temperaturabweichung gemessen wurde
+	 * @param newTemperature
+	 *            Temperatur, die gemessen wurde
 	 */
 	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
 		GregorianCalendar startLoadprofile = (GregorianCalendar) aenderung.clone();
@@ -335,7 +357,7 @@ public class Fridge implements Device {
 			double[] deltaValues = new double[4];
 
 			if (oldValues == null) {
-				Log.e(DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
+				Log.e(this.uuid, DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
 			}
 
 			change = false;
@@ -348,7 +370,7 @@ public class Fridge implements Device {
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
 				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0, true);
-				sendLoadprofileToConsumer(deltaLoadprofile, true);
+				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils
 				loadprofilesFixed.put(DateTime.ToString(startLoadprofile), newValues);
@@ -359,12 +381,17 @@ public class Fridge implements Device {
 			aenderung.add(Calendar.HOUR_OF_DAY, 1);
 		}
 	}
-	
+
 	/**
 	 * Berechnet den neuen Fahrplan bei Temperaturabweichungen
-	 * @param aenderung			Zeitpunkt, bei dem die Temperaturabweichung eingetreten ist
-	 * @param newTemperature	Temperatur, die gemessen wurde
-	 * @param firstSchedule		Information, ob das der erste Fahrplan ist, den die Temperaturabweichung beeinflusst
+	 * 
+	 * @param aenderung
+	 *            Zeitpunkt, bei dem die Temperaturabweichung eingetreten ist
+	 * @param newTemperature
+	 *            Temperatur, die gemessen wurde
+	 * @param firstSchedule
+	 *            Information, ob das der erste Fahrplan ist, den die
+	 *            Temperaturabweichung beeinflusst
 	 * @return Array mit Verbrauch[0] und Temperatur[1] des neuen Fahrplans
 	 */
 	public double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
@@ -416,10 +443,12 @@ public class Fridge implements Device {
 
 		return roundSchedule(deltaSchedule);
 	}
-	
+
 	/**
 	 * Liefert den Fahrplan, der zur gewuenschten Zeit startet
-	 * @param start	Zeit, zu der der Fahrplan starten soll
+	 * 
+	 * @param start
+	 *            Zeit, zu der der Fahrplan starten soll
 	 * @return Fahrplan, der zur gewuenschten Zeit startet
 	 */
 	public double[][] getSchedule(GregorianCalendar start) {
@@ -459,9 +488,11 @@ public class Fridge implements Device {
 		}
 		return schedule;
 	}
-	
-	// Prueft, ob der uebergebene Schedule maxTemp2 oder minTemp2 ueber-/unterschreitet
-	// und gibt die Minute zurueck, in welcher die Temperatur unterschritten wird
+
+	// Prueft, ob der uebergebene Schedule maxTemp2 oder minTemp2
+	// ueber-/unterschreitet
+	// und gibt die Minute zurueck, in welcher die Temperatur unterschritten
+	// wird
 	private int testDeltaSchedule(double[][] schedule, double newTemperature, int minuteChange, boolean firstSchedule) {
 		if (!firstSchedule) {
 			if (schedule[0][minuteChange] == consCooling) {
@@ -494,11 +525,14 @@ public class Fridge implements Device {
 		// zurückgegeben
 		return 15 * numSlots;
 	}
-	
+
 	/**
 	 * Speichert den uebergebenen Fahrplan als festen Fahrplan ab
-	 * @param schedule	Fahrplan, der abgespeichert werden soll
-	 * @param start		Zeitpunkt, zu dem schedule startet
+	 * 
+	 * @param schedule
+	 *            Fahrplan, der abgespeichert werden soll
+	 * @param start
+	 *            Zeitpunkt, zu dem schedule startet
 	 */
 	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		int size = 15 * numSlots;
@@ -532,10 +566,12 @@ public class Fridge implements Device {
 			sendDeltaLoadprofile(currentTime, tempScaled);
 		}
 	}
-	
+
 	/**
 	 * Legt den Consumer fuer den Kuehlschrank fest
-	 * @param uuid	Uuid des Consumers
+	 * 
+	 * @param uuid
+	 *            Uuid des Consumers
 	 */
 	public void setConsumer(UUID uuid) {
 		if (status == DeviceStatus.INITIALIZED) {
@@ -552,7 +588,10 @@ public class Fridge implements Device {
 	/**
 	 * Ueberprueft, ob die gewuentsche Aenderung des Lastprofils moeglich ist
 	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
-	 * @param cr	Enthaelt Informationen, wie das Lastprofil geaendert werden soll 
+	 * 
+	 * @param cr
+	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
+	 *            soll
 	 */
 	public void changeLoadprofile(ChangeRequest cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
@@ -672,11 +711,10 @@ public class Fridge implements Device {
 			}
 		}
 		double[][] newSchedule = chargeChangedSchedule(changesMinute, minutePossibleChange);
-		
+
 		if (newSchedule != null) {
 			confirmChangedLoadprofile(cr);
-		}
-		else {
+		} else {
 			declineChangedLoadprofile(cr);
 
 		}
@@ -726,7 +764,7 @@ public class Fridge implements Device {
 
 				currentMinute++;
 
-				if (currentMinute == slot * 15 && amountBefore != 0) {	
+				if (currentMinute == slot * 15 && amountBefore != 0) {
 					return null;
 				}
 			}
@@ -759,15 +797,15 @@ public class Fridge implements Device {
 		return newSchedule;
 	}
 
-	private void sendLoadprofileToConsumer(Loadprofile loadprofile, boolean isDeltaLoadprofile) {
+	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
 		RestTemplate rest = new RestTemplate();
 
-		String url = "http://localhost:8080/consumers/" + consumerUUID + "/loadprofiles";
+		String url = new API().consumers(consumerUUID).loadprofiles().toString();
 		try {
 			RequestEntity<Loadprofile> request = RequestEntity.post(new URI(url)).accept(MediaType.APPLICATION_JSON)
 					.body(loadprofile);
 			rest.exchange(request, Boolean.class);
-		} catch (URISyntaxException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -780,26 +818,29 @@ public class Fridge implements Device {
 			sendNewLoadprofile();
 		}
 	}
-	
+
 	private void confirmChangedLoadprofile(ChangeRequest cr) {
 		double[] changes = cr.getChangesLoadprofile();
 		double sum = 0;
-		
-		for (int i=0; i<numSlots; i++) {
+
+		for (int i = 0; i < numSlots; i++) {
 			sum += changes[i];
 		}
-		
+
 		double costs;
-		costs = sum*consCooling;
+		costs = sum * consCooling;
 		if (costs < 0) {
 			costs = 0;
 		}
-		// TODO Sende Bestätigung, dass in ChangeRequest gesendete Änderung möglich ist
-		// Teile Kosten für diese Änderung mit. Der Consumer muss dann das Angebot so ändern,
+		// TODO Sende Bestätigung, dass in ChangeRequest gesendete Änderung
+		// möglich ist
+		// Teile Kosten für diese Änderung mit. Der Consumer muss dann das
+		// Angebot so ändern,
 		// dass die zusätzlichen Kosten ausgeglichen werden
 	}
 
 	private void declineChangedLoadprofile(ChangeRequest cr) {
-		// TODO Sende Absage, dass in ChangeRequest gesendete Änderung nicht möglich ist
+		// TODO Sende Absage, dass in ChangeRequest gesendete Änderung nicht
+		// möglich ist
 	}
 }

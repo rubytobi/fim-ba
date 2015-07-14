@@ -1,10 +1,12 @@
 package Util;
 
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import Entity.Offer;
 
 public class API {
+	private static String api;
 	private String uri = "http://localhost:8080";
 
 	public API consumers() {
@@ -76,4 +78,23 @@ public class API {
 		return this;
 	}
 
+	public API answer() {
+		uri += "/answer";
+		return this;
+	}
+
+	public API confirmLoadprofile() {
+		uri += "/confirmLoadprofile";
+		return this;
+	}
+
+	public Object loadprofiles() {
+		uri += "/loadprofiles";
+		return this;
+	}
+
+	public API replace(UUID uuid) {
+		uri += "/replace/" + uuid.toString();
+		return this;
+	}
 }

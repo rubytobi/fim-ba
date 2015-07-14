@@ -1,5 +1,6 @@
 package start;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
 
@@ -26,12 +27,22 @@ import Packet.ConfirmOffer;
 @RestController
 public class ConsumerController {
 
+	/**
+	 * Alle Consumer als JSON in der Summary Ansicht
+	 * 
+	 * @return Consumer[] alle angelegten Consumer
+	 */
 	@JsonView(View.Summary.class)
 	@RequestMapping(value = "/consumers", method = RequestMethod.GET)
 	public Consumer[] getAllConsumers() {
 		return ConsumerContainer.instance().getAll();
 	}
 
+	/**
+	 * Anlegen eines neuen Consumers
+	 * 
+	 * @return UUID die neue ID des Consumers
+	 */
 	@RequestMapping(value = "/consumers", method = RequestMethod.POST)
 	public UUID addConsumer() {
 		Consumer consumer = new Consumer();
@@ -39,34 +50,51 @@ public class ConsumerController {
 		return consumer.getUUID();
 	}
 
+	/**
+	 * Rückgabe eines einzelnen Consumers
+	 * 
+	 * @param uuid
+	 *            spezifiziert den einzelnen Consumer
+	 * @return Consumer
+	 */
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.GET)
 	public Consumer getSingleCustomer(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid);
 	}
 
+	/**
+	 * Verbindet einen Consumer mit einem Device
+	 * 
+	 * @param consumerUUID
+	 *            der gewünschte Consumer
+	 * @param fridgeUUID
+	 *            das zu verbindende Gerät
+	 */
 	@RequestMapping(value = "/consumers/{consumerUUID}/link/{fridgeUUID}", method = RequestMethod.POST)
 	public void linkDeviceToCustomer(@PathVariable UUID consumerUUID, @PathVariable UUID fridgeUUID) {
 		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
 	}
 
+	/**
+	 * Gibt das Standardlastprofil des Consumers zurück
+	 * 
+	 * @param uuid
+	 *            die Consumer-UUID
+	 * @return Lastprofile des Consumers
+	 */
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.GET)
 	public @ResponseBody Loadprofile getLoadprofile(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid).getLoadprofile();
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
-	public Offer getAllOffers(@PathVariable UUID uuid) {
-		return ConsumerContainer.instance().get(uuid).getOffer();
+	public Offer[] getAllOffers(@PathVariable UUID uuid) {
+		return ConsumerContainer.instance().get(uuid).getAllOffers();
 	}
 
-	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}", method = RequestMethod.GET)
-	public Offer getOffer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer) {
-		return ConsumerContainer.instance().get(uuidConsumer).getOffer(uuidOffer);
-	}
-
-	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/status", method = RequestMethod.GET)
-	public Map<String, Object> getOfferStatus(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer) {
-		return ConsumerContainer.instance().get(uuidConsumer).getOffer(uuidOffer).status();
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}", method = RequestMethod.GET)
+	public Offer getOffer(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
+		return ConsumerContainer.instance().get(uuid).getOffer(uuidOffer);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/ping", method = RequestMethod.GET)
@@ -90,19 +118,53 @@ public class ConsumerController {
 		ConsumerContainer.instance().get(uuid).receiveOfferNotification(offerNotification);
 	}
 
-	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
-	public void confirmOfferByMarketplace(@PathVariable UUID uuidConsumer, @RequestBody ConfirmOffer confirmOffer) {
-		ConsumerContainer.instance().get(uuidConsumer).confirmOfferByMarketplace(confirmOffer);
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
+	public void confirmOfferByMarketplace(@PathVariable UUID uuid, @RequestBody ConfirmOffer confirmOffer) {
+		ConsumerContainer.instance().get(uuid).confirmOfferByMarketplace(confirmOffer);
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirm/{uuidKey}", method = RequestMethod.GET)
-	public boolean confirmOfferByDevice(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer,
+	public boolean confirmOfferByConsumer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer,
 			@PathVariable UUID uuidKey) {
-		return ConsumerContainer.instance().get(uuidConsumer).confirmOffer(uuidOffer, uuidKey);
+		return ConsumerContainer.instance().get(uuidConsumer).confirmOfferByConsumer(uuidOffer, uuidKey);
 	}
 
-	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/cancel", method = RequestMethod.GET)
-	public void cancelOffer(@PathVariable UUID uuidConsumer, UUID uuidOffer) {
-		ConsumerContainer.instance().get(uuidConsumer).cancelOffer(uuidOffer);
+	/**
+	 * Ein Mitglied bekommt durch seinen Chef im Angebot ein erneuertes
+	 * Übermittelt
+	 * 
+	 * @param uuidConsumer
+	 *            betroffener Consumer
+	 * @param uuidOfferOld
+	 *            alte Angebots-ID
+	 * @param uuidOfferNew
+	 *            neue Angebots-ID
+	 */
+	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOfferOld}/replace/{uuidOfferNew}", method = RequestMethod.GET)
+	public void replaceOffer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOfferOld,
+			@PathVariable UUID uuidOfferNew) {
+		ConsumerContainer.instance().get(uuidConsumer).replaceOffer(uuidOfferOld, uuidOfferNew);
+	}
+
+	/**
+	 * Ein Consumer erhielt ein Angebot, befand dies für gut und antwortet nun
+	 * darauf mit seinem um das eigene Lastprofil erweiterte Angebot
+	 * 
+	 * @param uuid
+	 *            der anzusprechende Consumer
+	 * @param uuidOffer
+	 *            Angebots-ID auf die geantwortet wird
+	 * @param offerNotification
+	 *            Antgebotsbenachrichtigung
+	 */
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/answer", method = RequestMethod.POST)
+	public void confirmOfferByDevice(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
+			@RequestBody OfferNotification offerNotification) {
+		ConsumerContainer.instance().get(uuid).answerOffer(uuidOffer, offerNotification);
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/cancel", method = RequestMethod.GET)
+	public void cancelOffer(@PathVariable UUID uuid, UUID uuidOffer) {
+		ConsumerContainer.instance().get(uuid).cancelOffer(uuidOffer);
 	}
 }
