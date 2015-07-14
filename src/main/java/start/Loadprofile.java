@@ -2,13 +2,8 @@ package start;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonValue;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-
-import Entity.Consumer;
 import Util.DateTime;
 
 public class Loadprofile {
@@ -22,8 +17,12 @@ public class Loadprofile {
 	@JsonProperty("minPrice")
 	private double minPrice;
 
+	@JsonProperty("isDelta")
+	private boolean isDelta;
+
 	public Loadprofile() {
 		minPrice = 0.0;
+		isDelta = false;
 	}
 
 	// Erstellt ausübergebenem Array neues Lastprofil
@@ -44,6 +43,12 @@ public class Loadprofile {
 		this(values, date);
 
 		this.minPrice = minPrice;
+	}
+
+	public Loadprofile(double[] values, GregorianCalendar date, double minPrice, boolean isDelta) {
+		this(values, date, minPrice);
+
+		this.isDelta = isDelta;
 	}
 
 	// Erstellt aus beiden Lastprofilen Aggregiertes Lastprofil
@@ -86,8 +91,8 @@ public class Loadprofile {
 	}
 
 	public String toString() {
-		return "{\"values\"=" + Arrays.toString(values) + ",\"date\"=\"" + DateTime.ToString(date) + "\",\"minPrice\"="
-				+ minPrice + "}";
+		return "{\"values\":" + Arrays.toString(values) + ",\"date\":\"" + DateTime.ToString(date) + "\",\"minPrice\":"
+				+ minPrice + ",\"isDelta\":" + isDelta + "}";
 	}
 
 	// Berechnet die Abweichung des Lastprofils von seinem Mittelwert
@@ -114,5 +119,10 @@ public class Loadprofile {
 		deviationOtherProfile = deviationOtherProfile + Math.abs((values[3] - otherProfile.getValues()[3]));
 
 		return deviationOtherProfile;
+	}
+
+	@JsonIgnore
+	public boolean isDelta() {
+		return isDelta;
 	}
 }

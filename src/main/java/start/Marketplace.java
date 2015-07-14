@@ -249,8 +249,6 @@ public class Marketplace {
 			try {
 				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
 			} catch (Exception e) {
-				Log.i(url);
-				Log.e(e.getMessage());
 			}
 		}
 	}
@@ -258,12 +256,8 @@ public class Marketplace {
 	public void ping() {
 		Set<UUID> set = demand.keySet();
 
-		if (set.size() == 0) {
-			System.out.println("ping: @ marketplace " + DateTime.timestamp() + " no demand offers in Marketplace");
-		}
 		for (UUID uuidOffer : set) {
 			Offer offer = demand.get(uuidOffer);
-			System.out.println("ping: @ marketplace " + DateTime.timestamp() + " confirm demand offer " + uuidOffer);
 			confirmOffer(offer, offer.getAggLoadprofile().getMinPrice());
 			demand.remove(offer.getUUID());
 			break;

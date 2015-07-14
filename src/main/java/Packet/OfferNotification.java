@@ -1,34 +1,37 @@
 package Packet;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.util.UUID;
 
 public class OfferNotification {
 	private String location = null;
-	private String referenceOffer = null;
+	private UUID offerUUID = null;
 
 	public OfferNotification() {
 		// dummy konstruktor
 	}
 
-	public OfferNotification(String location, String referenceOffer) {
+	/**
+	 * Benachrichtigung zwischen Consumern über neue Angebote
+	 * 
+	 * @param location
+	 *            Ort des neuen Angebots
+	 * @param offerUUID
+	 *            explizite Angebots-ID (in location auch enthalten)
+	 */
+	public OfferNotification(String location, UUID offerUUID) {
 		this.location = location;
-		this.referenceOffer = referenceOffer;
+		this.offerUUID = offerUUID;
 	}
 
 	public String getLocation() {
 		return location;
 	}
 
-	public String getReferenceOffer() {
-		return referenceOffer;
+	public UUID getOfferUUID() {
+		return offerUUID;
 	}
 
 	public String toString() {
-		return "[location=" + location + ",referenceOffer=" + referenceOffer + "]";
-	}
-
-	@JsonIgnore
-	public boolean isFirstOffer() {
-		return referenceOffer == null;
+		return "[location=" + location + ",referenceOffer=" + offerUUID.toString() + "]";
 	}
 }

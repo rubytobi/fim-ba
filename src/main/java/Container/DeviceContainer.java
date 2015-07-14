@@ -1,13 +1,13 @@
 package Container;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import start.Device;
 
 public class DeviceContainer {
-	private Map<UUID, Device> devices = new HashMap<UUID, Device>();
+	private Map<UUID, Device> devices = new ConcurrentHashMap<UUID, Device>();
 	private static DeviceContainer instance = null;
 
 	private DeviceContainer() {

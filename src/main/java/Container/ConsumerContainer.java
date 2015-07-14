@@ -1,13 +1,13 @@
 package Container;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import Entity.Consumer;
 
 public class ConsumerContainer {
-	private Map<UUID, Consumer> consumers = new HashMap<UUID, Consumer>();
+	private Map<UUID, Consumer> consumers = new ConcurrentHashMap<UUID, Consumer>();
 	private static ConsumerContainer instance = null;
 
 	private ConsumerContainer() {

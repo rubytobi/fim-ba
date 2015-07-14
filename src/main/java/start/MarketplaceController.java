@@ -42,17 +42,12 @@ public class MarketplaceController {
 		return Marketplace.instance().getDemand(uuid);
 	}
 
-	@RequestMapping(value = "/marketplace/demands/{uuid}/status", method = RequestMethod.GET)
-	public Map<String, Object> getDemandStatus(@RequestBody UUID uuid) {
-		return Marketplace.instance().getDemand(uuid).status();
-	}
-
 	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)
 	public void getOffer(@RequestBody UUID uuid) {
 		Marketplace.instance().getDemand(uuid).invalidate();
 		Marketplace.instance().removeOffer(uuid);
 	}
-	
+
 	@RequestMapping(value = "/marketplace/ping", method = RequestMethod.POST)
 	public void ping() {
 		Marketplace.instance().ping();

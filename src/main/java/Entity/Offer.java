@@ -2,9 +2,12 @@ package Entity;
 
 import java.util.*;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Util.API;
+import Util.DeviceStatus;
 import Util.OfferStatus;
 import start.Loadprofile;
 import start.View;
@@ -15,11 +18,12 @@ public class Offer {
 	Loadprofile aggLoadprofile;
 
 	@JsonView(View.Summary.class)
-	UUID key = null;
+	@JsonProperty("authKey")
+	UUID authKey = null;
 
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
-	Map<UUID, Loadprofile> allLoadprofiles = new HashMap<UUID, Loadprofile>();
+	Map<UUID, ArrayList<Loadprofile>> allLoadprofiles = new HashMap<UUID, ArrayList<Loadprofile>>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
 	@JsonView(View.Summary.class)
@@ -38,11 +42,11 @@ public class Offer {
 	private Offer() {
 		uuid = UUID.randomUUID();
 		status = OfferStatus.INITIALIZED;
-		key = null;
+		authKey = null;
 	}
 
 	public String toString() {
-		return "{countPartner=" + allLoadprofiles.size() + ",partners=" + allLoadprofiles.keySet() + ",author=" + author
+		return "{author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size()
 				+ "}";
 	}
 
@@ -55,7 +59,9 @@ public class Offer {
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
-		allLoadprofiles.put(author, loadprofile);
+		ArrayList<Loadprofile> list = new ArrayList<Loadprofile>();
+		list.add(loadprofile);
+		allLoadprofiles.put(author, list);
 
 		this.author = author;
 		this.aggPrice = loadprofile.getMinPrice();
@@ -63,6 +69,11 @@ public class Offer {
 		status = OfferStatus.VALID;
 	}
 
+	/**
+	 * Gibt die Location des Angebots zurück
+	 * 
+	 * @return Location-String
+	 */
 	public String getLocation() {
 		return new API().consumers(author).offers(uuid).toString();
 	}
@@ -72,13 +83,22 @@ public class Offer {
 
 		// lastprofile aus bestehendem angebot einbeziehen
 		this.allLoadprofiles.putAll(referenzeOffer.getAllLoadprofiles());
-		this.allLoadprofiles.put(author, loadprofile);
+
+		if (allLoadprofiles.get(uuid) == null) {
+			ArrayList<Loadprofile> list = new ArrayList<Loadprofile>();
+			list.add(loadprofile);
+
+			this.allLoadprofiles.put(author, list);
+		} else {
+			ArrayList<Loadprofile> list = allLoadprofiles.get(uuid);
+			list.add(loadprofile);
+		}
 
 		this.author = author;
 		this.aggLoadprofile = aggLoadprofile;
 		this.aggPrice = aggLoadprofile.getMinPrice();
 
-		this.key = UUID.randomUUID();
+		this.authKey = UUID.randomUUID();
 
 		status = OfferStatus.VALID;
 	}
@@ -87,7 +107,7 @@ public class Offer {
 		return aggLoadprofile;
 	}
 
-	public Map<UUID, Loadprofile> getAllLoadprofiles() {
+	public Map<UUID, ArrayList<Loadprofile>> getAllLoadprofiles() {
 		return allLoadprofiles;
 	}
 
@@ -103,26 +123,27 @@ public class Offer {
 		return uuid;
 	}
 
+	/*
+	 * Invalidiert das Angebot
+	 */
 	public void invalidate() {
 		status = OfferStatus.INVALID;
 	}
 
-	public Map<String, Object> status() {
-		Map<String, Object> map = new TreeMap<String, Object>();
-
-		map.put("uuid", uuid);
-		map.put("status", status.name());
-		map.put("price", aggPrice);
-		map.put("numberOfConsumers", allLoadprofiles.keySet().size());
-
-		return map;
-	}
-
-	public UUID getKey() {
-		return key;
+	public UUID getAuthKey() {
+		return authKey;
 	}
 
 	public boolean isValid() {
 		return status == OfferStatus.VALID;
+	}
+
+	public GregorianCalendar getDate() {
+		return this.aggLoadprofile.getDate();
+	}
+
+	@JsonIgnore
+	public boolean isAuthor(UUID uuid) {
+		return this.author.equals(uuid);
 	}
 }

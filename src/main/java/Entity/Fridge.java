@@ -3,23 +3,19 @@ package Entity;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
+
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequest;
+import Util.API;
 import Util.DateTime;
 import Util.DeviceStatus;
 import Util.Log;
 import Util.SimulationFridge;
-import start.Application;
 import start.Device;
 import start.Loadprofile;
 import start.View;
@@ -153,7 +149,7 @@ public class Fridge implements Device {
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 
 		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0);
-		sendLoadprofileToConsumer(loadprofile, false);
+		sendLoadprofileToConsumer(loadprofile);
 	}
 
 	/*
@@ -295,7 +291,7 @@ public class Fridge implements Device {
 			double[] deltaValues = new double[4];
 
 			if (oldValues == null) {
-				Log.e(DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
+				Log.e(this.uuid, DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
 			}
 
 			change = false;
@@ -307,8 +303,8 @@ public class Fridge implements Device {
 			}
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0);
-				sendLoadprofileToConsumer(deltaLoadprofile, true);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0, true);
+				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils
 				loadprofilesFixed.put(DateTime.ToString(startLoadprofile), newValues);
@@ -700,15 +696,15 @@ public class Fridge implements Device {
 		return newSchedule;
 	}
 
-	private void sendLoadprofileToConsumer(Loadprofile loadprofile, boolean isDeltaLoadprofile) {
+	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
 		RestTemplate rest = new RestTemplate();
 
-		String url = "http://localhost:8080/consumers/" + consumerUUID + "/loadprofiles";
+		String url = new API().consumers(consumerUUID).loadprofiles().toString();
 		try {
 			RequestEntity<Loadprofile> request = RequestEntity.post(new URI(url)).accept(MediaType.APPLICATION_JSON)
 					.body(loadprofile);
 			rest.exchange(request, Boolean.class);
-		} catch (URISyntaxException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

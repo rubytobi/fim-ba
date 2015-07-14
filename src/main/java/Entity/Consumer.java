@@ -2,7 +2,6 @@ package Entity;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.AccessDeniedException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -12,101 +11,204 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
-import Event.InvalidOrOutdatedKey;
-import Event.OfferAccepted;
-import Event.AcceptContract;
-import Event.DeclineContract;
-import Event.InvalidOffer;
 import Packet.OfferNotification;
 import Packet.ConfirmOffer;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
+import Util.OfferAction;
 import start.Application;
 import start.Loadprofile;
 import start.View;
 
 public class Consumer {
-	// uuid für jeden consumer
-	@JsonView(View.Summary.class)
-	private UUID uuid;
+	/**
+	 * Alle Angebote mit denen verhandelt wird oder wurde
+	 */
+	@JsonView(View.Detail.class)
+	private ConcurrentHashMap<UUID, Offer> allOffers = new ConcurrentHashMap<UUID, Offer>();
 
-	// uuid für das verbundene device
+	/**
+	 * Enhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Angebot
+	 * gibt
+	 */
+	@JsonView(View.Detail.class)
+	private HashMap<String, double[]> deltaLoadprofiles = new HashMap<String, double[]>();
+
+	/**
+	 * Geräte-ID des zu verantwortenden Geräts
+	 */
 	@JsonView(View.Summary.class)
 	private UUID device = null;
 
-	// Aktuelles Angebot
-	private Offer ownOffer = null;
-
-	// Angebote mit DeltaLastprofilen
-	private Map<UUID, Offer> deltaOffers = new HashMap<UUID, Offer>();
-
-	// Erhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Offer gibt
-	private Hashtable<String, double[]> deltaLoadprofiles = new Hashtable<String, double[]>();
-
-	// Anzahl der 15-Minuten-Slots für ein Lastprofil
-	private int numSlots = 4;
-
-	// Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
-	// Teilnehmern)
+	/**
+	 * Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
+	 * Teilnehmern)
+	 */
 	private Loadprofile loadprofile = null;
-	private ConcurrentLinkedQueue<OfferNotification> notificationQueue = new ConcurrentLinkedQueue<OfferNotification>();
 
+	/**
+	 * Maximale Anzahl der zu vergleichenden Martplatz-Angebote
+	 */
 	private int maxMarketplaceOffersToCompare;
 
-	// Bereits bestätigte Lastprofile
-
-	public int getNumSlots() {
-		return numSlots;
-	}
-
-	public UUID getUUID() {
-		return uuid;
-	}
-
-	public Offer getOffer(UUID uuidOffer) {
-		return ownOffer;
-	}
-
-	/*
-	 * gibt alle consumer zurück, ohne sich selber
+	/**
+	 * Queue an Benachrichtigungen über Angebote in Reinfolge der Ankunft
 	 */
-	private Consumer[] getAllConsumers() {
-		RestTemplate rest = new RestTemplate();
+	private ConcurrentLinkedQueue<Object[]> notificationQueue = new ConcurrentLinkedQueue<Object[]>();
 
-		ResponseEntity<Consumer[]> consumers = rest.exchange("http://localhost:8080/consumers", HttpMethod.GET, null,
-				Consumer[].class);
+	/**
+	 * Anzahl der 15-Minuten-Slots für ein Lastprofil
+	 */
+	private int numSlots = 4;
 
-		Consumer[] list = new Consumer[consumers.getBody().length - 1];
+	/**
+	 * Consumer-ID
+	 */
+	@JsonView(View.Summary.class)
+	private UUID uuid;
 
-		int i = 0;
-		for (Consumer c : consumers.getBody()) {
-			if (!c.getUUID().equals(uuid)) {
-				list[i] = c;
-				i++;
-			}
-		}
-
-		return list;
-	}
-
-	public Offer getOffer() {
-		return ownOffer;
-	}
-
+	/**
+	 * Anlage eines neuen Consumers. ID und maxMarketplaceOffersToCompare werden
+	 * standardmäßig gesetzt
+	 */
 	public Consumer() {
 		uuid = UUID.randomUUID();
 		this.maxMarketplaceOffersToCompare = 5;
 	}
 
+	/**
+	 * Anlage eines neuen Consumers. ID wird standardmäßig gesetzt
+	 * 
+	 * @param maxMarketplaceOffersToCompare
+	 *            Maximale Anzahl an zu vergleichenden Angeboten
+	 */
 	public Consumer(int maxMarketplaceOffersToCompare) {
 		this();
 		this.maxMarketplaceOffersToCompare = maxMarketplaceOffersToCompare;
+	}
+
+	/**
+	 * Prüft ein Angebot auf Gültigkeit bzgl. verfügbarkeit, gültigkeit,
+	 * zeitenslotgleichheit und verbesserung
+	 * 
+	 * @param offer
+	 *            Vergleichsangebot
+	 */
+	private boolean validateOffer(Offer offer) {
+		if (offer == null) {
+			return false;
+		}
+
+		if (!offer.isValid()) {
+			Log.e(this.uuid, "offer invalid...");
+			return false;
+		}
+
+		String offerDate = DateTime.ToString(offer.getDate());
+		String loadprofileDate = DateTime.ToString(loadprofile.getDate());
+		if (!offerDate.equals(loadprofileDate)) {
+			Log.e(this.uuid, "offer dates different...");
+			return false;
+		}
+
+		if (!isOfferBetter(offer)) {
+			Log.e(this.uuid, "offer not better - but for testing continued");
+			// return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Auf ein versandtes Angbeot hat ein anderer Consumer geantwortet. Es wird
+	 * geprüft ob das Angebot auch für diesen Consumer einen Mehrwehrt bietet.
+	 * Wenn ja, wird das Angebot via consumers/uuid/offers/uuid/confirm
+	 * bestätigt.
+	 * 
+	 * @param offerUUID
+	 *            ID des Angebots auf das reagiert wurde
+	 * @param offerNotification
+	 *            Angebotsbenachrichtigung
+	 */
+	public void answerOffer(UUID offerUUID, OfferNotification offerNotification) {
+		Offer offer = getOfferFromUrl(offerNotification.getLocation());
+		// check offer at its location if valid, date and if it is better
+
+		// confirm offer
+		API api = new API().consumers(offer.getAuthor()).offers(offer.getUUID()).confirm(offer.getAuthKey());
+		Log.d(this.uuid, "confirm offer at: " + api.toString());
+
+		ResponseEntity<Boolean> response = null;
+		try {
+			HttpEntity<Void> entity = new HttpEntity<Void>(Application.getRestHeader());
+			response = new RestTemplate().exchange(api.toString(), HttpMethod.GET, entity, Boolean.class);
+		} catch (Exception e) {
+			Log.e(this.uuid, e.getMessage());
+		}
+
+		Log.d(this.uuid, "contract immediate response: " + response.getBody());
+
+		// check response
+		if (response == null || response.getBody() != true) {
+			// Angebot wurde abgelehnt.
+			Log.d(this.uuid, "contract " + offer.getUUID() + " declined");
+			return;
+		}
+
+		// Angbeot wurde angenommen
+		Log.e(this.uuid, "contract " + offer.getUUID() + " accepted");
+
+		// initiales Angebot muss am Marktplatz invalidiert werden.
+		api = new API().marketplace().demand(offerUUID).invalidate();
+		try {
+			RequestEntity.get(new URI(api.toString())).accept(MediaType.APPLICATION_JSON);
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		// Das neue Angebot wird hinterlegt.
+		allOffers.put(offer.getUUID(), offer);
+
+		// Angebot das initial verschickt wurde muss entfernt werden.
+		Offer oldOffer = allOffers.get(offerUUID);
+		allOffers.remove(offerUUID);
+
+		// Consumer des alten Angebots müssen mit dem neuen Angebot versorgt
+		// werden
+		for (UUID consumerUUID : oldOffer.getAllLoadprofiles().keySet()) {
+			if (consumerUUID.equals(uuid)) {
+				// sich selber überspringen
+				continue;
+			}
+
+			String url = new API().consumers(consumerUUID).offers(oldOffer.getUUID()).replace(offer.getUUID())
+					.toString();
+			RestTemplate rest = new RestTemplate();
+			rest.exchange(url, HttpMethod.GET, null, Void.class);
+		}
+
+		// Lastprofil muss beim Gerät bestätigt werden, Deltalastprofile nicht
+		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid)) {
+			if (!lp.isDelta()) {
+				// TODO
+			} else {
+				// TODO
+			}
+		}
+
+		// Lastprofil ist versorgt
+		this.loadprofile = null;
+	}
+
+	public void cancelOffer(UUID uuidOffer) {
+		Log.d(this.uuid, uuid + " bekommt Absage zu Angebot " + uuidOffer);
+		// TODO
 	}
 
 	public double[] chargeValuesLoadprofile(double[] scheduleMinutes) {
@@ -128,11 +230,181 @@ public class Consumer {
 		return valuesLoadprofile;
 	}
 
-	private boolean isValidOfferDate(Offer offer) {
-		GregorianCalendar dateOffer = offer.getAggLoadprofile().getDate();
-		GregorianCalendar dateLoadprofile = loadprofile.getDate();
+	/**
+	 * Der Author innerhalb eines Angebots kann neue Angebote aushandeln. Jeder
+	 * Consumer muss hinterher den neuen Vertrag erhalten. Der bestehende
+	 * Vertrag wird einfach ausgetauscht. Dabei muss das neue Angebot vom Author
+	 * des alten Angebots geschickt werden.
+	 * 
+	 * @param oldOffer
+	 * @param newOffer
+	 */
+	public void replaceOffer(UUID oldOffer, UUID newOffer) {
+		// TODO prüfen ob neues angebot vom author des alten kommt
 
-		if (DateTime.ToString(dateOffer).equals(DateTime.ToString(dateLoadprofile))) {
+		// das neue Angebot besorgen
+		String url = new API().consumers(allOffers.get(oldOffer).getAuthor()).offers(newOffer).toString();
+		Offer offer = getOfferFromUrl(url);
+
+		if (offer == null) {
+			// TODO what? darf nicht sein!
+			return;
+		}
+
+		// altes Angebot entfernen
+		allOffers.remove(oldOffer);
+
+		// neues Angebot einfügen
+		allOffers.put(offer.getUUID(), offer);
+	}
+
+	/**
+	 * Ein Consumer möchte ein Angbeot dieses Consumers bestätigen. Er übergibt
+	 * hierzu den AuthKey des Angebots. Das Vorgängerangebot muss nun
+	 * invalidiert werden und entfernt werde. Mitglieder des Vorgängerangebots
+	 * müssen mit dem neuen Angbeot versorgt werden.
+	 * 
+	 * @param uuidOffer
+	 *            Angebots-ID welches bestätigt wird
+	 * @param authKey
+	 *            AuthKey um bestätigung zu verifizieren
+	 * @return
+	 */
+	public boolean confirmOfferByConsumer(UUID uuidOffer, UUID authKey) {
+		Offer offer = allOffers.get(uuidOffer);
+
+		// Prüfen ob "AuthKey" übereinstimmt
+		if (!offer.getAuthKey().equals(authKey)) {
+			return false;
+		}
+
+		// Entfernen aller Angebote zur gleichen Zeit
+		for (Offer o : allOffers.values()) {
+			if (o.getDate().equals(offer.getDate()) && !o.getUUID().equals(offer.getUUID())) {
+				allOffers.remove(o.getUUID());
+
+			}
+		}
+
+		// Lastprofil ist in Angebot integriert
+		this.loadprofile = null;
+
+		OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+		sendOfferNotificationToAllConsumers(notification);
+
+		return true;
+	}
+
+	/**
+	 * Der Marktplatz bestätigt ein Angebot
+	 * 
+	 * @param confirmOffer
+	 *            das bestätigte Angebot
+	 */
+	public void confirmOfferByMarketplace(ConfirmOffer confirmOffer) {
+		Offer offer = allOffers.get(confirmOffer.getUuid());
+
+		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid)) {
+			if (lp.isDelta()) {
+				// Schicke Bestätigung zu Loadprofile an Device
+				String date = DateTime.ToString(offer.getAggLoadprofile().getDate());
+
+				RestTemplate rest = new RestTemplate();
+				HttpEntity<String> entity = new HttpEntity<String>(date, Application.getRestHeader());
+
+				String url = new API().devices(device).confirmLoadprofile().toString();
+
+				try {
+					rest.exchange(url, HttpMethod.POST, entity, Void.class);
+				} catch (Exception e) {
+					Log.d(this.uuid, url);
+					Log.e(this.uuid, e.getMessage());
+				}
+			}
+
+			// TODO Speichere Lastprofil in Historie ab
+			loadprofile = null;
+		}
+
+		allOffers.remove(offer.getUUID());
+	}
+
+	/**
+	 * Ermittelt alle Consumer ohne sich selber
+	 * 
+	 * @return Consumers
+	 */
+	private Consumer[] getAllConsumers() {
+		RestTemplate rest = new RestTemplate();
+
+		String url = new API().consumers().toString();
+		ResponseEntity<Consumer[]> consumers = null;
+		try {
+			consumers = rest.exchange(url, HttpMethod.GET, null, Consumer[].class);
+		} catch (Exception e) {
+			Log.e(this.uuid, url);
+		}
+
+		Consumer[] list = new Consumer[consumers.getBody().length - 1];
+
+		int i = 0;
+		for (Consumer c : consumers.getBody()) {
+			if (!c.getUUID().equals(uuid)) {
+				list[i] = c;
+				i++;
+			}
+		}
+
+		return list;
+	}
+
+	public Offer[] getAllOffers() {
+		return allOffers.values().toArray(new Offer[allOffers.size()]);
+	}
+
+	public Loadprofile getLoadprofile() {
+		return loadprofile;
+	}
+
+	private Offer[] getMarketplaceSupplies(int i) {
+		// TODO
+		return new Offer[0];
+	}
+
+	public int getNumSlots() {
+		return numSlots;
+	}
+
+	public Offer getOffer(UUID uuidOffer) {
+		return allOffers.get(uuidOffer);
+	}
+
+	private Offer getOfferFromUrl(String url) {
+		RestTemplate rest = new RestTemplate();
+		HttpEntity<Void> entityVoid = new HttpEntity<Void>(Application.getRestHeader());
+
+		Offer offer = null;
+		try {
+			ResponseEntity<Offer> responseOffer = rest.exchange(url, HttpMethod.GET, entityVoid, Offer.class);
+			offer = responseOffer.getBody();
+		} catch (Exception e) {
+			Log.e(this.uuid, e.getMessage());
+		}
+
+		return offer;
+	}
+
+	public UUID getUUID() {
+		return uuid;
+	}
+
+	private boolean improveLoadprofileApproximation(Offer offer, Loadprofile otherProfile) {
+		Loadprofile aggLoadprofile = new Loadprofile(loadprofile, offer.getAggLoadprofile());
+
+		double deviation = loadprofile.chargeDeviationOtherProfile(otherProfile);
+		double aggDeviation = aggLoadprofile.chargeDeviationOtherProfile(otherProfile);
+
+		if (aggDeviation < deviation) {
 			return true;
 		} else {
 			return false;
@@ -152,83 +424,17 @@ public class Consumer {
 		}
 	}
 
-	private boolean improveLoadprofileApproximation(Offer offer, Loadprofile otherProfile) {
-		Loadprofile aggLoadprofile = new Loadprofile(loadprofile, offer.getAggLoadprofile());
-
-		double deviation = loadprofile.chargeDeviationOtherProfile(otherProfile);
-		double aggDeviation = aggLoadprofile.chargeDeviationOtherProfile(otherProfile);
-
-		if (aggDeviation < deviation) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	private Offer getOfferFromNotification(OfferNotification notification) {
-		RestTemplate rest = new RestTemplate();
-		HttpEntity<Void> entityVoid = new HttpEntity<Void>(Application.getRestHeader());
-
-		String url = notification.getLocation();
-		Log.i("request offer at: " + url);
-
-		Offer offer = null;
-		try {
-			ResponseEntity<Offer> responseOffer = rest.exchange(url, HttpMethod.GET, entityVoid, Offer.class);
-			offer = responseOffer.getBody();
-		} catch (Exception e) {
-			Log.e(e.getMessage());
-		}
-
-		return offer;
-	}
-
-	public void ping() {
-		OfferNotification notification = notificationQueue.poll();
-
-		if (notification == null) {
-			Log.d("No current notifications available");
-			return;
-		} else {
-			Log.d("Current count in notificationQueue: " + notificationQueue.size());
-		}
-
-		Offer offer = getOfferFromNotification(notification);
-
-		if (offer == null) {
-			Log.e("offer unavailable...");
-			return;
-		}
-
-		if (!offer.isValid()) {
-			Log.e("offer invalid...");
-			return;
-		}
-
-		if (!DateTime.ToString(offer.getAggLoadprofile().getDate()).equals(DateTime.ToString(loadprofile.getDate()))) {
-			Log.e("offer dates different...");
-			return;
-		}
-
-		if (!isOfferBetter(offer)) {
-			Log.e("offer not better - but for testing continued");
-			// return;
-		}
-
-		Log.e(offer.toString());
-
-		if (offer.getAllLoadprofiles().containsKey(uuid)) {
-			Log.d("already part of offer, decide whether to decline or accept");
-			thinkAboutContract(offer);
-		} else {
-			Log.d("not yet part of offer, build new offer upon");
-			extendOffer(offer);
-		}
-	}
-
+	/**
+	 * Prüft ob das Angebot einen mehrwert für den Consumer liefert. Validiert
+	 * wird zuerst das Datum. Anschließend wird die Verbesserung gegen Angebeote
+	 * am Marktplatz geprüft und anschließend eine begradigung der Lastkurve.
+	 * 
+	 * @param offer
+	 * @return
+	 */
 	private boolean isOfferBetter(Offer offer) {
 		if (!isValidOfferDate(offer)) {
-			Log.e("invalid offer - offer is for different time");
+			Log.e(this.uuid, "invalid offer - offer is for different time");
 			return false;
 		}
 
@@ -236,108 +442,236 @@ public class Consumer {
 
 		for (Offer o : supplies) {
 			if (improveLoadprofileApproximation(o, loadprofile)) {
-				Log.d("offer is better by marketplace approximation");
+				Log.d(this.uuid, "offer is better by marketplace approximation");
 				return true;
 			}
 		}
 
 		if (improveLoadprofileAverage(offer)) {
-			Log.d("offer is better by average");
+			Log.d(this.uuid, "offer is better by average");
 			return true;
 		}
 
-		Log.d("offer is not better");
+		Log.d(this.uuid, "offer is not better");
 		return false;
 	}
 
-	private void extendOffer(Offer oldOffer) {
-		// offer not yet part of
-		Offer newOffer = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, oldOffer.getAggLoadprofile()),
-				oldOffer);
-		ownOffer = newOffer;
+	/**
+	 * Prüft ob Zeitpunkt des Angebots mit dem des Lastprofils übereinstimmt
+	 * 
+	 * @param offer
+	 *            Angebot
+	 * @return true/false
+	 */
+	private boolean isValidOfferDate(Offer offer) {
+		GregorianCalendar dateOffer = offer.getAggLoadprofile().getDate();
+		GregorianCalendar dateLoadprofile = loadprofile.getDate();
 
-		OfferNotification notification = new OfferNotification(newOffer.getLocation(), oldOffer.getLocation());
-
-		String url = new API().consumers(oldOffer.getAuthor()).offers().toString();
-		Log.i("post offer " + newOffer.toString() + " for contract at: " + url);
-
-		try {
-			RequestEntity<OfferNotification> request = RequestEntity.post(new URI(url))
-					.accept(MediaType.APPLICATION_JSON).body(notification);
-			new RestTemplate().exchange(request, Void.class);
-		} catch (Exception e) {
-			Log.e(e.getMessage());
-		}
-	}
-
-	private void thinkAboutContract(Offer offer) {
-		// confirm offer
-		API api = new API().consumers(offer.getAuthor()).offers(offer.getAuthor()).confirm(offer.getKey());
-		Log.i("confirm offer at: " + api.toString());
-
-		ResponseEntity<Boolean> response = null;
-		try {
-			HttpEntity<Void> entity = new HttpEntity<Void>(Application.getRestHeader());
-			response = new RestTemplate().exchange(api.toString(), HttpMethod.GET, entity, Boolean.class);
-		} catch (Exception e) {
-			Log.e(e.getMessage());
-		}
-
-		Log.d("contract immediate response: " + response.getBody());
-
-		// check response
-		if (response == null || response.getBody() == false) {
-			Log.d("contract " + offer.getUUID() + " declined");
-		} else {
-			Log.e("contract " + offer.getUUID() + " accepted");
-
-			api = new API().marketplace().demand(offer.getUUID()).invalidate();
-			try {
-				RequestEntity.get(new URI(api.toString())).accept(MediaType.APPLICATION_JSON);
-			} catch (URISyntaxException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-
-			this.ownOffer = offer;
-		}
-	}
-
-	private Offer[] getMarketplaceSupplies(int i) {
-		// TODO
-		return new Offer[0];
-	}
-
-	public boolean confirmOffer(UUID uuidOffer, UUID key) {
-		if (!ownOffer.getKey().equals(key)) {
-			return false;
-		} else {
+		if (DateTime.ToString(dateOffer).equals(DateTime.ToString(dateLoadprofile))) {
 			return true;
+		} else {
+			return false;
 		}
 	}
 
-	public void cancelOffer(UUID uuidOffer) {
-		// TODO Auto-generated method stub
+	public String toString() {
+		return "[uuid=" + uuid + "]";
 	}
 
-	public void setDevice(UUID uuid) {
-		device = uuid;
+	/**
+	 * Sucht ein Angbeot aus dem gleichen Zeitslot bei dem der aktuelle Consumer
+	 * auch Author ist und daher verhandeln darf.
+	 * 
+	 * @param date
+	 *            entsprechender Zeitslot
+	 * @return Angebot
+	 */
+	public Offer getOfferWithPrivileges(GregorianCalendar date) {
+		for (Offer o : allOffers.values()) {
+			if (o.isAuthor(uuid) && o.getDate().equals(date)) {
+				return o;
+			}
+		}
+
+		return null;
 	}
 
-	public void receiveLoadprofile(Loadprofile loadprofile) {
-		if (this.loadprofile != null) {
+	/**
+	 * Arbeitet im ping-Rhythmus eingetroffene Benachrichtigungen über Angebote
+	 * ab. Die Benachrichtigung enthält die Adresse des Angebots. Es wird
+	 * geprüft, ob das Angebot gültig ist, den richtigen Zeitslot beinhaltet und
+	 * ob es besser ist. Wenn ja, wird ein neues Angebot erstellt, dieses
+	 * abgelegt und zurück gesandt an consumers/uuid/answer.
+	 */
+	public void ping() {
+		Object[] object = notificationQueue.poll();
+
+		if (object == null)
+			return;
+
+		OfferAction action = (OfferAction) object[0];
+		OfferNotification notification = (OfferNotification) object[1];
+
+		if (action.equals(OfferAction.SEND)) {
+			sendOfferNotificationToAllConsumers(notification);
 			return;
 		}
 
-		Log.i(uuid + " [consumer] received loadprofile from device");
-		Log.i(loadprofile.toString());
+		Offer offer = getOfferFromUrl(notification.getLocation());
 
+		// Angbeot nicht mehr vorhanden
+		if (offer == null)
+			return;
+
+		// wenn kein eigenes Lastprofil mehr behandelt werden muss, nicht
+		// reagieren auf Angebot
+		Offer offerWithPrivileges = getOfferWithPrivileges(offer.getDate());
+
+		if (this.loadprofile == null && offerWithPrivileges == null) {
+			Log.d(uuid, " not able to deal");
+			return;
+		}
+
+		if (this.loadprofile == null) {
+			Log.e(uuid, offerWithPrivileges.getLocation());
+		}
+
+		if (!validateOffer(offer)) {
+			Log.d(this.uuid, "Offer could not be validated in improvement, time, ...");
+			return;
+		}
+
+		Log.e(this.uuid, offer.toString());
+
+		// neues Angebot erstellen und ablegen
+		Offer newOffer = new Offer(uuid, loadprofile, new Loadprofile(loadprofile, offer.getAggLoadprofile()), offer);
+		allOffers.put(newOffer.getUUID(), newOffer);
+
+		// neue notification erstellen
+		OfferNotification newNotification = new OfferNotification(newOffer.getLocation(), newOffer.getUUID());
+
+		// notification versenden
+		String url = new API().consumers(offer.getAuthor()).offers(offer.getUUID()).answer().toString();
+
+		try {
+			RequestEntity<OfferNotification> request = RequestEntity.post(new URI(url))
+					.accept(MediaType.APPLICATION_JSON).body(newNotification);
+			new RestTemplate().exchange(request, Void.class);
+		} catch (Exception e) {
+			Log.e(this.uuid, e.getMessage());
+		}
+	}
+
+	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
+		// Log.d(this.uuid, uuid + " [consumer] received deltaloadprofile from
+		// device");
+		// Log.d(this.uuid, deltaLoadprofile.toString());
+		// GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
+		// GregorianCalendar timeCurrent = DateTime.now();
+		// double[] valuesNew = deltaLoadprofile.getValues();
+		//
+		// // Prüfe, ob deltaLoadprofile Änderungen für die aktuelle Stunde hat
+		// boolean currentHour = timeLoadprofile.get(Calendar.HOUR_OF_DAY) ==
+		// timeCurrent.get(Calendar.HOUR_OF_DAY);
+		// if (currentHour) {
+		// // Prüfe, ob deltaLoadprofile Änderungen für die noch kommenden
+		// // Slots beinhaltet
+		// int minuteCurrent = timeCurrent.get(Calendar.MINUTE);
+		// int slot = (int) Math.floor(minuteCurrent / 15) + 1;
+		// double sum = 0;
+		// for (int i = slot; i < numSlots; i++) {
+		// sum = sum + valuesNew[i];
+		// }
+		// if (sum == 0) {
+		// return;
+		// } else {
+		// for (int j = 0; j < slot; j++) {
+		// valuesNew[j] = 0;
+		// }
+		// }
+		// }
+		//
+		// // Prüfe, welche Werte für die Stunde von deltaLoadprofile bereits in
+		// // deltaLoadprofiles hinterlegt sind
+		// double[] valuesOld =
+		// deltaLoadprofiles.get(DateTime.ToString(timeLoadprofile));
+		// double sum = 0;
+		//
+		// // Erstelle Summe aus valuesOld und den valuesNew vom deltaLoaprofile
+		// if (valuesOld != null) {
+		// for (int i = 0; i < numSlots; i++) {
+		// valuesNew[i] = valuesOld[i] + valuesNew[i];
+		// sum = sum + valuesNew[i];
+		// }
+		// }
+		//
+		// // Versende Deltalastprofile mit Summe>5 oder aus der aktuellen
+		// Stunde
+		// // sofort
+		// if (currentHour || sum >= 5) {
+		// deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile);
+		//
+		// // Erstelle Angebot aus deltaLoadprofile, speichere es in
+		// // deltaOffers und verschicke es
+		// Offer deltaOffer = new Offer(uuid, deltaLoadprofile);
+		// allOffers.put(deltaOffer.getUUID(), deltaOffer);
+		//
+		// OfferNotification notification = new OfferNotification(
+		// new API().consumers(uuid).offers(deltaOffer.getUUID()).toString(),
+		// null);
+		//
+		// RestTemplate rest = new RestTemplate();
+		//
+		// HttpEntity<OfferNotification> entity = new
+		// HttpEntity<OfferNotification>(notification,
+		// Application.getRestHeader());
+		//
+		// String url;
+		//
+		// for (Consumer c : getAllConsumers()) {
+		// url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
+		// Log.d(this.uuid, "send offer: " + url);
+		//
+		// try {
+		// rest.exchange(url, HttpMethod.POST, entity, String.class);
+		// } catch (Exception e) {
+		// Log.e(this.uuid, e.getMessage());
+		// }
+		// }
+		// }
+		// // Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
+		// else {
+		// deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
+		// }
+	}
+
+	/**
+	 * Der Consumer erhält ein Lastprofil seines eigenen Gerätes. Das Lastprofil
+	 * wird abgelegt und ein Angebot dafür erstellt. Für das Angebot wird nun
+	 * eine Benachrichtigung erstellt, intern abgelegt und an alle bekannten
+	 * anderen Consumer verschickt.
+	 * 
+	 * @param loadprofile
+	 *            Lastprofil des Gerätes
+	 */
+	public void receiveLoadprofile(Loadprofile loadprofile) {
+		if (loadprofile.isDelta()) {
+			// skip delta loadprofiles
+			return;
+		}
+
+		Log.d(this.uuid, loadprofile.toString());
 		this.loadprofile = loadprofile;
 
-		this.ownOffer = new Offer(uuid, loadprofile);
-		OfferNotification notification = new OfferNotification(
-				"http://localhost:8080/consumers/" + uuid + "/offers/" + ownOffer.getUUID(), null);
+		Offer offer = new Offer(uuid, loadprofile);
+		allOffers.put(offer.getUUID(), offer);
 
+		OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+
+		sendOfferNotificationToAllConsumers(notification);
+	}
+
+	private void sendOfferNotificationToAllConsumers(OfferNotification notification) {
 		RestTemplate rest = new RestTemplate();
 
 		HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
@@ -346,150 +680,29 @@ public class Consumer {
 		String url;
 
 		for (Consumer c : getAllConsumers()) {
-			if (c.getUUID().equals(uuid)) {
-				// do not send notifications to itself
-				break;
-			}
-
 			url = new API().consumers(c.getUUID()).offers().toString();
-			Log.i("send offer: " + url);
 
 			try {
 				rest.exchange(url, HttpMethod.POST, entity, String.class);
 			} catch (Exception e) {
-				Log.e(e.getMessage());
+				Log.e(this.uuid, e.getMessage());
 			}
 		}
 	}
 
+	/**
+	 * Eine Angebotsbenachrichtigung trifft ein und wird zur asynchronen
+	 * Weiterbehandlung abgelegt.
+	 * 
+	 * @param offerNotification
+	 *            Benachrichtigung
+	 */
 	public void receiveOfferNotification(OfferNotification offerNotification) {
-		Log.i(uuid + " [consumer] received offer: " + offerNotification.toString());
-
-		notificationQueue.add(offerNotification);
+		Log.d(this.uuid, offerNotification.toString());
+		notificationQueue.add(new Object[] { OfferAction.RECEIVE, offerNotification });
 	}
 
-	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
-		Log.i(uuid + " [consumer] received deltaloadprofile from device");
-		Log.i(deltaLoadprofile.toString());
-		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
-		GregorianCalendar timeCurrent = DateTime.now();
-		double[] valuesNew = deltaLoadprofile.getValues();
-
-		// Prüfe, ob deltaLoadprofile Änderungen für die aktuelle Stunde hat
-		boolean currentHour = timeLoadprofile.get(Calendar.HOUR_OF_DAY) == timeCurrent.get(Calendar.HOUR_OF_DAY);
-		if (currentHour) {
-			// Prüfe, ob deltaLoadprofile Änderungen für die noch kommenden
-			// Slots beinhaltet
-			int minuteCurrent = timeCurrent.get(Calendar.MINUTE);
-			int slot = (int) Math.floor(minuteCurrent / 15) + 1;
-			double sum = 0;
-			for (int i = slot; i < numSlots; i++) {
-				sum = sum + valuesNew[i];
-			}
-			if (sum == 0) {
-				return;
-			} else {
-				for (int j = 0; j < slot; j++) {
-					valuesNew[j] = 0;
-				}
-			}
-		}
-
-		// Prüfe, welche Werte für die Stunde von deltaLoadprofile bereits in
-		// deltaLoadprofiles hinterlegt sind
-		double[] valuesOld = deltaLoadprofiles.get(DateTime.ToString(timeLoadprofile));
-		double sum = 0;
-
-		// Erstelle Summe aus valuesOld und den valuesNew vom deltaLoaprofile
-		if (valuesOld != null) {
-			for (int i = 0; i < numSlots; i++) {
-				valuesNew[i] = valuesOld[i] + valuesNew[i];
-				sum = sum + valuesNew[i];
-			}
-		}
-
-		// Versende Deltalastprofile mit Summe>5 oder aus der aktuellen Stunde
-		// sofort
-		if (currentHour || sum >= 5) {
-			deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile);
-
-			// Erstelle Angebot aus deltaLoadprofile, speichere es in
-			// deltaOffers und verschicke es
-			Offer deltaOffer = new Offer(uuid, deltaLoadprofile);
-			deltaOffers.put(deltaOffer.getUUID(), deltaOffer);
-
-			OfferNotification notification = new OfferNotification(
-					"http://localhost:8080/consumers/" + uuid + "/offers/" + deltaOffer.getUUID(), null);
-
-			RestTemplate rest = new RestTemplate();
-
-			HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
-					Application.getRestHeader());
-
-			String url;
-
-			for (Consumer c : getAllConsumers()) {
-				url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
-				Log.i("send offer: " + url);
-
-				try {
-					rest.exchange(url, HttpMethod.POST, entity, String.class);
-				} catch (Exception e) {
-					Log.e(e.getMessage());
-				}
-			}
-		}
-		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
-		else {
-			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
-		}
-	}
-
-	public Map<String, Object> status() {
-		Map<String, Object> map = new HashMap<String, Object>();
-
-		map.put("uuid", uuid);
-		map.put("device uuid", device);
-		map.put("offer uuid", ownOffer.getUUID());
-		map.put("startOffer", ownOffer.getAggLoadprofile().getDate());
-		map.put("numberOfDeltaOffers", deltaOffers.keySet().size());
-		map.put("numberOfDeltaLoadprofiles", deltaLoadprofiles.keySet().size());
-		map.put("numberInNotificationQueue", notificationQueue.size());
-
-		return map;
-	}
-
-	public Loadprofile getLoadprofile() {
-		return loadprofile;
-	}
-
-	public void confirmOfferByMarketplace(ConfirmOffer confirmOffer) {
-		boolean deltaOffer = deltaOffers.get(confirmOffer.getUuid()) != null;
-		if (deltaOffer) {
-			deltaOffers.remove(confirmOffer.getUuid());
-		} else {
-			if (ownOffer.getUUID() == confirmOffer.getUuid()) {
-				// Schicke Bestätigung zu Loadprofile an Device
-				String date = DateTime.ToString(ownOffer.getAggLoadprofile().getDate());
-
-				RestTemplate rest = new RestTemplate();
-				HttpEntity<String> entity = new HttpEntity<String>(date, Application.getRestHeader());
-
-				String url = "http://localhost:8080/devices/" + device + "/confirmLoadprofile";
-
-				try {
-					ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
-				} catch (Exception e) {
-					Log.i(url);
-					Log.e(e.getMessage());
-				}
-
-				ownOffer = null;
-				// TODO Speichere Lastprofil in Historie ab
-				loadprofile = null;
-			}
-			// TODO was passiert, wenn bestätigtes Angebot weder aktuelles
-			// Angebot noch Deltalastprofil?
-		}
+	public void setDevice(UUID uuid) {
+		device = uuid;
 	}
 }
