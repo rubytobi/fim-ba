@@ -99,7 +99,7 @@ public class Application {
 		return headers;
 	}
 
-	@Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 1000)
 	public static void pingAllDevices() {
 		RestTemplate rest = new RestTemplate();
 
@@ -113,7 +113,7 @@ public class Application {
 		}
 	}
 
-	@Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 1000)
 	public static void pingAllConsumers() {
 		RestTemplate rest = new RestTemplate();
 
@@ -130,7 +130,7 @@ public class Application {
 		}
 	}
 
-	@Scheduled(fixedRate = 10000)
+	@Scheduled(fixedRate = 5000)
 	public static void pingMarketplace() {
 		RestTemplate rest = new RestTemplate();
 

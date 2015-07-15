@@ -139,12 +139,7 @@ public class Consumer {
 	}
 
 	public Offer getOffer(UUID offer) {
-		if (getOfferIntern(offer) != null && getOfferIntern(offer).isAuthor(uuid)) {
-			// Log.d(uuid, "get offer" + offer);
-			return getOfferIntern(offer);
-		} else {
-			return null;
-		}
+		return getOfferIntern(offer);
 	}
 
 	/**
@@ -295,6 +290,7 @@ public class Consumer {
 
 		if (offer == null) {
 			// TODO what? darf nicht sein!
+			Log.e(uuid, url);
 			return;
 		}
 
@@ -319,6 +315,7 @@ public class Consumer {
 	 * @return
 	 */
 	public boolean confirmOfferByConsumer(UUID uuidOffer, UUID authKey) {
+		Log.d(uuid, "-- START confirmOfferByConsumer --");
 		// Offer offer = allOffers.get(uuidOffer);
 		Offer offer = getOfferIntern(uuidOffer);
 
@@ -344,7 +341,8 @@ public class Consumer {
 		// wurde
 		// Offer v2 = allOffers.get(uuidOffer);
 		Offer v2 = getOfferIntern(uuidOffer);
-		Offer vX = allOfferMerges.get(v2.getUUID());
+		Offer vX = allOfferMerges.remove(v2.getUUID());
+		removeOffer(vX.getUUID());
 
 		// Consumer des alten Angebots müssen mit dem neuen Angebot versorgt
 		// werden
@@ -366,6 +364,7 @@ public class Consumer {
 		OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
 		sendOfferNotificationToAllConsumers(notification);
 
+		Log.d(uuid, "-- END confirmOfferByConsumer --");
 		return true;
 	}
 
