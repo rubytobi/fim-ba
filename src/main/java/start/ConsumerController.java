@@ -7,6 +7,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -82,10 +83,10 @@ public class ConsumerController {
 	 *            die Consumer-UUID
 	 * @return Lastprofile des Consumers
 	 */
-	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.GET)
-	public @ResponseBody Loadprofile getLoadprofile(@PathVariable UUID uuid) {
-		return ConsumerContainer.instance().get(uuid).getLoadprofile();
-	}
+//	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.GET)
+//	public @ResponseBody Loadprofile getLoadprofile(@PathVariable UUID uuid) {
+//		return ConsumerContainer.instance().get(uuid).getLoadprofile();
+//	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
 	public Offer[] getAllOffers(@PathVariable UUID uuid) {
@@ -142,8 +143,8 @@ public class ConsumerController {
 	 */
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOfferOld}/replace/{uuidOfferNew}", method = RequestMethod.GET)
 	public void replaceOffer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOfferOld,
-			@PathVariable UUID uuidOfferNew) {
-		ConsumerContainer.instance().get(uuidConsumer).replaceOffer(uuidOfferOld, uuidOfferNew);
+			@PathVariable UUID uuidOfferNew, @RequestHeader UUID author) {
+		ConsumerContainer.instance().get(uuidConsumer).replaceOffer(uuidOfferOld, uuidOfferNew, author);
 	}
 
 	/**

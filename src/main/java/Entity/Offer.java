@@ -27,7 +27,7 @@ public class Offer {
 
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
-	Map<UUID, ArrayList<Loadprofile>> allLoadprofiles = new HashMap<UUID, ArrayList<Loadprofile>>();
+	HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = new HashMap<UUID, HashMap<UUID, Loadprofile>>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
 	@JsonView(View.Summary.class)
@@ -80,8 +80,8 @@ public class Offer {
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
 
-		ArrayList<Loadprofile> loadprofiles = new ArrayList<Loadprofile>();
-		loadprofiles.add(loadprofile);
+		HashMap<UUID, Loadprofile> loadprofiles = new HashMap<UUID, Loadprofile>();
+		loadprofiles.put(loadprofile.getUUID(), loadprofile);
 		allLoadprofiles.put(author, loadprofiles);
 
 		this.author = author;
@@ -119,12 +119,13 @@ public class Offer {
 		this.allLoadprofiles.putAll(referenceOffer.getAllLoadprofiles());
 
 		// Neues Lastprofil hinzufügen
-		ArrayList<Loadprofile> existingLoadprofiles = allLoadprofiles.get(author);
+		HashMap<UUID, Loadprofile> existingLoadprofiles = allLoadprofiles.get(author);
 		if (existingLoadprofiles == null) {
-			ArrayList<Loadprofile> loadprofiles = new ArrayList<Loadprofile>();
-			loadprofiles.add(loadprofile);
+			HashMap<UUID, Loadprofile> loadprofiles = new HashMap<UUID, Loadprofile>();
+			loadprofiles.put(loadprofile.getUUID(), loadprofile);
+			this.allLoadprofiles.put(author, loadprofiles);
 		} else {
-			existingLoadprofiles.add(loadprofile);
+			existingLoadprofiles.put(loadprofile.getUUID(), loadprofile);
 			this.allLoadprofiles.put(author, existingLoadprofiles);
 		}
 
@@ -153,7 +154,7 @@ public class Offer {
 	 *         Consumers als Key und einem Array aller dazugehoerigen
 	 *         Lastprofile
 	 */
-	public Map<UUID, ArrayList<Loadprofile>> getAllLoadprofiles() {
+	public HashMap<UUID, HashMap<UUID, Loadprofile>> getAllLoadprofiles() {
 		return allLoadprofiles;
 	}
 

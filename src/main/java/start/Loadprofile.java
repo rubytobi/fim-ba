@@ -11,6 +11,8 @@ import Util.DateTime;
  *
  */
 public class Loadprofile {
+	private UUID uuid;
+
 	// Verbrauch pro 15 Minuten
 	private double[] values;
 
@@ -29,6 +31,7 @@ public class Loadprofile {
 	private Loadprofile() {
 		minPrice = 0.0;
 		isDelta = false;
+		uuid = UUID.randomUUID();
 	}
 
 	/**
@@ -188,5 +191,9 @@ public class Loadprofile {
 	@JsonIgnore
 	public boolean isDelta() {
 		return isDelta;
+	}
+
+	public UUID getUUID() {
+		return uuid;
 	}
 }
