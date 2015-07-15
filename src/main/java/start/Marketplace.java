@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.ArrayList;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -23,10 +24,24 @@ import Util.Log;
  */
 public class Marketplace {
 	private static Marketplace instance = null;
+	
+	// Maps, die alle noch nicht zusammengeführten Angebote des Marktplatzes beinhaltet
 	private Map<UUID, Offer> demand = new HashMap<UUID, Offer>();
 	private Map<UUID, Offer> supply = new HashMap<UUID, Offer>();
-	private Map<UUID, MergedOffers> mergedOffers = new HashMap<UUID, MergedOffers>();
+	
+	// Map, die alle bisher zusammengeführten Angebote nach Zeitslot beinhaltet
+	private Map<String, ArrayList<MergedOffers>> mergedOffers = new TreeMap<String, ArrayList<MergedOffers>>();
+	
+	// Map, die die Summe der Abweichungen aller zusammengeführter Angebote nach Zeitslot beinhaltet
+	private Map<String, Double> deviationMergedOffers = new TreeMap<String, Double>();
+	
+	// Map, die die Summe der Abweichungen aller auf dem Marktplatz verfügbaren bzw. vom Marktplatz zusammengeführten Angebote nach Zeitslot beinhaltet
+	private Map<String, Double> deviationAllOffers = new TreeMap<String, Double>();
+	
+	// Aktueller eexPreis
 	private static final double eexPrice = 20;
+	
+	// Anzahl an 15-Minuten-Slots der Angebote
 	private int numSlots = 4;
 
 	private Marketplace() {
@@ -78,6 +93,9 @@ public class Marketplace {
 		for (int i = 0; i < numSlots; i++) {
 			sumLoadprofile += valuesLoadprofile[i];
 		}
+		double sumDeviation = deviationAllOffers.get(DateTime.ToString(offer.getDate()));
+		sumDeviation += sumLoadprofile;
+		deviationAllOffers.put(DateTime.ToString(offer.getDate()), sumDeviation);
 		if (sumLoadprofile >= 0) {
 			if (!findFittingOffer(offer, true)) {
 				supply.put(offer.getUUID(), offer);
@@ -96,6 +114,27 @@ public class Marketplace {
 	 *            Angebot, das entfernt werden soll
 	 */
 	public void removeOffer(UUID offer) {
+		// Prüfe, ob Angebot auf Marktplatz
+		Offer removeOffer = supply.get(offer);
+		if (removeOffer == null) {
+			removeOffer = demand.get(offer);
+			if (removeOffer == null) {
+				// TODO Fehlermeldung, dass Angebot nicht entfernt werden kann
+				return;
+			}
+		}
+		
+		// Entferne Summe des Angebots von deviationAllOffers
+		String date = DateTime.ToString(removeOffer.getDate());
+		double[] values = removeOffer.getAggLoadprofile().getValues();
+		double sum = 0;
+		for (int i=0; i<numSlots; i++) {
+			sum += values[i];
+		}
+		sum = deviationAllOffers.get(date) - sum;
+		deviationAllOffers.put(date, sum);
+		
+		// Entferne Angebot vom Marktplatz
 		supply.remove(offer);
 		demand.remove(offer);
 	}
@@ -112,6 +151,8 @@ public class Marketplace {
 		map.put("numberOfDemands", demand.size());
 		map.put("numberOfSupplies", supply.size());
 		map.put("eexPrice", getEEXPrice());
+		map.put("allDeviation", deviationAllOffers);
+		map.put("mergedDeviation", deviationMergedOffers);
 
 		return map;
 	}
@@ -149,7 +190,9 @@ public class Marketplace {
 		for (int i = 0; i < numSlots; i++) {
 			sumLeastDeviation += Math.abs(offerLoadprofile[i]);
 		}
-
+		
+		double allDeviation = deviationAllOffers.get(DateTime.ToString(offer.getDate()));
+		double mergedDeviation = deviationMergedOffers.get(DateTime.ToString(offer.getDate()));
 		double[] currentDeviation;
 		double[] leastDeviation = offerLoadprofile;
 		double sumCurrentDeviation;

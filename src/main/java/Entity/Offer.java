@@ -198,7 +198,11 @@ public class Offer {
 	public boolean isValid() {
 		return status == OfferStatus.VALID;
 	}
-
+	
+	/**
+	 * Liefert den Startzeitpunkt des Angebots
+	 * @return Startzeitpunkt des Angebots als GregorianCalendar
+	 */
 	public GregorianCalendar getDate() {
 		return this.aggLoadprofile.getDate();
 	}
