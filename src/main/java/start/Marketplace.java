@@ -241,13 +241,19 @@ public class Marketplace {
 		
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
-		double[] currentDeviationConfirmed = chargeDeviationConfirmed(offer.getDate());
-		double sumMostImprovement = 0;
-		double sumCurrentDeviationConfirmed = 0;
+		double[] perfectMatchConfirmed = perfectMatchConfirmed(offer.getDate());
+		
+		// Gibt an, um wie viel das Lastprofil von perfectMatchConfirmed pro Slot abweicht
+		double[] deviationMostImprovement = new double[numSlots];
+		// Gibt an, um wie viel das Lastprofil aufsummiert von perfectMatchConfirmed abweicht
+		double sumDeviationMostImprovement = 0;
+		
+		double sumPerfectMatchConfirmed = 0;
 		
 		for (int i=0; i<numSlots; i++) {
-			sumCurrentDeviationConfirmed += Math.abs(currentDeviationConfirmed[i]);
-			sumMostImprovement += Math.abs(currentDeviationConfirmed[i] + valuesOffer[i]);
+			deviationMostImprovement[i] = valuesOffer[i] - perfectMatchConfirmed[i];
+			sumPerfectMatchConfirmed += Math.abs(perfectMatchConfirmed[i]);
+			sumDeviationMostImprovement += Math.abs(deviationMostImprovement[i]);
 		}
 		
 		// Hole den Array aller bereits in listPossibleMerges hinterlegten possibleMerges 
@@ -261,22 +267,23 @@ public class Marketplace {
 			Offer compareOffer;
 
 			if (offerIsSupplyOffer) {
-				compareOffer = supply.get(uuid);
-			} else {
 				compareOffer = demand.get(uuid);
+			} else {
+				compareOffer = supply.get(uuid);
 			}
 			
 			double[] valuesCompareOffer = compareOffer.getAggLoadprofile().getValues();
-			double[] newDeviation = new double[numSlots];
-			double sumNewDeviation = 0;
+			double[] deviationFromPerfectMatch = new double[numSlots];
+			double sumDeviationFromPerfectMatch = 0;
 			for (int i=0; i<numSlots; i++) {
-				newDeviation[i] = currentDeviationConfirmed[i] + valuesOffer[i] + valuesCompareOffer[i];
-				sumNewDeviation += Math.abs(newDeviation[i]);
+				deviationFromPerfectMatch[i] = valuesOffer[i] + valuesCompareOffer[i] - perfectMatchConfirmed[i];
+				sumDeviationFromPerfectMatch += Math.abs(deviationFromPerfectMatch[i]);
 			}
 			
-			if (sumNewDeviation < sumMostImprovement) {
+			if (sumDeviationFromPerfectMatch < sumDeviationMostImprovement) {
 				offerMostImprovement = compareOffer;
-				sumMostImprovement = sumNewDeviation;
+				sumDeviationMostImprovement = sumDeviationFromPerfectMatch;
+				deviationMostImprovement = deviationFromPerfectMatch;
 			}
 			
 			// Füge Kombination aller Angebote mit Offer für listPossibleMerges zum Array hinzu
@@ -285,13 +292,13 @@ public class Marketplace {
 		}
 		
 		// Prüfe, ob hinzufügen der beiden Angebote mit geringster Abweichung
-		// Annäherung an Prognose verbessert
-		if (sumMostImprovement < sumCurrentDeviationConfirmed) {
+		// Annäherung an Prognose verbessert oder um weniger als 5 verschlechtert
+		if (sumDeviationMostImprovement < 5) {
 			if (offer.equals(offerMostImprovement)) {
 				confirmOffer(offer, offer.getPrice());
 			}
-			double[] noWorsening = {0, 0, 0, 0};
-			mergeOffers(offer, offerMostImprovement, noWorsening);
+			
+			mergeOffers(offer, offerMostImprovement, deviationMostImprovement);
 			return true;
 		}
 		
@@ -461,32 +468,47 @@ public class Marketplace {
 		now.set(Calendar.MILLISECOND, 0);
 		String start = DateTime.ToString(now);
 		
-		double[] deviationConfirmed = chargeDeviationConfirmed(now);
+		double[] perfectMatch = perfectMatchConfirmed(now);
 		
 		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(start);
 		PossibleMerge bestMerge;
-		double[] improvementBestMerge;
+		double[] deviationBestMergeFromPerfectMatch;
+		double sumDeviationBestMergeFromPerfectMatch;
 		
 		for (PossibleMerge possibleMerge: possibleMerges) {
 			double[] values = possibleMerge.getValuesAggLoadprofile();
-			double[] deviationIfConfirmed = new double[numSlots];
-			boolean isBetter = false;
+			double[] deviationFromPerfectMatch = new double[numSlots];
+			double sumDeviationFromPerfectMatch = 0;
+			for (int i=0; i<numSlots; i++) {
+				deviationFromPerfectMatch[i] = values[i] - perfectMatch[i];
+				sumDeviationFromPerfectMatch += Math.abs(deviationFromPerfectMatch[i]);
+			}
+			// Wenn die Abweichung kleiner 5, werden die Angebote zusammengeführt
+			if (sumDeviationFromPerfectMatch < 5) {
+				Offer[] offers = possibleMerge.getOffers();
+				mergeOffers(offers[0], offers[1], deviationFromPerfectMatch);
+				// TODO aktualisiere perfectMatch und noch mehr???
+			}
+			else {
+				// TODO 
+			}
 		}
 	}
 	
 	/**
-	 * Berechnet die Abweichung von sumLoadprofilesConfirmedOffers von der Prognose
+	 * Berechnet die Abweichung von sumLoadprofilesConfirmedOffers von der Prognose und somit die
+	 * Werte, die das ideale Lastprofil haben müsste, um die Prognose zu erreichen.
 	 * @param start Start der Stunde, fuer die die Abweichung berechnet wird
 	 * @return Array mit der Abweichung von sumLoadprofilesConfirmed von der Prognose in 15-Minuten-Einheiten
 	 */
-	private double[] chargeDeviationConfirmed (GregorianCalendar start) {
-		double[] deviationConfirmed = new double[numSlots];
+	private double[] perfectMatchConfirmed (GregorianCalendar start) {
+		double[] perfectMatch = new double[numSlots];
 		double[] currentPrediction = prediction.get(start);
 		double[] currentConfirmed = sumLoadprofilesConfirmedOffers.get(start);
 		for (int i=0; i<numSlots; i++) {
-			deviationConfirmed[i] = currentPrediction[i] + currentConfirmed[i];
+			perfectMatch[i] = currentPrediction[i] - currentConfirmed[i];
 		}
-		return deviationConfirmed;
+		return perfectMatch;
 	}
 	
 	
