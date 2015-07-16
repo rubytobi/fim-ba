@@ -200,6 +200,7 @@ public class Consumer {
 		Offer respondedOffer = getOfferIntern(respondedOfferUUID);
 		// Offer oldOffer = allOffers.get(offerUUID);
 		removeOffer(respondedOfferUUID);
+		Log.d(uuid, "beantwortete angebot: " + respondedOffer);
 
 		// Consumer des alten Angebots müssen mit dem neuen Angebot versorgt
 		// werden
@@ -222,9 +223,12 @@ public class Consumer {
 
 		// Lastprofil muss beim Gerät bestätigt werden, Deltalastprofile nicht
 		HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = respondedOffer.getAllLoadprofiles();
-		if (allLoadprofiles == null) {
+		if (allLoadprofiles == null)
 			return;
-		}
+
+		if (allLoadprofiles.get(uuid) == null)
+			return;
+
 		for (Loadprofile lp : allLoadprofiles.get(uuid).values()) {
 			if (!lp.isDelta()) {
 				// TODO
@@ -321,6 +325,7 @@ public class Consumer {
 
 		// Prüfen ob "AuthKey" übereinstimmt
 		if (!offer.getAuthKey().equals(authKey)) {
+			Log.d(uuid, "key [" + authKey + "] does not match offers authKey [" + offer.toString() + "]");
 			return false;
 		}
 
@@ -346,14 +351,16 @@ public class Consumer {
 
 		// Consumer des alten Angebots müssen mit dem neuen Angebot versorgt
 		// werden
+		Log.d(uuid, "replace old offer [" + vX.toString() + "] at other customers with new offer [" + offer.toString()
+				+ "]");
 		for (UUID consumerUUID : vX.getAllLoadprofiles().keySet()) {
 			if (consumerUUID.equals(uuid)) {
-				// sich selber überspringen
+				Log.d(uuid, "sich selbst ueberspringen");
 				continue;
 			}
 
 			String url = new API().consumers(consumerUUID).offers(vX.getUUID()).replace(offer.getUUID()).toString();
-			Log.d(uuid, url);
+			Log.d(uuid, "aufrufen der url: " + url);
 			RestTemplate rest = new RestTemplate();
 			HttpHeaders header = new HttpHeaders();
 			header.add("author", this.uuid.toString());
@@ -364,6 +371,7 @@ public class Consumer {
 		OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
 		sendOfferNotificationToAllConsumers(notification);
 
+		Log.d(uuid, "offer updated at {" + vX.getAllLoadprofiles().keySet() + "}");
 		Log.d(uuid, "-- END confirmOfferByConsumer --");
 		return true;
 	}
@@ -627,7 +635,7 @@ public class Consumer {
 
 		// if (this.loadprofile == null && offerWithPrivileges == null) {
 		if (offerWithPrivileges == null) {
-			Log.d(uuid, " not able to deal");
+			Log.d(uuid, "not able to deal, no offers with author privileges [" + this.allOffers + "]");
 			return;
 		}
 
@@ -646,8 +654,14 @@ public class Consumer {
 		// neues Angebot erstellen und ablegen
 		// Offer newOffer = new Offer(uuid, loadprofile, new
 		// Loadprofile(loadprofile, offer.getAggLoadprofile()), offer);
-		Offer newOffer = new Offer(uuid, offerWithPrivileges.getAggLoadprofile(),
-				new Loadprofile(offerWithPrivileges.getAggLoadprofile(), offer.getAggLoadprofile()), offer);
+
+		Offer newOffer = new Offer(offerWithPrivileges, offer);
+
+		// Offer newOffer = new Offer(uuid,
+		// offerWithPrivileges.getAggLoadprofile(),
+		// new Loadprofile(offerWithPrivileges.getAggLoadprofile(),
+		// offer.getAggLoadprofile()), offer);
+
 		// allOffers.put(newOffer.getUUID(), newOffer);
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), offerWithPrivileges);

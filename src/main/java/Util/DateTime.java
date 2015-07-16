@@ -7,7 +7,7 @@ import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 public class DateTime {
-	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
+	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
 	public static String timestamp() {
 		return simpleDateFormat.format(now().getTime());

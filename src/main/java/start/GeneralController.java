@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import Container.ConsumerContainer;
 import Entity.Consumer;
 import Entity.Offer;
+import Util.API;
 import Util.DateTime;
 import it.uniroma1.dis.wsngroup.gexf4j.core.EdgeType;
 import it.uniroma1.dis.wsngroup.gexf4j.core.Gexf;
@@ -43,9 +44,21 @@ public class GeneralController {
 		return map;
 	}
 
-	@RequestMapping("/index")
-	public HashMap<UUID, Offer> index() {
+	@RequestMapping("/offers")
+	public HashMap<UUID, Offer> offers() {
 		return getAllOffers();
+	}
+
+	@RequestMapping("/index")
+	public String index() {
+		String s = "<html><body>";
+
+		for (Consumer c : ConsumerContainer.instance().getAll()) {
+			s += "<p><a target=\"_new\" href=\"" + new API().consumers(c.getUUID()) + "\">" + c.getUUID() + "</a></p>";
+		}
+
+		s += "</body></html>";
+		return s;
 	}
 
 	@RequestMapping("/graph")
