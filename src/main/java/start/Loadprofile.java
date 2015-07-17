@@ -50,6 +50,7 @@ public class Loadprofile {
 
 		this.values = values;
 		this.date = date;
+		this.minPrice = minPrice;
 	}
 
 	/**
