@@ -103,6 +103,14 @@ public class Offer {
 		return new API().consumers(author).offers(uuid).toString();
 	}
 
+	/**
+	 * Erstellt ein neues Angebot auf Basis von zwei anderen Angebote
+	 * 
+	 * @param withPrivileges
+	 *            Offer Angebot des Authors
+	 * @param withoutPrivileges
+	 *            Offer zweites Angbeot
+	 */
 	public Offer(Offer withPrivileges, Offer withoutPrivileges) {
 		this();
 
@@ -162,80 +170,6 @@ public class Offer {
 
 		toString());
 	}
-
-	/**
-	 * Erstellt neues Angebot auf Basis eines alten Angebots
-	 * 
-	 * @param author
-	 *            UUID des Consumers, der neues Angebot erstellen will
-	 * @param loadprofile
-	 *            Neues Lastprofil, das zu dem alten Angebot hinzugefuegt werden
-	 *            soll
-	 * @param aggLoadprofile
-	 *            Aggregiertes Lastprofil des neuen Angebots
-	 * @param referenceOffer
-	 *            Altes Angebot
-	 */
-//	public Offer(UUID author, Loadprofile loadprofile, Loadprofile aggLoadprofile, Offer referenceOffer) {
-//		this();
-//
-//		Log.d(uuid, "Offer(author=" + author.toString() + ",loadprofile=" + loadprofile.toString() + ",aggLoadprofile"
-//				+ aggLoadprofile.toString() + ",referenceOffer=" + referenceOffer.toString() + ")");
-//
-//		// füge author respektive neue werte hinzu
-//		Log.d(uuid, "add author [" + author + "]");
-//		this.allLoadprofiles.put(author, new HashMap<UUID, Loadprofile>());
-//
-//		Log.d(uuid, "add authors loadprofile [" + loadprofile.getUUID() + "]");
-//		this.allLoadprofiles.get(author).put(loadprofile.getUUID(), loadprofile);
-//
-//		// Lastprofile aus bestehendem Angebot einbeziehen
-//		for (UUID consumerUUID : referenceOffer.getAllLoadprofiles().keySet()) {
-//			// Neuer Consumer kommt hinzu
-//			if (!this.allLoadprofiles.containsKey(consumerUUID)) {
-//				Log.d(uuid, "new consumer [" + consumerUUID + "] in offer");
-//				this.allLoadprofiles.put(consumerUUID, new HashMap<UUID, Loadprofile>());
-//			}
-//
-//			for (UUID loadprofileUUID : referenceOffer.getAllLoadprofiles().get(consumerUUID).keySet()) {
-//				if (this.allLoadprofiles.get(consumerUUID).containsKey(loadprofileUUID)) {
-//					// ein bereits existierendes loadprofile soll hinzugefügt
-//					// werden???
-//					Log.d(uuid, "adding an existing loadprofile [" + loadprofileUUID + "] to the offer ["
-//							+ this.toString() + "]");
-//					continue;
-//				}
-//
-//				Log.d(uuid, "new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
-//				Loadprofile value = referenceOffer.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
-//				this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
-//			}
-//		}
-//		// this.allLoadprofiles.putAll(referenceOffer.getAllLoadprofiles());
-//
-//		// Neues Lastprofil hinzufügen
-//		// HashMap<UUID, Loadprofile> existingLoadprofiles =
-//		// allLoadprofiles.get(author);
-//		// if (existingLoadprofiles == null) {
-//		// HashMap<UUID, Loadprofile> loadprofiles = new HashMap<UUID,
-//		// Loadprofile>();
-//		// loadprofiles.put(loadprofile.getUUID(), loadprofile);
-//		// this.allLoadprofiles.put(author, loadprofiles);
-//		// } else {
-//		// existingLoadprofiles.put(loadprofile.getUUID(), loadprofile);
-//		// this.allLoadprofiles.put(author, existingLoadprofiles);
-//		// }
-//
-//		this.author = author;
-//		this.aggLoadprofile = aggLoadprofile;
-//		this.aggPrice = aggLoadprofile.getMinPrice();
-//
-//		this.authKey = UUID.randomUUID();
-//
-//		status = OfferStatus.VALID;
-//
-//		Log.d(uuid, "-- END Offer(): " + toString());
-//	}
 
 	/**
 	 * Liefert das aggregierte Lastprofil des Angebots
