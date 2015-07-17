@@ -54,7 +54,8 @@ public class Offer {
 	 * 
 	 */
 	public String toString() {
-		return "{uuid=" + uuid + ",author=" + author + ",partners=" + allLoadprofiles.keySet() + "}";
+		return "{author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size()
+				+ "}";
 	}
 
 	/**
@@ -77,8 +78,6 @@ public class Offer {
 	public Offer(UUID author, Loadprofile loadprofile) {
 		this();
 
-		Log.d(uuid, "Offer(author=" + author.toString() + ",loadprofile=" + loadprofile.toString() + ")");
-
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
 
@@ -90,8 +89,6 @@ public class Offer {
 		this.aggPrice = loadprofile.getMinPrice();
 
 		status = OfferStatus.VALID;
-
-		Log.d(uuid, "-- END Offer(): " + toString());
 	}
 
 	/**

@@ -35,7 +35,7 @@ import Util.Log;
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
 	private static int countFridges = 0;
-	private static final int maxFridges = 6;
+	private static final int maxFridges = 5;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 
 	public static void main(String[] args) {
