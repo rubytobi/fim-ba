@@ -646,8 +646,11 @@ public class Consumer {
 		// neues Angebot erstellen und ablegen
 		// Offer newOffer = new Offer(uuid, loadprofile, new
 		// Loadprofile(loadprofile, offer.getAggLoadprofile()), offer);
-		Offer newOffer = new Offer(uuid, offerWithPrivileges.getAggLoadprofile(),
-				new Loadprofile(offerWithPrivileges.getAggLoadprofile(), offer.getAggLoadprofile()), offer);
+		Offer newOffer = new Offer(offerWithPrivileges, offer);
+		// Offer newOffer = new Offer(uuid,
+		// offerWithPrivileges.getAggLoadprofile(),
+		// new Loadprofile(offerWithPrivileges.getAggLoadprofile(),
+		// offer.getAggLoadprofile()), offer);
 		// allOffers.put(newOffer.getUUID(), newOffer);
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), offerWithPrivileges);

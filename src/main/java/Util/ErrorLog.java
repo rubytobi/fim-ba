@@ -1,10 +1,17 @@
 package Util;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class ErrorLog {
+	@JsonProperty("id")
+	private static AtomicInteger id = new AtomicInteger(0);
+
+	@JsonProperty("instance")
+	private static final UUID instance = UUID.randomUUID();
+
 	@JsonProperty("uuid")
 	UUID uuid;
 
@@ -28,6 +35,14 @@ public class ErrorLog {
 
 		this.functionName = functionName;
 		this.timestamp = DateTime.timestamp();
+	}
+
+	public int getId() {
+		return id.getAndIncrement();
+	}
+
+	public String getInstance() {
+		return instance.toString();
 	}
 
 	public String toString() {
