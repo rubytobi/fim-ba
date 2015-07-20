@@ -255,9 +255,10 @@ public class Marketplace {
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
 		double[] perfectMatchConfirmed = perfectMatchConfirmed(offer.getDate());
-		double volumeOffer = 0;
 		
+		// Hole alle aktuellen Werte für Vorhersage
 		double[] predictionCurrent = prediction.get(DateTime.ToString(offer.getDate()));
+		double volumePredictionCurrent = 0;
 		double[] deviationCurrentPrediction = perfectMatchConfirmed(offer.getDate());
 		double sumDeviationCurrentPrediction = 0;
 		double[] sumLoadprofilesCurrent = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(offer.getDate()));
@@ -265,13 +266,10 @@ public class Marketplace {
 		// Gibt die Abweichung von der Prognose für alle bestätigten Lastprofile und das aktuelle Angebot an
 		double[] deviationOfferPrediction = new double[numSlots];
 		double sumDeviationOfferPrediction = 0;
-		
-		double sumPerfectMatchConfirmed = 0;
-		
+				
 		for (int i=0; i<numSlots; i++) {
-			volumeOffer += Math.abs(valuesOffer[i]);
+			volumePredictionCurrent += Math.abs(predictionCurrent[i]);
 			deviationOfferPrediction[i] = predictionCurrent[i] - sumLoadprofilesCurrent[i] - valuesOffer[i];
-			sumPerfectMatchConfirmed += Math.abs(perfectMatchConfirmed[i]);
 			sumDeviationOfferPrediction += Math.abs(deviationOfferPrediction[i]);
 			sumDeviationCurrentPrediction += Math.abs(deviationCurrentPrediction[i]);
 		}
@@ -318,7 +316,7 @@ public class Marketplace {
 		
 		// Prüfe, ob hinzufügen der beiden Angebote mit geringster Abweichung
 		// Annäherung an Prognose verbessert oder um weniger als 5 verschlechtert
-		System.out.println("Maximale Abweichung: " +maxDeviation*0.01*volumeOffer);
+		System.out.println("Maximale Abweichung: " +maxDeviation*0.01*volumePredictionCurrent);
 		System.out.println("Tatsächliche Abweichung von Prognose: " +sumDeviationMostImprovementPrediction);
 		if (sumDeviationMostImprovementPrediction < sumDeviationCurrentPrediction) {
 			double[] worsening = new double[numSlots];
@@ -330,7 +328,18 @@ public class Marketplace {
 				return true;
 			}
 			
-			mergeOffers(offer, offerMostImprovement, deviationMostImprovement);
+			mergeOffers(offer, offerMostImprovement, worsening);
+			return true;
+		}
+		else if(sumDeviationMostImprovementPrediction < maxDeviation*0.01*volumePredictionCurrent) {
+			if (offer.equals(offerMostImprovement)) {
+				confirmOffer(offer, offer.getPrice());
+				return true;
+			}
+			// TODO stimmt das??
+			double[] worsening = deviationMostImprovementPrediction;
+			
+			mergeOffers(offer, offerMostImprovement, worsening);
 			return true;
 		}
 		
