@@ -186,25 +186,26 @@ public class Marketplace {
 			sumLoadprofilesAllOffers.put(date, valuesDeviation);
 		}
 		
-		// Entferne Angebote aus listOffers
-		String key = DateTime.ToString(removeOffer.getDate());
-		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(key);
-		for (PossibleMerge current: possibleMerges) {
+		// Entferne Angebote aus listPossibleMerges
+		removeFromPossibleMerges(removeOffer);
+	}
+	
+	private void removeFromPossibleMerges (Offer offer) {
+		String key = DateTime.ToString(offer.getDate());
+		ArrayList<PossibleMerge> oldPossibleMerges = listPossibleMerges.get(key);
+		ArrayList<PossibleMerge> newPossibleMerges = new ArrayList<PossibleMerge>();
+		for (PossibleMerge current: oldPossibleMerges) {
 			Offer[] offers = current.getOffers();
-			if (offers[0] == removeOffer || offers[1] == removeOffer) {
-				//possibleMerges.remove(current);
+			if (! (offers[0].equals(offer) || offers[1].equals(offer))) {
+				newPossibleMerges.add(current);
 			}
 		}
-		if (possibleMerges.size() == 0) {
+		if (newPossibleMerges.size() == 0) {
 			listPossibleMerges.remove(key);
 		}
 		else {
-			listPossibleMerges.put(key, possibleMerges);
+			listPossibleMerges.put(key,  newPossibleMerges);
 		}
-		
-		// Entferne Angebot vom Marktplatz
-		supply.remove(offer);
-		demand.remove(offer);
 	}
 
 	/**
@@ -256,19 +257,29 @@ public class Marketplace {
 		double[] perfectMatchConfirmed = perfectMatchConfirmed(offer.getDate());
 		double volumeOffer = 0;
 		
-		// Gibt an, um wie viel das Lastprofil von perfectMatchConfirmed pro Slot abweicht
-		double[] deviationMostImprovement = new double[numSlots];
-		// Gibt an, um wie viel das Lastprofil aufsummiert von perfectMatchConfirmed abweicht
-		double sumDeviationMostImprovement = 0;
+		double[] predictionCurrent = prediction.get(DateTime.ToString(offer.getDate()));
+		double[] deviationCurrentPrediction = perfectMatchConfirmed(offer.getDate());
+		double sumDeviationCurrentPrediction = 0;
+		double[] sumLoadprofilesCurrent = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(offer.getDate()));
+		
+		// Gibt die Abweichung von der Prognose für alle bestätigten Lastprofile und das aktuelle Angebot an
+		double[] deviationOfferPrediction = new double[numSlots];
+		double sumDeviationOfferPrediction = 0;
 		
 		double sumPerfectMatchConfirmed = 0;
 		
 		for (int i=0; i<numSlots; i++) {
 			volumeOffer += Math.abs(valuesOffer[i]);
-			deviationMostImprovement[i] = valuesOffer[i] - perfectMatchConfirmed[i];
+			deviationOfferPrediction[i] = predictionCurrent[i] - sumLoadprofilesCurrent[i] - valuesOffer[i];
 			sumPerfectMatchConfirmed += Math.abs(perfectMatchConfirmed[i]);
-			sumDeviationMostImprovement += Math.abs(deviationMostImprovement[i]);
+			sumDeviationOfferPrediction += Math.abs(deviationOfferPrediction[i]);
+			sumDeviationCurrentPrediction += Math.abs(deviationCurrentPrediction[i]);
 		}
+		
+		// Gibt die Abweichung von der Prognose für deviationOffer-mostImprovement an
+		double[] deviationMostImprovementPrediction = deviationOfferPrediction;
+		double sumDeviationMostImprovementPrediction = sumDeviationOfferPrediction;
+		
 		
 		// Hole den Array aller bereits in listPossibleMerges hinterlegten possibleMerges 
 		// für die Startzeit dateOffer
@@ -287,18 +298,17 @@ public class Marketplace {
 			}
 			
 			double[] valuesCompareOffer = compareOffer.getAggLoadprofile().getValues();
-			double[] deviationFromPerfectMatch = new double[numSlots];
-			double sumDeviationFromPerfectMatch = 0;
-			double volumeMergedOffer = 0;
-			for (int i=0; i<numSlots; i++) {
-				deviationFromPerfectMatch[i] = valuesOffer[i] + valuesCompareOffer[i] - perfectMatchConfirmed[i];
-				sumDeviationFromPerfectMatch += Math.abs(deviationFromPerfectMatch[i]);
+			double[] deviationPrediction = new double[numSlots];
+			double sumDeviationPrediction = 0;
+			for (int j=0; j<numSlots; j++) {
+				deviationPrediction[j] = deviationOfferPrediction[j] - valuesCompareOffer[j];
+				sumDeviationPrediction += Math.abs(deviationPrediction[j]);
 			}
 			
-			if (sumDeviationFromPerfectMatch < sumDeviationMostImprovement) {
+			if (sumDeviationPrediction < sumDeviationMostImprovementPrediction) {
 				offerMostImprovement = compareOffer;
-				sumDeviationMostImprovement = sumDeviationFromPerfectMatch;
-				deviationMostImprovement = deviationFromPerfectMatch;
+				sumDeviationMostImprovementPrediction = sumDeviationPrediction;
+				deviationMostImprovementPrediction = deviationPrediction;
 			}
 			
 			// Füge Kombination aller Angebote mit Offer für listPossibleMerges zum Array hinzu
@@ -309,8 +319,12 @@ public class Marketplace {
 		// Prüfe, ob hinzufügen der beiden Angebote mit geringster Abweichung
 		// Annäherung an Prognose verbessert oder um weniger als 5 verschlechtert
 		System.out.println("Maximale Abweichung: " +maxDeviation*0.01*volumeOffer);
-		System.out.println("Tatsächliche Abweichung: " +sumDeviationMostImprovement);
-		if (sumDeviationMostImprovement < maxDeviation*0.01*volumeOffer) {
+		System.out.println("Tatsächliche Abweichung von Prognose: " +sumDeviationMostImprovementPrediction);
+		if (sumDeviationMostImprovementPrediction < sumDeviationCurrentPrediction) {
+			double[] worsening = new double[numSlots];
+			for (int i=0; i<numSlots; i++) {
+				worsening[i] = 0;
+			}
 			if (offer.equals(offerMostImprovement)) {
 				confirmOffer(offer, offer.getPrice());
 				return true;
@@ -495,6 +509,33 @@ public class Marketplace {
 		}
 	}
 	
+	private void mergeAllGoodOffers (GregorianCalendar slot) {
+		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(slot));
+		ArrayList<Offer> offersJustMerged = new ArrayList<Offer>();
+		for (PossibleMerge possibleMerge: possibleMerges) {
+			Offer[] offers = possibleMerge.getOffers();
+			if (offersJustMerged.contains(offers[0]) || offersJustMerged.contains(offers[1])) {
+				continue;
+			}
+			double[] loadprofile = possibleMerge.getValuesAggLoadprofile();
+			double[] deviation = chargeDeviationLoadprofilePerfectMatch(loadprofile, slot);
+			double sumDeviation = 0;
+			double volumeOffer = 0;
+			for (int i=0; i<numSlots; i++) {
+				sumDeviation += Math.abs(deviation[i]);
+				volumeOffer += Math.abs(loadprofile[i]);
+			}
+			if (sumDeviation < maxDeviation*0.01*volumeOffer) {
+				offersJustMerged.add(offers[0]);
+				offersJustMerged.add(offers[1]);
+				mergeOffers(offers[0], offers[1], deviation);
+			}
+		}
+		for (Offer current: offersJustMerged) {
+			removeFromPossibleMerges(current);
+		}
+	}
+	
 	private void matchNextSlot() {
 		double[] deviationAll = chargeDeviationAll(nextSlot);
 		double sumDeviationAll = 0;
@@ -503,6 +544,10 @@ public class Marketplace {
 		}
 		if (make(sumDeviationAll)) {
 			// TODO Alle Schritte für Make
+			mergeAllGoodOffers(nextSlot);
+			
+			ArrayList<PossibleMerge> remainingMerges = listPossibleMerges.get(DateTime.ToString(nextSlot));
+			
 		}
 		else {
 			ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(nextSlot));
@@ -523,11 +568,34 @@ public class Marketplace {
 				else {
 					confirmedOffers.add(offers[0]);
 					confirmedOffers.add(offers[1]);
-					double[] deviation = chargeDeviationLoadprofile(possibleMerge.getValuesAggLoadprofile(), nextSlot);
+					double[] deviation = chargeDeviationLoadprofilePerfectMatch(possibleMerge.getValuesAggLoadprofile(), nextSlot);
 					mergeOffers(offers[0], offers[1], deviation);
 				}
 			}
-			// TODO Prüfe, dass alle Angebote bestätigt wurden
+			for (Offer current: confirmedOffers) {
+				removeFromPossibleMerges(current);
+			}
+			Set<UUID> demandUUIDs = demand.keySet();
+			Set<UUID> supplyUUIDs = supply.keySet();
+			boolean remainingDemand = demandUUIDs.size() > 0;
+			boolean remainingSupply = supplyUUIDs.size() > 0;
+			if (remainingDemand && remainingSupply) {
+				System.out.println("Das darf nicht sein");
+			}
+			else if (remainingDemand) {
+				for (UUID demandUUID: demandUUIDs) {
+					// TODO wie wird Preis hier festgelegt???
+					double price = eexPrice;
+					confirmOffer(demand.get(demandUUID), price);
+				}
+			}
+			else if (remainingSupply) {
+				for (UUID supplyUUID: supplyUUIDs) {
+					// TODO wie wird Preis hier festgelegt???
+					double price = eexPrice;
+					confirmOffer(supply.get(supplyUUID), price);
+				}
+			}
 		}		
 	}
 	
@@ -535,7 +603,7 @@ public class Marketplace {
 		return true;
 	}
 	
-	private double[] chargeDeviationLoadprofile(double[] loadprofile, GregorianCalendar start) {
+	private double[] chargeDeviationLoadprofilePerfectMatch(double[] loadprofile, GregorianCalendar start) {
 		double[] deviationLoadprofile = new double[numSlots];
 		double[] perfectMatch = perfectMatchConfirmed(start);
 		for (int i=0; i<numSlots; i++) {
