@@ -14,7 +14,7 @@ import start.GeneralController;
 public class NetworkGraph {
 	private static NetworkGraph instance;
 	private Graph graph;
-	private String offerStyle = "fill-color: green; shape: rounded-box;";
+	private String offerStyle = "fill-color: green;";
 	private String title = "TRuby - Graph";
 	private UUID graphUUID = UUID.randomUUID();
 
@@ -62,7 +62,7 @@ public class NetworkGraph {
 			Log.d(graphUUID, "display offer [" + o.toString() + "]");
 
 			Node n = graph.addNode(o.getUUID().toString());
-			n.addAttribute("ui.style", offerStyle);
+			n.addAttribute("ui.style", offerStyle + " size: " + (o.getCount() + 10) + "px;");
 			// n.addAttribute("ui.label", o.getUUID().toString());
 		}
 
