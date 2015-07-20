@@ -11,11 +11,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Log {
 
+	private static Log instance;
 	private boolean isDebug = java.lang.management.ManagementFactory.getRuntimeMXBean().getInputArguments().toString()
 			.indexOf("jdwp") >= 0;
 
-	private boolean isDebug() {
+	public boolean isDebug() {
 		return isDebug;
+	}
+
+	private Log() {
+		// dummy
+	}
+
+	public static Log instance() {
+		if (instance == null) {
+			instance = new Log();
+		}
+
+		return instance;
 	}
 
 	public static void d(UUID uuid, String s) {
