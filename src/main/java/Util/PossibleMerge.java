@@ -12,6 +12,8 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	
 	private double numSlots = 4;
 	
+	private double outcomeMerge;
+	
 	public PossibleMerge(Offer offer1, Offer offer2) {
 		if (! offer1.getDate().equals(offer2.getDate())) {
 			// TODO Fehler, dass Angebote für unterschiedlichen Zeitraum sind
@@ -21,6 +23,21 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 		this.offer2 = offer2;
 		Loadprofile loadprofile = new Loadprofile(offer1.getAggLoadprofile(), offer2.getAggLoadprofile());
 		this.valuesAggLoadprofile = loadprofile.getValues();
+		this.outcomeMerge = chargeOutcomeMerge(offer1, offer2);
+	}
+	
+	private double chargeOutcomeMerge(Offer offer1, Offer offer2) {
+		double price1 = offer1.getPrice();
+		double price2 = offer2.getPrice();
+		double[] loadprofile1 = offer1.getAggLoadprofile().getValues();
+		double sumOffer1 = 0;
+		double[] loadprofile2 = offer2.getAggLoadprofile().getValues();
+		double sumOffer2 = 0;
+		for (int i=0; i<numSlots; i++) {
+			sumOffer1 += loadprofile1[i];
+			sumOffer2 += loadprofile2[i];
+		}
+		return sumOffer1*price1 + sumOffer2*price2;
 	}
 	
 	public Offer[] getOffers() {
@@ -45,17 +62,20 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	}
 	
 	public String toString() {
-		return "sumAggLoadprofile: " +getSumAggLoadprofile()+ " Price Offers: " +offer1.getPrice()+ ", " +offer2.getPrice();
+		return "outcomeMerge: " +outcomeMerge+ " Price Offers: " +offer1.getPrice()+ ", " +offer2.getPrice();
+	}
+	
+	public double getOutcomeMerge() {
+		return outcomeMerge;
 	}
 	
 	@Override
 	public int compareTo(PossibleMerge possibleMerge) {
-		double thisSum = Math.abs(this.getSumAggLoadprofile());
-		double otherSum = Math.abs(possibleMerge.getSumAggLoadprofile());
-		if (thisSum < otherSum) {
+		double otherOutcome = possibleMerge.getOutcomeMerge();
+		if (outcomeMerge < otherOutcome) {
 			return -1;
 		}
-		else if (thisSum == otherSum) {
+		else if (outcomeMerge == otherOutcome) {
 			return 0;
 		}
 		else {

@@ -21,6 +21,7 @@ import Util.MergedOffers;
 import Util.DateTime;
 import Util.Log;
 import Util.PossibleMerge;
+import Util.Negotiation;
 
 /**
  * Marktplatz, auf welchem alle Angebote eintreffen und zusammengefuehrt werden
@@ -35,6 +36,9 @@ public class Marketplace {
 	
 	// Map, die alle bisher zusammengeführten Angebote nach Zeitslot beinhaltet
 	private Map<String, ArrayList<MergedOffers>> mergedOffers = new TreeMap<String, ArrayList<MergedOffers>>();
+	
+	// Map, die alle Angebote beinhaltet, über deren Preis gerade mit den Consumern verhandelt wird
+	private Map<UUID, Negotiation> negotiatingOffers = new TreeMap<UUID, Negotiation>();
 	
 	// Map, die die Summe der Abweichungen aller zusammengeführter Angebote nach Zeitslot beinhaltet
 	private Map<String, double[]> sumLoadprofilesConfirmedOffers = new TreeMap<String, double[]>();
@@ -254,12 +258,12 @@ public class Marketplace {
 		
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
-		double[] perfectMatchConfirmed = perfectMatchConfirmed(offer.getDate());
+		double[] perfectMatchConfirmed = chargeCurrentDeviationFromPrediction(offer.getDate());
 		
 		// Hole alle aktuellen Werte für Vorhersage
 		double[] predictionCurrent = prediction.get(DateTime.ToString(offer.getDate()));
 		double volumePredictionCurrent = 0;
-		double[] deviationCurrentPrediction = perfectMatchConfirmed(offer.getDate());
+		double[] deviationCurrentPrediction = chargeCurrentDeviationFromPrediction(offer.getDate());
 		double sumDeviationCurrentPrediction = 0;
 		double[] sumLoadprofilesCurrent = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(offer.getDate()));
 		
@@ -318,34 +322,129 @@ public class Marketplace {
 		// Annäherung an Prognose verbessert oder um weniger als 5 verschlechtert
 		System.out.println("Maximale Abweichung: " +maxDeviation*0.01*volumePredictionCurrent);
 		System.out.println("Tatsächliche Abweichung von Prognose: " +sumDeviationMostImprovementPrediction);
-		if (sumDeviationMostImprovementPrediction < sumDeviationCurrentPrediction) {
-			double[] worsening = new double[numSlots];
-			for (int i=0; i<numSlots; i++) {
-				worsening[i] = 0;
-			}
+		if (sumDeviationMostImprovementPrediction < sumDeviationCurrentPrediction 
+				|| sumDeviationMostImprovementPrediction < maxDeviation*volumePredictionCurrent) {
 			if (offer.equals(offerMostImprovement)) {
 				confirmOffer(offer, offer.getPrice());
 				return true;
 			}
-			
-			mergeOffers(offer, offerMostImprovement, worsening);
-			return true;
-		}
-		else if(sumDeviationMostImprovementPrediction < maxDeviation*0.01*volumePredictionCurrent) {
-			if (offer.equals(offerMostImprovement)) {
-				confirmOffer(offer, offer.getPrice());
+			else {
+				mergeFittingOffers(offer,offerMostImprovement);
 				return true;
 			}
-			// TODO stimmt das??
-			double[] worsening = deviationMostImprovementPrediction;
-			
-			mergeOffers(offer, offerMostImprovement, worsening);
-			return true;
 		}
 		
 		// Füge Array mit allen neuen Kombinationen zu listPossibleMerges hinzu
 		listPossibleMerges.put(DateTime.ToString(offer.getDate()), possibleMergesOfDateOffer);
 		return false;
+	}
+	
+	/**
+	 * Führt Angebote zusammen, die die Annäherung an die Prognose verbessern bzw.
+	 * nicht sehr viel verschlechtern.
+	 * Die Angebote werden vom Marktplatz entfernt.
+	 * Passt der Preis, so werden die Angebote direkt bestätigt. Passt der Preis nicht,
+	 * wird eine Verhandlung mit den beiden Angeboten gestartet.
+	 * @param offer1 Erstes Angebot, das zusammengeführt werden soll
+	 * @param offer2 Zweites Angebot, das zusammengeführt werden soll
+	 */
+	private void mergeFittingOffers (Offer offer1, Offer offer2) {
+		System.out.println("Merge Fitting Offers");
+		if (! offer1.getDate().equals(offer2.getDate())) {
+			return;
+		}
+		
+		double[] valuesOffer1 = offer1.getAggLoadprofile().getValues();
+		double[] valuesOffer2 = offer2.getAggLoadprofile().getValues();
+		double sumOffer1 = 0;
+		double sumOffer2 = 0;
+		boolean offer1Supply = true;
+		boolean offer2Supply = true;
+
+		for (int i = 0; i < 4; i++) {
+			sumOffer1 += valuesOffer1[i];
+			sumOffer2 += valuesOffer2[i];
+		}
+		System.out.println("Summen: " +sumOffer1+ ", " +sumOffer2);
+
+		// Prüfe, ob die beiden Angebote demand oder supply sind
+		if (sumOffer1 < 0) {
+			offer1Supply = false;
+		} 
+		if (sumOffer2 < 0) {
+			offer2Supply = false;
+		} 
+		
+		// Nehme Angebote vom Marktplatz
+		this.removeOffer(offer1.getUUID(), true);
+		this.removeOffer(offer2.getUUID(), true);
+		
+		double price1, price2;
+		
+		// Prüfe, ob Preise schon zusammenpassen bzw. Anpassung von Marktplatz
+		// möglich ist, da es nur zu Verbesserungen für die Consumer führt
+		boolean pricesFit = (sumOffer1*offer1.getPrice() + sumOffer2*offer2.getPrice()) >= 0;		
+		
+		// Berechne neue Preise, falls Preise schon so passen, dass
+		// Anpassung vom Marktplatz möglich ist, da es nur zu Verbesserungen
+		// für die Consumer führt
+		if (pricesFit) {
+			price1 = sumOffer1*offer1.getPrice();
+			price2 = sumOffer2*offer2.getPrice();
+			
+			if (! (Math.abs(price1) == Math.abs(price2))) {
+				if (Math.abs(price1) > Math.abs(price2) && price1 > 0
+						|| Math.abs(price1) < Math.abs(price2) && price1 < 0) {
+					price1 = Math.abs(price2/sumOffer1);
+					price2 = Math.abs(price2/sumOffer2);
+				}
+				else {
+					price2 = Math.abs(price1/sumOffer2);
+					price1 = Math.abs(price1/sumOffer1);
+				}
+			}
+			
+			// Schicke Bestätigung beider Angebote an Consumer
+			confirmOffer(offer1, price1);
+			confirmOffer(offer2, price2);
+		}
+		
+		// Berechne Mittelwert, falls Preise nicht passen
+		if (! pricesFit) {
+			// Lege zu erreichende Preise für beide Angebote fest
+			if (sumOffer1 + sumOffer2 == 0) {
+				price1 = (offer1.getPrice() + offer2.getPrice()) / 2;
+				price2 = price1;
+			} else {
+				// Ermittle Gesamtpreis für beide Angebote
+				price1 = sumOffer1 * offer1.getPrice();
+				price2 = sumOffer2 * offer2.getPrice();
+				System.out.println("Einzelpreis: " +offer1.getPrice()+ ", " +offer2.getPrice());
+				System.out.println("Gesamtpreis: " +price1+ ", " +price2);
+				// Ermittle Mittelwert von Betrag des Gesamtpreises beider Angebote
+				double price = (Math.abs(price1) + Math.abs(price2)) / 2;
+				// Weise den Gesamtpreisen den jeweiligen Mittelwert zu
+				if (offer1Supply) {
+					price1 = price;
+				} else {
+					price1 = -price;
+				}
+				if (offer2Supply) {
+					price2 = price;
+				} else {
+					price2 = -price;
+				}
+				System.out.println("Mittelwert: " +price1+ ", " +price2);
+
+				// Berechne Preise pro kWh für Angebote
+				price1 = price1 / sumOffer1;
+				price2 = price2 / sumOffer2;
+			}
+			
+			// Erstelle neue Verhandlung und speichere Verhandlung unter negotiatingOffers ab
+			Negotiation negotiation = new Negotiation(offer1, offer2, price1, price2, sumOffer1, sumOffer2);
+			negotiatingOffers.put(negotiation.getUUID(), negotiation);
+		}		
 	}
 
 	/**
@@ -519,29 +618,40 @@ public class Marketplace {
 	}
 	
 	private void mergeAllGoodOffers (GregorianCalendar slot) {
+		// Hole die Liste aller möglichen Merges
 		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(slot));
+		// Erstelle eine neue Liste, in welcher alle gerade zusammengefügten Angebote gespeichert werden
 		ArrayList<Offer> offersJustMerged = new ArrayList<Offer>();
+		
+		// Gehe die Liste aller möglichen Merges durch und führe die guten zusammen 
 		for (PossibleMerge possibleMerge: possibleMerges) {
 			Offer[] offers = possibleMerge.getOffers();
+			// Wenn eines der Angebote in offersJustMerged ist, wurde es bereits bei einem vor-
+			// herigen Schleifendurchlauf zusammengeführt und bestätigt und steht nicht mehr
+			// zur Verfügung
 			if (offersJustMerged.contains(offers[0]) || offersJustMerged.contains(offers[1])) {
 				continue;
 			}
 			double[] loadprofile = possibleMerge.getValuesAggLoadprofile();
-			double[] deviation = chargeDeviationLoadprofilePerfectMatch(loadprofile, slot);
-			double sumDeviation = 0;
-			double volumeOffer = 0;
+			double[] predictionCurrent = prediction.get(DateTime.ToString(possibleMerge.getDate()));
+			double[] sumLPCurrent = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(possibleMerge.getDate()));
+			double[] deviationOld = chargeCurrentDeviationFromPrediction(possibleMerge.getDate());
+			double[] deviationNew = new double[numSlots];
+			double sumDeviationNew = 0;
+			double sumDeviationOld = 0;
+			double volumePrediction = 0;
 			for (int i=0; i<numSlots; i++) {
-				sumDeviation += Math.abs(deviation[i]);
-				volumeOffer += Math.abs(loadprofile[i]);
+				deviationNew[i] = predictionCurrent[i] - sumLPCurrent[i] - loadprofile[i];
+				sumDeviationNew += Math.abs(deviationNew[i]);
+				sumDeviationOld += Math.abs(deviationOld[i]);
+				volumePrediction += Math.abs(predictionCurrent[i]);
 			}
-			if (sumDeviation < maxDeviation*0.01*volumeOffer) {
+			if (sumDeviationNew < sumDeviationOld
+					|| sumDeviationNew < volumePrediction) {
 				offersJustMerged.add(offers[0]);
 				offersJustMerged.add(offers[1]);
-				mergeOffers(offers[0], offers[1], deviation);
+				mergeFittingOffers(offers[0], offers[1]);
 			}
-		}
-		for (Offer current: offersJustMerged) {
-			removeFromPossibleMerges(current);
 		}
 	}
 	
@@ -549,10 +659,11 @@ public class Marketplace {
 		double[] deviationAll = chargeDeviationAll(nextSlot);
 		double sumDeviationAll = 0;
 		for (int i=0; i<numSlots; i++) {
-			sumDeviationAll += deviationAll[i];
+			sumDeviationAll += Math.abs(deviationAll[i]);
 		}
 		if (make(sumDeviationAll)) {
 			// TODO Alle Schritte für Make
+			// TODO Wie soll sich hier die Preisgestaltung abspielen? - Nachfrage nach Änderungen dauert zu lang?
 			mergeAllGoodOffers(nextSlot);
 			
 			ArrayList<PossibleMerge> remainingMerges = listPossibleMerges.get(DateTime.ToString(nextSlot));
@@ -561,8 +672,7 @@ public class Marketplace {
 		else {
 			ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(nextSlot));
 
-			// Sortiere possibleMerges nach Betrag von Summe der Aggregierten Lastprofile
-			// (Kleine Beträge zuerst)
+			// Sortiere possibleMerges nach Preisunterschied (zuerst mit Gewinn, dann mit Verlust für BKV)
 			Collections.sort(possibleMerges);
 			
 			// Erstelle Array, in welchem alle bereits bestätigten Angebote gesammelt werden
@@ -577,8 +687,10 @@ public class Marketplace {
 				else {
 					confirmedOffers.add(offers[0]);
 					confirmedOffers.add(offers[1]);
-					double[] deviation = chargeDeviationLoadprofilePerfectMatch(possibleMerge.getValuesAggLoadprofile(), nextSlot);
-					mergeOffers(offers[0], offers[1], deviation);
+					// Berechne Verschlechterung, die durch das Lastprofil von possibleMerge entsteht
+					double[] worsening = chargeWorseningWithLoadprofile(possibleMerge.getDate(), possibleMerge.getValuesAggLoadprofile());
+					
+					mergeOffers(offers[0], offers[1], worsening);
 				}
 			}
 			for (Offer current: confirmedOffers) {
@@ -608,13 +720,32 @@ public class Marketplace {
 		}		
 	}
 	
+	private double[] chargeWorseningWithLoadprofile (GregorianCalendar date, double[] loadprofile) {
+		double[] currentDeviation = chargeCurrentDeviationFromPrediction(date);
+		double[] newDeviation = new double[numSlots];
+		double[] worsening = new double[numSlots];
+		for (int i=0; i<numSlots; i++) {
+			newDeviation[i] = -(currentDeviation[i] - loadprofile[i]);
+			if (Math.abs(newDeviation[i]) > Math.abs(currentDeviation[i])) {
+				worsening[i] = Math.abs(newDeviation[i]) - Math.abs(currentDeviation[i]);
+				if (newDeviation[i] < 0) {
+					worsening[i] = -worsening[i];
+				}
+			}
+			else {
+				worsening[i] = 0;
+			}
+		}
+		return worsening;
+	}
+	
 	public boolean make(double sumDeviationAll) {
 		return true;
 	}
 	
-	private double[] chargeDeviationLoadprofilePerfectMatch(double[] loadprofile, GregorianCalendar start) {
+	private double[] chargeDeviationLoadprofilePerfectMatch1(double[] loadprofile, GregorianCalendar start) {
 		double[] deviationLoadprofile = new double[numSlots];
-		double[] perfectMatch = perfectMatchConfirmed(start);
+		double[] perfectMatch = chargeCurrentDeviationFromPrediction(start);
 		for (int i=0; i<numSlots; i++) {
 			deviationLoadprofile[i] = loadprofile[i] - perfectMatch[i] ;
 		}
@@ -636,7 +767,7 @@ public class Marketplace {
 		now.set(Calendar.MILLISECOND, 0);
 		String start = DateTime.ToString(now);
 				
-		double[] perfectMatch = perfectMatchConfirmed(now);
+		double[] perfectMatch = chargeCurrentDeviationFromPrediction(now);
 		
 		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(start);
 		PossibleMerge bestMerge;
@@ -664,12 +795,11 @@ public class Marketplace {
 	}
 	
 	/**
-	 * Berechnet die Abweichung von sumLoadprofilesConfirmedOffers von der Prognose und somit die
-	 * Werte, die das ideale Lastprofil haben müsste, um die Prognose zu erreichen.
+	 * Berechnet die Abweichung von sumLoadprofilesConfirmedOffers von der Prognose.
 	 * @param start Start der Stunde, fuer die die Abweichung berechnet wird
 	 * @return Array mit der Abweichung von sumLoadprofilesConfirmed von der Prognose in 15-Minuten-Einheiten
 	 */
-	private double[] perfectMatchConfirmed (GregorianCalendar start) {
+	private double[] chargeCurrentDeviationFromPrediction (GregorianCalendar start) {
 		double[] perfectMatch = new double[numSlots];
 		double[] currentPrediction = prediction.get(DateTime.ToString(start));
 		double[] currentConfirmed = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(start));
@@ -715,5 +845,31 @@ public class Marketplace {
 			demand.remove(offer.getUUID());
 			break;
 		}
+	}
+	
+	/**
+	 * Wird von Negotiation aufgerufen, wenn eine Verhandlung beendet ist.
+	 * Ist die Verhandlung erfolgreich beendet worden, so werden beide Angebote zu den neuen Preisen bestätigt.
+	 * Ist die Verhandlung nicht erfolgreich beendet worden, so werden beide Angebote wieder auf den Marktplatz gestellt.
+	 * Die Negotiation wird aus der Liste negotiatingOffers entfernt.
+	 * @param negotiation Verhandlung, die beendet wurde
+	 * @param newPrice1 Neu verhandelter Preis für Angebot1
+	 * @param newPrice2 Neu verhandelter Preis für Angebot2
+	 * @param successfull Gibt an, ob die Verhandlung erfolgreich beendet wurde
+	 */
+	public void endOfNegotiation(UUID negotiation, double newPrice1, double newPrice2, boolean successfull) {
+		Negotiation currentNegotiation = negotiatingOffers.get(negotiation);
+		Offer[] offers = currentNegotiation.getOffers();
+
+		if (successfull) {
+			confirmOffer(offers[0], newPrice1);
+			confirmOffer(offers[1], newPrice2);
+		}
+		else {
+			putOffer(offers[0]);
+			putOffer(offers[1]);
+			// TODO Sollen verhandelte Preise gespeichert werden???
+		}
+		negotiatingOffers.remove(negotiation);
 	}
 }
