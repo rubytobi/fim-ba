@@ -7,8 +7,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import Container.NegotiationContainer;
 import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
+import Packet.AnswerToPriceChangeRequest;
+import Packet.EndOfNegotiation;
 import start.Application;
 import start.Marketplace;
 
@@ -44,6 +47,10 @@ public class Negotiation {
 		this.closed = false;
 		this.currentSum = sumLoadprofile1*offer1.getPrice() +  sumLoadprofile2*offer2.getPrice();
 		this.marketplace = Marketplace.instance();
+		
+		// Füge Negotiation zu Container hinzu
+		NegotiationContainer container = NegotiationContainer.instance();
+		container.add(this);
 		
 		// Sende erste Preisanfrage
 		sendPriceRequest(offer1.getUUID());
@@ -140,11 +147,9 @@ public class Negotiation {
 			}
 			round2++;
 		}
-		System.out.println("An: " +currentOffer.getAuthor()+ " Preis: " +priceRequest);
-		// TODO Sende an currentOffer.getAuthor Anfrage mit priceRequest
+		System.out.println("An: " +currentOffer.getAuthor()+ " Preis: " +priceRequest);		
 		
-		
-		// Sende confirmOffer an consumer
+		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		
 		RestTemplate rest = new RestTemplate();
@@ -189,7 +194,9 @@ public class Negotiation {
 	 * @param consumer Consumer, von dem die Antwort kam
 	 * @param newPrice Neuen Preis, den der Consumer eingehen kann
 	 */
-	public void receiveAnswer (UUID consumer, double newPrice) {
+	public void receiveAnswer (AnswerToPriceChangeRequest answer) {
+		UUID consumer = answer.getConsumer();
+		double newPrice = answer.getNewPrice();
 		System.out.println("***receiveAnswer***");
 		if (closed) {
 			return;
@@ -328,7 +335,22 @@ public class Negotiation {
 		// Schließe Verhandlung
 		closed = true;
 		
-		// TODO als Notification oder direkt über den Methodenaufruf?
-		marketplace.endOfNegotiation(uuid, currentPrice1, currentPrice2, successful);
+		// Entferne Verhandlung vom Container
+		// TODO Sinnvoll? Wenn Consumer noch auf ausstehende ChangeRequest antwortet? Aber wann sonst?
+		NegotiationContainer container = NegotiationContainer.instance();
+		container.delete(uuid);
+		
+		// Informiere Marktplatz über Ende der Verhandlung
+		EndOfNegotiation end = new EndOfNegotiation(uuid, currentPrice1, currentPrice2, successful);
+		
+		RestTemplate rest = new RestTemplate();
+		HttpEntity<EndOfNegotiation> entity = new HttpEntity<EndOfNegotiation>(end, Application.getRestHeader());
+	
+		String url = "http://localhost:8080/marketplace/endOfNegotiation/";
+	
+		try {
+			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+		} catch (Exception e) {
+		}
 	}
 }

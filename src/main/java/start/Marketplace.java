@@ -17,6 +17,7 @@ import org.springframework.web.client.RestTemplate;
 
 import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
+import Packet.EndOfNegotiation;
 import Util.MergedOffers;
 import Util.DateTime;
 import Util.PossibleMerge;
@@ -225,14 +226,18 @@ public class Marketplace {
 	 * @param newPrice2 Neu verhandelter Preis für Angebot2
 	 * @param successfull Gibt an, ob die Verhandlung erfolgreich beendet wurde
 	 */
-	public void endOfNegotiation(UUID negotiation, double newPrice1, double newPrice2, boolean successfull) {
-		System.out.println("***End of Negotiation: " +successfull+ " ***\n");
+	public void endOfNegotiation(EndOfNegotiation end) {
+		UUID negotiation = end.getNegotiation();
+		double newPrice1 = end.getNewPrice1();
+		double newPrice2 = end.getNewPrice2();
+		boolean successful = end.getSuccessful();
+		System.out.println("***End of Negotiation: " +successful+ " ***\n");
 		System.out.println("NewPrice1: " +newPrice1+ " NewPrice2: " +newPrice2);
 		Negotiation currentNegotiation = negotiatingOffers.get(negotiation);
 		Offer[] offers = currentNegotiation.getOffers();
 		String date = DateTime.ToString(offers[0].getDate());
 	
-		if (successfull) {
+		if (successful) {
 			// Lege zusammengeführte Angebote und Preise in der Historie ab
 			MergedOffers merged = new MergedOffers(newPrice1, newPrice2, offers[0], offers[1]);
 			ArrayList<MergedOffers> array = mergedOffers.get(date);
