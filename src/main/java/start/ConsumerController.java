@@ -23,7 +23,7 @@ import Entity.Offer;
 import Event.InvalidOffer;
 import Packet.FridgeCreation;
 import Packet.OfferNotification;
-import Packet.ConfirmOffer;
+import Packet.AnswerToOfferFromMarketplace;
 
 @RestController
 public class ConsumerController {
@@ -120,8 +120,13 @@ public class ConsumerController {
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
-	public void confirmOfferByMarketplace(@PathVariable UUID uuid, @RequestBody ConfirmOffer confirmOffer) {
-		ConsumerContainer.instance().get(uuid).confirmOfferByMarketplace(confirmOffer);
+	public void confirmOfferByMarketplace(@PathVariable UUID uuid, @RequestBody AnswerToOfferFromMarketplace answerOffer) {
+		ConsumerContainer.instance().get(uuid).confirmOfferByMarketplace(answerOffer);
+	}
+	
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/negotiation/{uuidNegotiation/priceChangeRequest", method = RequestMethod.POST)
+	public void priceChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidNegotiation, @RequestBody AnswerToOfferFromMarketplace answerOffer) {
+		ConsumerContainer.instance().get(uuid).priceChangeRequest(answerOffer, uuidNegotiation);
 	}
 
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirm/{uuidKey}", method = RequestMethod.GET)

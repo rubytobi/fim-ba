@@ -9,7 +9,7 @@ import java.util.UUID;
  * anfrage für das Angebot sein.
  *
  */
-public class ConfirmOffer {
+public class AnswerToOfferFromMarketplace {
 	private double price;
 	private UUID offer;
 	
@@ -18,7 +18,7 @@ public class ConfirmOffer {
 	 * @param offer UUID des Angebots, das bestaetigt wird
 	 * @param price	Preis, zu dem das Angebot bestaetigt wird
 	 */
-	public ConfirmOffer (UUID offer, double price) {
+	public AnswerToOfferFromMarketplace (UUID offer, double price) {
 		this.price = price;
 		this.offer = offer;
 	}

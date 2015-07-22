@@ -17,7 +17,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.OfferNotification;
-import Packet.ConfirmOffer;
+import Packet.AnswerToOfferFromMarketplace;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
@@ -357,9 +357,9 @@ public class Consumer {
 	 * @param confirmOffer
 	 *            das bestätigte Angebot
 	 */
-	public void confirmOfferByMarketplace(ConfirmOffer confirmOffer) {
+	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
 		// Offer offer = allOffers.get(confirmOffer.getUuid());
-		Offer offer = getOfferIntern(confirmOffer.getUuid());
+		Offer offer = getOfferIntern(answerOffer.getUuid());
 
 		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
 			if (lp.isDelta()) {
@@ -607,6 +607,13 @@ public class Consumer {
 		} catch (Exception e) {
 			Log.e(this.uuid, e.getMessage());
 		}
+	}
+
+	public void priceChangeRequest(AnswerToOfferFromMarketplace answerOffer, UUID negotiation) {
+		// TODO Behandle Anfrage nach Preisänderung von Negotiation
+
+		// TODO Sende Antwort an Negotiation
+
 	}
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
