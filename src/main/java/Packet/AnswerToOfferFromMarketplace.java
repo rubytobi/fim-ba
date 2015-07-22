@@ -3,18 +3,22 @@ package Packet;
 import java.util.UUID;
 
 /**
- * Paket, das zum Bestaetigen eines Angebots versendet wird
+ * Klasse für Antworten des Marktplatzes auf Angebote.
+ * Je nachdem, an welche Adresse dieses Paket gesendet wird,
+ * kann es eine bestätigung des Angebots oder eine Änderungs-
+ * anfrage für das Angebot sein.
+ *
  */
-public class ConfirmOffer {
+public class AnswerToOfferFromMarketplace {
 	private double price;
 	private UUID offer;
 	
 	/**
-	 * Erstellt neues ConfirmOffer
+	 * Erstellt neues Paket AnswerToOfferFromMarketplace
 	 * @param offer UUID des Angebots, das bestaetigt wird
 	 * @param price	Preis, zu dem das Angebot bestaetigt wird
 	 */
-	public ConfirmOffer (UUID offer, double price) {
+	public AnswerToOfferFromMarketplace (UUID offer, double price) {
 		this.price = price;
 		this.offer = offer;
 	}

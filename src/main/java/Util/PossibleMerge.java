@@ -62,7 +62,18 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	}
 	
 	public String toString() {
-		return "outcomeMerge: " +outcomeMerge+ " Price Offers: " +offer1.getPrice()+ ", " +offer2.getPrice();
+		String agg = " Agg: ";
+		String o1 = "Offer1: ";
+		String o2 = " Offer2: ";
+		String outcome = " Outcome: " +outcomeMerge;
+		double[] values1 = offer1.getAggLoadprofile().getValues();
+		double[] values2 = offer2.getAggLoadprofile().getValues();
+		for (int i=0; i<numSlots; i++) {
+			agg = agg + "["+ valuesAggLoadprofile[i] +"]";
+			o1 = o1 +"["+ values1[i]+"]";
+			o2 = o2 +"["+ values2[i]+"]";
+		}
+		return o1 + o2 + agg +outcome;
 	}
 	
 	public double getOutcomeMerge() {
@@ -80,6 +91,31 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 		}
 		else {
 			return 1;
+		}
+	}
+	
+	@Override
+	public boolean equals (Object o) {
+		System.out.println("Equals aufgerufen");
+
+		PossibleMerge possibleMergeToCompare = (PossibleMerge) o;
+		Offer[] offersToCompare = possibleMergeToCompare.getOffers();
+		if (offersToCompare[0].equals(offer1) && offersToCompare[1].equals(offer2) 
+				|| offersToCompare[1].equals(offer1) && offersToCompare[0].equals(offer2)) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	
+	public boolean equals(Offer offerContained1, Offer offerContained2) {
+		if (offer1.equals(offerContained1) && offer2.equals(offerContained2)
+				|| offer1.equals(offerContained2) && offer2.equals(offerContained1)) {
+			return true;
+		}
+		else {
+			return false;
 		}
 	}
 }
