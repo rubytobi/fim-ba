@@ -25,8 +25,8 @@ public class Main {
 		date.set(Calendar.MILLISECOND, 0);
 		
 		double[] values1 = {10.0, 20.0, 30.0, 40.0};
-		double[] values2 = {-10.0, -20.0, -30.0, -44.0};
-		double[] values3 = {10.5, 22.0, 30, 39.5};
+		double[] values2 = {-10.0, -20.0, -30.0, -46.0};
+		double[] values3 = {10.0, 22.0, 30, 39.5};
 
 		Loadprofile loadprofile1 = new Loadprofile(values1, date, 2.0);
 		Loadprofile loadprofile2 = new Loadprofile(values2, date, 2.0);
@@ -36,6 +36,21 @@ public class Main {
 		Offer offer2 = new Offer(author1, loadprofile2);
 		Offer offer3 = new Offer(author1, loadprofile3);
 		
+		System.out.println("Sum Offer1: " +offer1.getSumAggLoadprofile());
+		System.out.println("Sum Offer2: " +offer2.getSumAggLoadprofile());
+		System.out.println("Sum Offer3: " +offer3.getSumAggLoadprofile());
+
+		
+		ArrayList<Offer> offers = new ArrayList<Offer>();
+		offers.add(offer1);
+		offers.add(offer2);
+		offers.add(offer3);
+		Collections.sort(offers);
+		System.out.println(offers.get(0).getAggLoadprofile().getValues()[0]);
+		System.out.println(offers.get(1).getAggLoadprofile().getValues()[0]);
+		System.out.println(offers.get(2).getAggLoadprofile().getValues()[0]);
+
+		/*
 		marketplace.putOffer(offer1);
 		System.out.println(marketplace.marketplaceToString());
 		marketplace.allOffersToString();
@@ -52,8 +67,14 @@ public class Main {
 		System.out.println(marketplace.marketplaceToString());
 		marketplace.allOffersToString();
 		marketplace.mergedToString();
-		marketplace.possibleMergesToString();		
-
+		marketplace.possibleMergesToString();
+		
+		marketplace.confirmAllRemainingOffersWithOnePrice(date, true);
+		
+		ArrayList<Offer> offers = new ArrayList<Offer>();
+		Collections.sort(offers);*/
+		
+		/*
 		Negotiation negotiation = marketplace.getNegotiations().get(0);
 		System.out.println("\nStart Verhandlung");
 		negotiation.receiveAnswer(author, 2.5);
@@ -64,7 +85,7 @@ public class Main {
 		marketplace.allOffersToString();
 		marketplace.mergedToString();
 		marketplace.possibleMergesToString();
-		marketplace.blackListPossibleMergesToString();
+		marketplace.blackListPossibleMergesToString();*/
 
 		
 		/*

@@ -12,6 +12,8 @@ import java.util.UUID;
 public class AnswerToOfferFromMarketplace {
 	private double price;
 	private UUID offer;
+	// Key, den der Consumer für den Preis übergeben hat
+	private UUID key;
 	
 	/**
 	 * Erstellt neues Paket AnswerToOfferFromMarketplace
