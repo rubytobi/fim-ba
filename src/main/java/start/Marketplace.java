@@ -131,8 +131,8 @@ public class Marketplace {
 	 * @return Array mit der Abweichung von sumLoadprofilesConfirmed von der
 	 *         Prognose in 15-Minuten-Einheiten
 	 */
-	private double[] chargeCurrentDeviationFromPrediction(GregorianCalendar start) {
-		double[] perfectMatch = new double[numSlots];
+	private double[] chargeDeviationConfirmed(GregorianCalendar start) {
+		double[] deviation = new double[numSlots];
 		double[] currentPrediction = prediction.get(DateTime.ToString(start));
 		double[] currentConfirmed = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(start));
 		if (currentConfirmed == null) {
@@ -142,9 +142,9 @@ public class Marketplace {
 			}
 		}
 		for (int i = 0; i < numSlots; i++) {
-			perfectMatch[i] = currentPrediction[i] - currentConfirmed[i];
+			deviation[i] = currentPrediction[i] - currentConfirmed[i];
 		}
-		return perfectMatch;
+		return deviation;
 	}
 
 	/**
@@ -165,7 +165,7 @@ public class Marketplace {
 		return deviationAll;
 	}
 
-	public void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, boolean reBAPpenalty) {
+	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, boolean reBAPpenalty) {
 		String dateString = DateTime.ToString(date);
 		Set<UUID> demands = demand.keySet();
 		Set<UUID> supplies = supply.keySet();
@@ -224,9 +224,10 @@ public class Marketplace {
 			//confirmOffer(supply, priceSupply);
 		}
 	}
-
+	
+	// TODO Noch notwendig????
 	private double[] chargeWorseningWithLoadprofile(GregorianCalendar date, double[] loadprofile) {
-		double[] currentDeviation = chargeCurrentDeviationFromPrediction(date);
+		double[] currentDeviation = chargeDeviationConfirmed(date);
 		double[] newDeviation = new double[numSlots];
 		double[] worsening = new double[numSlots];
 		for (int i = 0; i < numSlots; i++) {
@@ -375,12 +376,10 @@ public class Marketplace {
 
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
-		double[] perfectMatchConfirmed = chargeCurrentDeviationFromPrediction(offer.getDate());
 
 		// Hole alle aktuellen Werte für Vorhersage
 		double[] predictionCurrent = prediction.get(DateTime.ToString(offer.getDate()));
-		double volumePredictionCurrent = 0;
-		double[] deviationCurrentPrediction = chargeCurrentDeviationFromPrediction(offer.getDate());
+		double[] deviationCurrentPrediction = chargeDeviationConfirmed(offer.getDate());
 		double sumDeviationCurrentPrediction = 0;
 		double[] sumLoadprofilesCurrent = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(offer.getDate()));
 		if (sumLoadprofilesCurrent == null) {
@@ -396,7 +395,6 @@ public class Marketplace {
 		double sumDeviationOfferPrediction = 0;
 
 		for (int i = 0; i < numSlots; i++) {
-			volumePredictionCurrent += Math.abs(predictionCurrent[i]);
 			deviationOfferPrediction[i] = predictionCurrent[i] - sumLoadprofilesCurrent[i] - valuesOffer[i];
 			sumDeviationOfferPrediction += Math.abs(deviationOfferPrediction[i]);
 			sumDeviationCurrentPrediction += Math.abs(deviationCurrentPrediction[i]);
@@ -508,8 +506,8 @@ public class Marketplace {
 	 * @return Array mit der Summe aller auf dem Marktplatz vorhandenen
 	 *         Lastprofile des Zeitraums
 	 */
-	public double[] getSumAllOffers(GregorianCalendar time) {
-		return sumLoadprofilesAllOffers.get(DateTime.ToString(time));
+	public double[] getSumAllOffers(GregorianCalendar date) {
+		return sumLoadprofilesAllOffers.get(DateTime.ToString(date));
 	}
 
 	/**
@@ -519,8 +517,8 @@ public class Marketplace {
 	 *            Gibt den Anfang des Zeitraums an
 	 * @return Array mit der Summe aller bestätigten Lastprofile des Zeitraums
 	 */
-	public double[] getSumConfirmedOffers(GregorianCalendar time) {
-		return sumLoadprofilesConfirmedOffers.get(DateTime.ToString(time));
+	public double[] getSumConfirmedOffers(GregorianCalendar date) {
+		return sumLoadprofilesConfirmedOffers.get(DateTime.ToString(date));
 	}
 	
 	/**
@@ -601,7 +599,7 @@ public class Marketplace {
 		}
 	}
 	
-	public boolean askOfferForChange(Offer offer, double[] deviation) {
+	private boolean askOfferForChange(Offer offer, double[] change) {
 		// TODO Sende Anfrage für Änderung
 		
 		// TODO Bekomme Antwort auf Anfrage
@@ -614,9 +612,9 @@ public class Marketplace {
 	 * verbessern bzw. mit welchen die Abweichung von der Prognose < 5 ist.
 	 * @param slot Start des Zeitraums, für den die Angebote zusammengeführt werden sollen
 	 */
-	private void mergeAllGoodOffers(GregorianCalendar slot) {
+	private void mergeAllGoodOffers(GregorianCalendar date) {
 		// Hole die Liste aller möglichen Merges
-		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(slot));
+		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(date));
 		// Erstelle eine neue Liste, in welcher alle gerade zusammengefügten
 		// Angebote gespeichert werden
 		ArrayList<Offer> offersJustMerged = new ArrayList<Offer>();
@@ -634,7 +632,7 @@ public class Marketplace {
 			double[] loadprofile = possibleMerge.getValuesAggLoadprofile();
 			double[] predictionCurrent = prediction.get(DateTime.ToString(possibleMerge.getDate()));
 			double[] sumLPCurrent = sumLoadprofilesConfirmedOffers.get(DateTime.ToString(possibleMerge.getDate()));
-			double[] deviationOld = chargeCurrentDeviationFromPrediction(possibleMerge.getDate());
+			double[] deviationOld = chargeDeviationConfirmed(possibleMerge.getDate());
 			double[] deviationNew = new double[numSlots];
 			double sumDeviationNew = 0;
 			double sumDeviationOld = 0;
@@ -653,6 +651,7 @@ public class Marketplace {
 		}
 	}
 	
+	// TODO Methode löschen
 	private void mergeAllRemainingOffers(GregorianCalendar date) {
 		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(DateTime.ToString(nextSlot));
 
@@ -839,6 +838,7 @@ public class Marketplace {
 	 * @param deviation
 	 *            Viertelstuendliche Abweichung der Summe der beiden Angebote
 	 */
+	// TODO Prüfe, ob Methode noch notwendig
 	private void mergeOffers(Offer offer1, Offer offer2, double[] worsening) {
 		System.out.println("Merge Offers");
 		String date = DateTime.ToString(offer1.getDate());
@@ -1087,7 +1087,7 @@ public class Marketplace {
 		now.set(Calendar.MILLISECOND, 0);
 		String start = DateTime.ToString(now);
 
-		double[] currentDeviation = chargeCurrentDeviationFromPrediction(now);
+		double[] currentDeviation = chargeDeviationConfirmed(now);
 		double sumCurrentDeviation = 0;
 		for (int i = 0; i < numSlots; i++) {
 			sumCurrentDeviation += Math.abs(currentDeviation[i]);

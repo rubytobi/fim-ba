@@ -448,7 +448,7 @@ public class Fridge implements Device {
 	 *            Temperaturabweichung beeinflusst
 	 * @return Array mit Verbrauch[0] und Temperatur[1] des neuen Fahrplans
 	 */
-	public double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
+	private double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
 		int change = 0;
 		int minuteChange = aenderung.get(Calendar.MINUTE);
 		double[][] deltaSchedule = new double[2][15 * numSlots];

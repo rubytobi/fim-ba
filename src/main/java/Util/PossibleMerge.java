@@ -10,7 +10,7 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	
 	private double[] valuesAggLoadprofile;
 	
-	private double numSlots = 4;
+	private int numSlots = 4;
 	
 	private double outcomeMerge;
 	
@@ -23,10 +23,10 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 		this.offer2 = offer2;
 		Loadprofile loadprofile = new Loadprofile(offer1.getAggLoadprofile(), offer2.getAggLoadprofile());
 		this.valuesAggLoadprofile = loadprofile.getValues();
-		this.outcomeMerge = chargeOutcomeMerge(offer1, offer2);
+		this.outcomeMerge = chargeOutcomeMerge();
 	}
 	
-	private double chargeOutcomeMerge(Offer offer1, Offer offer2) {
+	private double chargeOutcomeMerge() {
 		double price1 = offer1.getPrice();
 		double price2 = offer2.getPrice();
 		double[] loadprofile1 = offer1.getAggLoadprofile().getValues();
@@ -102,16 +102,6 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 		Offer[] offersToCompare = possibleMergeToCompare.getOffers();
 		if (offersToCompare[0].equals(offer1) && offersToCompare[1].equals(offer2) 
 				|| offersToCompare[1].equals(offer1) && offersToCompare[0].equals(offer2)) {
-			return true;
-		}
-		else {
-			return false;
-		}
-	}
-	
-	public boolean equals(Offer offerContained1, Offer offerContained2) {
-		if (offer1.equals(offerContained1) && offer2.equals(offerContained2)
-				|| offer1.equals(offerContained2) && offer2.equals(offerContained1)) {
 			return true;
 		}
 		else {

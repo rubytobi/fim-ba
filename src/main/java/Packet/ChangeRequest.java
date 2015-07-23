@@ -12,8 +12,8 @@ import start.Loadprofile;
  *
  */
 public class ChangeRequest {
-	GregorianCalendar startLoadprofile;
-	double[] changesLoadprofile;
+	private GregorianCalendar startLoadprofile;
+	private double[] changesLoadprofile;
 	
 	/**
 	 * Erstellt neue ChangeRequest

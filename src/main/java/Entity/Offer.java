@@ -21,26 +21,26 @@ import start.View;
 public class Offer implements Comparable<Offer>{
 	// Aggregiertes Lastprofil über alle Lastprofile
 	@JsonView(View.Summary.class)
-	Loadprofile aggLoadprofile;
+	private Loadprofile aggLoadprofile;
 	
 	// Gesamtsumme aller Lastprofile
-	double sumAggLoadprofile;
+	private double sumAggLoadprofile;
 
 	@JsonView(View.Summary.class)
 	@JsonProperty("authKey")
-	UUID authKey = null;
+	private UUID authKey = null;
 
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
-	HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = new HashMap<UUID, HashMap<UUID, Loadprofile>>();
+	private HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = new HashMap<UUID, HashMap<UUID, Loadprofile>>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
 	@JsonView(View.Summary.class)
-	double aggPrice;
+	private double aggPrice;
 
 	// Consumer, von dem man das Angebot erhalten hat
 	@JsonView(View.Summary.class)
-	UUID author = null;
+	private UUID author = null;
 
 	@JsonView(View.Summary.class)
 	private UUID uuid = null;
@@ -48,7 +48,7 @@ public class Offer implements Comparable<Offer>{
 	@JsonView(View.Summary.class)
 	private OfferStatus status;
 	
-	double numSlots = 4;
+	private int numSlots = 4;
 
 	private Offer() {
 		uuid = UUID.randomUUID();
