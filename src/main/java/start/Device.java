@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.GregorianCalendar;
 
-import Packet.ChangeRequest;
+import Packet.ChangeRequestSchedule;
 import Util.DeviceStatus;
 
 /**
@@ -63,7 +63,7 @@ public interface Device {
 	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
 	 * @param cr	Enthaelt Informationen, wie das Lastprofil geaendert werden soll 
 	 */
-	public void changeLoadprofile(ChangeRequest cr);
+	public void changeLoadprofile(ChangeRequestSchedule cr);
 	
 	/**
 	 * Das Device speichert das Lastprofil und den Fahrplan zur uebergebenen Zeit als fest ab.

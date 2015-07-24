@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.OfferNotification;
 import Packet.AnswerToOfferFromMarketplace;
+import Packet.ChangeRequestLoadprofile;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
@@ -691,6 +692,42 @@ public class Consumer {
 		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
 		else {
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
+		}
+	}
+	
+	public void receiveChangeRequestLoadprofile (ChangeRequestLoadprofile cr) {
+		double[] valuesPossibleChange = new double[numSlots];
+		Offer requestedOffer = allOffers.get(cr.getOffer());
+		// TODO Frage eigenes Device nach Änderung und passe noch benötigte Änderung an
+		
+		ChangeRequestLoadprofile possibleChange = new ChangeRequestLoadprofile(cr.getOffer(), valuesPossibleChange);
+		
+		// TODO Autor für übergebenes Angebot?
+		// Wenn ja: Frage alle anderen beteiligten Consumer der Reihe nach nach Änderung für deren Lastprofil
+		// ,passe Angebot jeweils gleich an und benachrichtige Marketplace am Ende
+		// Wenn nein: Versende Antwort als cr an Autor
+		if (allOffers.get(cr.getOffer()).getAuthor() == uuid) {
+			Set<UUID> allConsumers = requestedOffer.getAllLoadprofiles().keySet();
+			
+			// Frage alle beteiligten Consumer nach Änderung für deren Lastprofil
+			for (UUID consumer: allConsumers) {
+				// TODO Sende cr an consumer und passe cr nach Antwort an 
+			}
+			
+			// Antworte Marketplace mit vorgenommener Änderung
+			RestTemplate rest = new RestTemplate();
+			HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(possibleChange,
+					Application.getRestHeader());
+
+			String url = "http://localhost:8080/marketplace/offer/" +cr.getOffer() + "/receiveAnswerChangeRequestLoadprofile";
+
+			try {
+				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+			} catch (Exception e) {
+			}
+		}
+		else {
+			
 		}
 	}
 

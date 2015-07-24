@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import Entity.Offer;
 import Packet.EndOfNegotiation;
+import Packet.ChangeRequestLoadprofile;
 import Event.DeviceNotFound;
 import Event.IllegalDeviceCreation;
 import Event.UnsupportedDeviceType;
@@ -57,5 +58,10 @@ public class MarketplaceController {
 	@RequestMapping(value = "/marketplace/endOfNegotiation", method = RequestMethod.POST)
 	public void endOfNegotiation(@RequestBody EndOfNegotiation end) {
 		Marketplace.instance().endOfNegotiation(end);
+	}
+	
+	@RequestMapping(value = "/marketplace/offer/{uuid}/receiveAnswerChangeRequestLoadprofile", method = RequestMethod.GET)
+	public void receiveAnswerChangeRequestLoadprofile(@RequestBody ChangeRequestLoadprofile cr) {
+		Marketplace.instance().receiveAnswerChangeRequestLoadprofile(cr);
 	}
 }

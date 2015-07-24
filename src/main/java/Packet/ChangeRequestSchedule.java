@@ -11,7 +11,7 @@ import start.Loadprofile;
  * Paket, mit welchem der Consumer sein Device um eine Anpassung des Lastprofils bittet
  *
  */
-public class ChangeRequest {
+public class ChangeRequestSchedule {
 	private GregorianCalendar startLoadprofile;
 	private double[] changesLoadprofile;
 	
@@ -20,7 +20,7 @@ public class ChangeRequest {
 	 * @param startLoadprofile		Start des zu aendernden Lastprofils
 	 * @param changesLoadprofile	Werte, um die das Lastprofil geaendert werden soll
 	 */
-	public ChangeRequest (GregorianCalendar startLoadprofile, double[] changesLoadprofile) {
+	public ChangeRequestSchedule (GregorianCalendar startLoadprofile, double[] changesLoadprofile) {
 		this.startLoadprofile = startLoadprofile;
 		this.changesLoadprofile = changesLoadprofile;
 	}

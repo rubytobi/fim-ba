@@ -24,6 +24,7 @@ import Event.InvalidOffer;
 import Packet.FridgeCreation;
 import Packet.OfferNotification;
 import Packet.AnswerToOfferFromMarketplace;
+import Packet.ChangeRequestLoadprofile;
 
 @RestController
 public class ConsumerController {
@@ -122,6 +123,11 @@ public class ConsumerController {
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
 	public void confirmOfferByMarketplace(@PathVariable UUID uuid, @RequestBody AnswerToOfferFromMarketplace answerOffer) {
 		ConsumerContainer.instance().get(uuid).confirmOfferByMarketplace(answerOffer);
+	}
+	
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/receiveChangeRequestLoadprofile", method = RequestMethod.POST)
+	public void receiveChangeRequestLoadprofile(@PathVariable UUID uuid, @RequestBody ChangeRequestLoadprofile cr) {
+		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
 	}
 	
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/negotiation/{uuidNegotiation/priceChangeRequest", method = RequestMethod.POST)
