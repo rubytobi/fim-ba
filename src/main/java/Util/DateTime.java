@@ -34,5 +34,22 @@ public class DateTime {
 
 		return gc;
 	}
+	
+	/**
+	 * Gibt zurück, ob der übergebene String
+	 * @param date
+	 * @return
+	 */
+	public static GregorianCalendar stringToCalendar(String date) {
+		Date time = new Date();
+		try {
+			time = simpleDateFormat.parse(date);
+		}
+		catch (Exception e) {
+		}
+		GregorianCalendar calendar = new GregorianCalendar();
+		calendar.setTime(time);
+		return calendar;
+	}
 
 }

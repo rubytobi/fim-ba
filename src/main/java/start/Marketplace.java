@@ -125,46 +125,46 @@ public class Marketplace {
 		}
 		return instance;
 	}
-
+	
+	/**
+	 * Überprüft, ob schon Minute 55 oder größer erreicht ist und macht ggf. den nächsten Slot.
+	 * 
+	 */
 	public void BKV() {
 		GregorianCalendar now = DateTime.now();
-		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= 45) {
+		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= 55) {
 			matchNextSlot();
-			nextSlot.add(Calendar.HOUR_OF_DAY, 1);
 		}
-	
-		// Prüfe, ob Angebot für aktuellen, schon verhandelten Slot vorliegen
-		// TODO Was passiert mit diesen Angeboten??
-		int currentSlot = (int) Math.floor(now.get(Calendar.MINUTE) / 15);
-		now.set(Calendar.MINUTE, 0);
-		now.set(Calendar.SECOND, 0);
-		now.set(Calendar.MILLISECOND, 0);
-		String start = DateTime.ToString(now);
-	
-		double[] currentDeviation = chargeDeviationConfirmed(now);
-		double sumCurrentDeviation = 0;
-		for (int i = 0; i < numSlots; i++) {
-			sumCurrentDeviation += Math.abs(currentDeviation[i]);
+		
+		// Berechne den Startzeitpunkt der als letztes gemachten Stunde
+		GregorianCalendar slotLastMatched = (GregorianCalendar) nextSlot.clone();
+		slotLastMatched.add(Calendar.HOUR_OF_DAY, -1);
+		
+		// Berechne aktuellen Slot 
+		int slot;
+		if (now.get(Calendar.HOUR_OF_DAY) == slotLastMatched.get(Calendar.HOUR_OF_DAY)) {
+			double minute = now.get(Calendar.MINUTE);
+			slot = (int) Math.floor(minute/15);
 		}
-		double[] currentPrediction = prediction.get(start);
-		ArrayList<PossibleMerge> possibleMerges = listPossibleMerges.get(start);
-	
-		for (PossibleMerge possibleMerge : possibleMerges) {
-			double[] values = possibleMerge.getValuesAggLoadprofile();
-			double[] newDeviationFromPrediction = new double[numSlots];
-			double sumNewDeviationFromPrediction = 0;
-			for (int i = 0; i < numSlots; i++) {
-				newDeviationFromPrediction[i] = currentPrediction[i] - values[i];
-				sumNewDeviationFromPrediction += Math.abs(newDeviationFromPrediction[i]);
-			}
-			// Wenn die Abweichung kleiner 5, werden die Angebote
-			// zusammengeführt
-			if (sumNewDeviationFromPrediction < sumCurrentDeviation || sumNewDeviationFromPrediction < maxDeviation) {
-				Offer[] offers = possibleMerge.getOffers();
-				mergeFittingOffers(offers[0], offers[1]);
-				// TODO aktualisiere perfectMatch und noch mehr???
-			} else {
-				// TODO
+		else {
+			slot = 0;
+		}
+		
+		// Merge zuerst alle guten Angebote und bestätige dann alle
+		// verbliebenen Angebote zu einem Einheitspreis
+		mergeAllGoodOffers(slotLastMatched);
+		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot);
+		
+		// Lösche alle Angebote vor dem als letztes gemachten Slot
+		Set<String> dates = listPossibleMerges.keySet();
+		for (String date: dates) {
+			GregorianCalendar time = DateTime.stringToCalendar(date);
+			if (time.before(slotLastMatched)) {
+				ArrayList<PossibleMerge> possibleMergesOld = listPossibleMerges.get(date);
+				
+				for (PossibleMerge possibleMerge: possibleMergesOld) {
+					// TODO Wie sollen alte Angebote behandelt werden?
+				}
 			}
 		}
 	}
@@ -212,7 +212,7 @@ public class Marketplace {
 		return deviationAll;
 	}
 
-	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date) {
+	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, int slot) {
 		String dateString = DateTime.ToString(date);
 		Set<UUID> demands = demand.keySet();
 		Set<UUID> supplies = supply.keySet();
@@ -226,9 +226,20 @@ public class Marketplace {
 		for (UUID uuid: demands) {
 			Offer currentOffer = demand.get(uuid);
 			if (DateTime.ToString(currentOffer.getDate()).equals(dateString)) {
-				allDemandsAtDate.add(currentOffer);
-				volumeDemand += currentOffer.getSumAggLoadprofile();
-				sumPricesDemand += currentOffer.getSumAggLoadprofile()*currentOffer.getPrice();
+				double sumUntilCurrentSlot = 0;
+				// Berechne die Summe des Lastprofils einschließlich des aktuellen Slots
+				for (int i=0; i==slot; i++) {
+					sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
+				}
+				
+				// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0 ist,
+				// muss das Angebot zum Einheitspreis mit Strafe bestätigt werden.
+				// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
+				if (sumUntilCurrentSlot != 0) {
+					allDemandsAtDate.add(currentOffer);
+					volumeDemand += currentOffer.getSumAggLoadprofile();
+					sumPricesDemand += currentOffer.getSumAggLoadprofile()*currentOffer.getPrice();
+				}
 			}
 		}
 		System.out.println("\nSumPricesDemand: "+sumPricesDemand);
@@ -569,7 +580,7 @@ public class Marketplace {
 		if (deviationAll.equals(currentPrediction)) {
 			// Bestätige alle noch uebrigen Angebote zum selben Preis
 			// Eine Strafe von 10% muss gezahlt werden.
-			confirmAllRemainingOffersWithOnePrice(nextSlot);
+			confirmAllRemainingOffersWithOnePrice(nextSlot, 4);
 		}
 		if (make(sumDeviationAll)) {
 			// Nachfrage nach Änderungen dauert zu lang?
@@ -607,8 +618,7 @@ public class Marketplace {
 				ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(currentOffer.getUUID(), currentDeviation);
 				UUID author = currentOffer.getAuthor();
 				
-				// TODO Versende Anfrage an Author
-				// Sende confirmOffer an consumer
+				// Versende Anfrage an Author
 				RestTemplate rest = new RestTemplate();
 				HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(cr,
 						Application.getRestHeader());
@@ -668,7 +678,10 @@ public class Marketplace {
 		} 
 		
 		// Bestätige alle noch uebrigen Angebote zum selben Preis
-		confirmAllRemainingOffersWithOnePrice(nextSlot);
+		confirmAllRemainingOffersWithOnePrice(nextSlot, 4);
+		
+		// Zähle Variable nextSlot um eins hoch
+		nextSlot.add(Calendar.HOUR_OF_DAY, 1);
 	}
 	
 	/**
@@ -892,7 +905,6 @@ public class Marketplace {
 			removeOffer = demand.get(offer);
 			demand.remove(offer);
 			if (removeOffer == null) {
-				// TODO Fehlermeldung, dass Angebot nicht entfernt werden kann
 				return;
 			}
 		}

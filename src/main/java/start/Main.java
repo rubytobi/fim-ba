@@ -16,7 +16,11 @@ import Util.Negotiation;
 
 public class Main {
 	public static void main(String[] args) {
-		Marketplace marketplace = Marketplace.instance();
+		double minute = 5;
+		int slot = (int) Math.floor(minute/15);
+		System.out.println("Slot: " +slot);
+		
+		/*Marketplace marketplace = Marketplace.instance();
 		UUID author = UUID.randomUUID();
 		UUID author1 = UUID.randomUUID();
 		GregorianCalendar date = DateTime.now();
