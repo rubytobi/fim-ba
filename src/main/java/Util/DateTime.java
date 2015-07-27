@@ -21,7 +21,7 @@ public class DateTime {
 		return new GregorianCalendar(TimeZone.getTimeZone("America/Los Angeles"));
 	}
 
-	public static GregorianCalendar parse(String calendar) {
+	public static GregorianCalendar parse(String calendar) throws IllegalArgumentException {
 		GregorianCalendar gc = new GregorianCalendar();
 		Date date = null;
 		try {
@@ -34,21 +34,22 @@ public class DateTime {
 
 		return gc;
 	}
-	
+
 	/**
 	 * Gibt zurück, ob der übergebene String
+	 * 
 	 * @param date
-	 * @return
+	 *            String das in ein Datum gewandelt werden soll
+	 * @return mindestens ein aktuelles GregorianCalendar Object
 	 */
 	public static GregorianCalendar stringToCalendar(String date) {
-		Date time = new Date();
+		GregorianCalendar calendar = null;
+
 		try {
-			time = simpleDateFormat.parse(date);
+			calendar = parse(date);
+		} catch (IllegalArgumentException e) {
+			calendar = now();
 		}
-		catch (Exception e) {
-		}
-		GregorianCalendar calendar = new GregorianCalendar();
-		calendar.setTime(time);
 		return calendar;
 	}
 
