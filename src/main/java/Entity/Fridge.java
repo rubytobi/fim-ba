@@ -10,7 +10,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
-import Packet.ChangeRequest;
+import Packet.ChangeRequestSchedule;
 import Util.API;
 import Util.DateTime;
 import Util.DeviceStatus;
@@ -232,7 +232,7 @@ public class Fridge implements Device {
 	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
 	 *            soll
 	 */
-	public void changeLoadprofile(ChangeRequest cr) {
+	public void changeLoadprofile(ChangeRequestSchedule cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		int[] changesMinute = new int[numSlots];
 		double[][] plannedSchedule = scheduleMinutes;
@@ -448,7 +448,7 @@ public class Fridge implements Device {
 	 *            Temperaturabweichung beeinflusst
 	 * @return Array mit Verbrauch[0] und Temperatur[1] des neuen Fahrplans
 	 */
-	public double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
+	private double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
 		int change = 0;
 		int minuteChange = aenderung.get(Calendar.MINUTE);
 		double[][] deltaSchedule = new double[2][15 * numSlots];
@@ -498,7 +498,7 @@ public class Fridge implements Device {
 		return roundSchedule(deltaSchedule);
 	}
 
-	private void confirmChangedLoadprofile(ChangeRequest cr) {
+	private void confirmChangedLoadprofile(ChangeRequestSchedule cr) {
 		double[] changes = cr.getChangesLoadprofile();
 		double sum = 0;
 	
@@ -526,7 +526,7 @@ public class Fridge implements Device {
 		}
 	}
 
-	private void declineChangedLoadprofile(ChangeRequest cr) {
+	private void declineChangedLoadprofile(ChangeRequestSchedule cr) {
 		// TODO Sende Absage, dass in ChangeRequest gesendete Änderung nicht
 		// möglich ist
 	}

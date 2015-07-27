@@ -10,6 +10,7 @@ import Util.API;
 import Util.DeviceStatus;
 import Util.Log;
 import Util.OfferStatus;
+import Util.PossibleMerge;
 import start.Loadprofile;
 import start.View;
 
@@ -17,32 +18,37 @@ import start.View;
  * Klasse fuer Angebote
  *
  */
-public class Offer {
+public class Offer implements Comparable<Offer>{
 	// Aggregiertes Lastprofil über alle Lastprofile
 	@JsonView(View.Summary.class)
-	Loadprofile aggLoadprofile;
+	private Loadprofile aggLoadprofile;
+	
+	// Gesamtsumme aller Lastprofile
+	private double sumAggLoadprofile;
 
 	@JsonView(View.Summary.class)
 	@JsonProperty("authKey")
-	UUID authKey = null;
+	private UUID authKey = null;
 
 	// Alle beteiligten Lastprofile
 	@JsonView(View.Summary.class)
-	HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = new HashMap<UUID, HashMap<UUID, Loadprofile>>();
+	private HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = new HashMap<UUID, HashMap<UUID, Loadprofile>>();
 
 	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
 	@JsonView(View.Summary.class)
-	double aggPrice;
+	private double aggPrice;
 
 	// Consumer, von dem man das Angebot erhalten hat
 	@JsonView(View.Summary.class)
-	UUID author = null;
+	private UUID author = null;
 
 	@JsonView(View.Summary.class)
 	private UUID uuid = null;
 
 	@JsonView(View.Summary.class)
 	private OfferStatus status;
+	
+	private int numSlots = 4;
 
 	private Offer() {
 		uuid = UUID.randomUUID();
@@ -80,6 +86,10 @@ public class Offer {
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
+		sumAggLoadprofile = 0;
+		for (int i=0; i<numSlots; i++) {
+			sumAggLoadprofile += aggLoadprofile.getValues()[i];
+		}
 
 		HashMap<UUID, Loadprofile> loadprofiles = new HashMap<UUID, Loadprofile>();
 		loadprofiles.put(loadprofile.getUUID(), loadprofile);
@@ -156,6 +166,11 @@ public class Offer {
 				}
 			}
 		}
+		
+		sumAggLoadprofile = 0;
+		for (int i=0; i<numSlots; i++) {
+			sumAggLoadprofile += aggLoadprofile.getValues()[i];
+		}
 
 		this.aggPrice = aggLoadprofile.getMinPrice();
 
@@ -225,6 +240,10 @@ public class Offer {
 	public UUID getAuthKey() {
 		return authKey;
 	}
+	
+	public double getSumAggLoadprofile() {
+		return sumAggLoadprofile;
+	}
 
 	public boolean isValid() {
 		return status == OfferStatus.VALID;
@@ -242,5 +261,19 @@ public class Offer {
 	@JsonIgnore
 	public boolean isAuthor(UUID uuid) {
 		return this.author.equals(uuid);
+	}
+	
+	@Override
+	public int compareTo(Offer offer) {
+		double otherSum = Math.abs(offer.getSumAggLoadprofile());
+		if (otherSum < Math.abs(sumAggLoadprofile)) {
+			return -1;
+		}
+		else if (otherSum == Math.abs(sumAggLoadprofile)) {
+			return 0;
+		}
+		else {
+			return 1;
+		}
 	}
 }

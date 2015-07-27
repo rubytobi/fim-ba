@@ -22,7 +22,7 @@ import Entity.Fridge;
 import Event.DeviceNotFound;
 import Event.IllegalDeviceCreation;
 import Event.UnsupportedDeviceType;
-import Packet.ChangeRequest;
+import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
 
 @RestController
@@ -64,8 +64,8 @@ public class DeviceController {
 		DeviceContainer.instance().get(uuid).ping();
 	}
 
-	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.DELETE)
-	public Boolean receiveChangeRequest(@RequestBody ChangeRequest cr, @PathVariable UUID uuid) {
+	@RequestMapping(value = "/devices/{uuid}/", method = RequestMethod.DELETE)
+	public Boolean receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
 		return true;
 	}

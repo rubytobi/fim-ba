@@ -7,8 +7,11 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import Container.NegotiationContainer;
 import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
+import Packet.AnswerToPriceChangeRequest;
+import Packet.EndOfNegotiation;
 import start.Application;
 import start.Marketplace;
 
@@ -19,10 +22,8 @@ public class Negotiation {
 	private double currentPrice1, currentPrice2;
 	private double priceToAchieve1, priceToAchieve2;
 	private double sumLoadprofile1, sumLoadprofile2, currentSum;
-	private double priceAskedFor1, priceAskedFor2;
 	private UUID uuid;
-	private int maxRounds = 2;
-	private Marketplace marketplace;
+	private int maxRounds = 3;
 	
 	
 	public Negotiation (Offer offer1, Offer offer2, double priceToAchieve1, double priceToAchieve2, double sumLoadprofile1, double sumLoadprofile2) {
@@ -37,13 +38,14 @@ public class Negotiation {
 		this.currentPrice2 = offer2.getPrice();
 		this.priceToAchieve1 = priceToAchieve1;
 		this.priceToAchieve2 = priceToAchieve2;
-		this.priceAskedFor1 = 0;
-		this.priceAskedFor2 = 0;
 		this.finished1 = false;
 		this.finished2 = false;
 		this.closed = false;
 		this.currentSum = sumLoadprofile1*offer1.getPrice() +  sumLoadprofile2*offer2.getPrice();
-		this.marketplace = Marketplace.instance();
+		
+		// Füge Negotiation zu Container hinzu
+		NegotiationContainer container = NegotiationContainer.instance();
+		container.add(this);
 		
 		// Sende erste Preisanfrage
 		sendPriceRequest(offer1.getUUID());
@@ -58,10 +60,10 @@ public class Negotiation {
 		System.out.println("Negotiation " +uuid+ " CurrentSum: " +currentSum+ " Confirmed: " +closed);
 		System.out.println("Offer1: " +offer1.getUUID()+ " Runde: " + round1 + " Summe LP: " 
 				+sumLoadprofile1+ " aktueller Preis: " + currentPrice1+ " zu erreichender Preis: " 
-				+priceToAchieve1+ " erfragter Preis: " +priceAskedFor1+ " Finished: " +finished1);
+				+priceToAchieve1+ " Finished: " +finished1);
 		System.out.println("Offer2: " +offer2.getUUID()+ " Runde: " + round2 + " Summe LP: "
 				+sumLoadprofile2+ " aktueller Preis: " + currentPrice1 + " zu erreichender Preis: "
-				+priceToAchieve2+ " erfragter Preis: " + priceAskedFor2+ " Finished: " +finished2);
+				+priceToAchieve2+ " Finished: " +finished2);
 	}
 	
 	/**
@@ -93,58 +95,22 @@ public class Negotiation {
 	 */
 	private void sendPriceRequest(UUID offer) {
 		System.out.println("***sendPriceRequest***");
-		double random = 1+Math.random()*2;
 		double priceRequest;
 		Offer currentOffer;
 		if (offer.equals(offer1.getUUID())) {
-			if (round1 == maxRounds) {
-				informMarketplace(false);
-			}
 			currentOffer = offer1;
-			if (round1 == 0) {
-				priceAskedFor1 = currentPrice1 + (priceToAchieve1-currentPrice1)*random;
-				priceRequest = priceAskedFor1;
-			}
-			else {
-				double diff = priceAskedFor1 - priceToAchieve1;
-				if (diff < 0) {
-					priceAskedFor1 = priceAskedFor1 + Math.random()*Math.abs(diff);
-				}
-				else {
-					priceAskedFor1 = priceToAchieve1 + Math.random()*Math.abs(diff);
-				}
-				priceRequest = priceAskedFor1;
-			}
+			priceRequest = currentPrice2;
 			round1++;
 			
 		}
 		else {
-			if (round2 == maxRounds) {
-				informMarketplace(false);
-			}
 			currentOffer = offer2;
-
-			if (round2 == 0) {
-				priceAskedFor2 = priceToAchieve2 + (priceToAchieve2 - currentPrice2)*random;
-				priceRequest = priceAskedFor2;
-			}
-			else {
-				double diff = priceAskedFor2 - priceToAchieve2;
-				if (diff < 0) {
-					priceAskedFor2 = priceAskedFor2 + Math.random()*Math.abs(diff);
-				}
-				else {
-					priceAskedFor2 = priceToAchieve2 + Math.random()*Math.abs(diff);
-				}
-				priceRequest = priceAskedFor2;
-			}
+			priceRequest = currentPrice2;
 			round2++;
 		}
-		System.out.println("An: " +currentOffer.getAuthor()+ " Preis: " +priceRequest);
-		// TODO Sende an currentOffer.getAuthor Anfrage mit priceRequest
+		System.out.println("An: " +currentOffer.getAuthor()+ " Preis: " +priceRequest);		
 		
-		
-		// Sende confirmOffer an consumer
+		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		
 		RestTemplate rest = new RestTemplate();
@@ -189,7 +155,9 @@ public class Negotiation {
 	 * @param consumer Consumer, von dem die Antwort kam
 	 * @param newPrice Neuen Preis, den der Consumer eingehen kann
 	 */
-	public void receiveAnswer (UUID consumer, double newPrice) {
+	public void receiveAnswer (AnswerToPriceChangeRequest answer) {
+		UUID consumer = answer.getConsumer();
+		double newPrice = answer.getNewPrice();
 		System.out.println("***receiveAnswer***");
 		if (closed) {
 			return;
@@ -197,26 +165,16 @@ public class Negotiation {
 		UUID offer;
 		boolean answerFromOffer1 = consumer.equals(offer2.getAuthor());
 		if (answerFromOffer1) {
-			System.out.println("Offer1, neuer Preis: " +newPrice);
+			currentPrice1 = newPrice;
 			offer = offer1.getUUID();
-			// Schicke erneute Anfrage, wenn neuer Preis schlechter als alter Preis
-			if (Math.abs(priceToAchieve1-newPrice) > Math.abs(priceToAchieve1-currentPrice1)) {
-				System.out.println("Preis schlechter als alter Preis!");
-				sendPriceRequest(offer);
-				return;
-			}
-			System.out.println(currentSum);
 		}
 		else {
-			System.out.println("Offer2, neuer Preis: " +newPrice);
+			currentPrice2 = newPrice;
 			offer = offer2.getUUID();
-			// Schicke erneute Anfrage, wenn neuer Preis schlechter als alter Preis
-			if (Math.abs(priceToAchieve2 - newPrice) > Math.abs(priceToAchieve2-currentPrice2)) {
-				sendPriceRequest(offer);
-			}
 		}
 		
-		updateCurrentSum(offer, newPrice);
+		currentSum = sumLoadprofile1*currentPrice1 + sumLoadprofile2*currentPrice2;
+
 		if (currentSum >= 0) {
 			// Berechne extakte Preise
 			chargeExactPrices();
@@ -273,25 +231,6 @@ public class Negotiation {
 	}
 	
 	/**
-	 * Berechnet die neue Gesamtsumme der Angebote, wenn ein Angebot
-	 * einer Preisänderung zugestimmt hat und legt das Ergebnis in
-	 * der Variable currentSum ab.
-	 * @param offer Angebot, das einer Preisänderung zugestimmt hat
-	 * @param newPrice Preis, dem das Angebot zugestimmt hat
-	 */
-	private void updateCurrentSum(UUID offer, double newPrice) {
-		if (offer.equals(offer1.getUUID())) {
-			System.out.println("Offer1 neuer Preis: " +newPrice);
-			currentPrice1 = newPrice;
-		}
-		if (offer.equals(offer2.getUUID())) {
-			System.out.println("Offer2 neuer Preis: " +newPrice);
-			currentPrice2 = newPrice;
-		}
-		currentSum = sumLoadprofile1*currentPrice1 + sumLoadprofile2*currentPrice2;
-	}
-	
-	/**
 	 * Berechnet exakte Preise, wenn Summe >= 0, so dass Summe = 0.
 	 * Die neuen Preise werden in currentPrice1 und currentPrice2 gespeichert.
 	 * @return Array mit neuen Preisen für Offer1 (0) und Offer2 (1)
@@ -324,11 +263,26 @@ public class Negotiation {
 	 * der beiden Angebote und ob die Verhandlung erfolgreich beendet wurde.
 	 * @param successful Gibt an, ob die Verhandlung erfolgreich beendet wurde.
 	 */
-	public void informMarketplace (boolean successful) {
+	private void informMarketplace (boolean successful) {
 		// Schließe Verhandlung
 		closed = true;
 		
-		// TODO als Notification oder direkt über den Methodenaufruf?
-		marketplace.endOfNegotiation(uuid, currentPrice1, currentPrice2, successful);
+		// Entferne Verhandlung vom Container
+		// TODO Sinnvoll? Wenn Consumer noch auf ausstehende ChangeRequest antwortet? Aber wann sonst?
+		NegotiationContainer container = NegotiationContainer.instance();
+		container.delete(uuid);
+		
+		// Informiere Marktplatz über Ende der Verhandlung
+		EndOfNegotiation end = new EndOfNegotiation(uuid, currentPrice1, currentPrice2, successful);
+		
+		RestTemplate rest = new RestTemplate();
+		HttpEntity<EndOfNegotiation> entity = new HttpEntity<EndOfNegotiation>(end, Application.getRestHeader());
+	
+		String url = "http://localhost:8080/marketplace/endOfNegotiation/";
+	
+		try {
+			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+		} catch (Exception e) {
+		}
 	}
 }

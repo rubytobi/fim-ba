@@ -49,10 +49,10 @@ public class MergedOffers {
 		return time;
 	}
 	
-	public ArrayList<Offer> getOffers() {
-		ArrayList<Offer> offers = new ArrayList<Offer>();
-		offers.add(offer1);
-		offers.add(offer2);
+	public Offer[] getOffers() {
+		Offer[] offers = new Offer[2];
+		offers[0] = offer1;
+		offers[1] = offer2;
 		return offers;
 	}
 	

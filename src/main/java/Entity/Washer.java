@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import start.Device;
 import start.Loadprofile;
 import start.View;
-import Packet.ChangeRequest;
+import Packet.ChangeRequestSchedule;
 import Packet.OfferNotification;
 import Util.DateTime;
 import Util.DeviceStatus;
@@ -316,7 +316,7 @@ public class Washer implements Device {
 		// TODO
 	}
 
-	public void changeLoadprofile(ChangeRequest cr){
+	public void changeLoadprofile(ChangeRequestSchedule cr){
 		// TODO
 	}
 	
