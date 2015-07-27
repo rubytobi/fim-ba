@@ -532,7 +532,7 @@ public class Marketplace {
 	 *            Datum für welches die Angebote sein sollen
 	 * @param number
 	 *            Anzahl an Angeboten, die angefragt wird
-	 * @return
+	 * @return Liste aller guenstigsten Angebote
 	 */
 	public ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date, int number) {
 		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
@@ -563,7 +563,7 @@ public class Marketplace {
 	 *            Datum, für welches die Angebote sein sollen
 	 * @param number
 	 *            Anzahl an Angeboten, die angefragt wird
-	 * @return
+	 * @return Liste aller teuersten Angebote
 	 */
 	public ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar date, int number) {
 		ArrayList<Offer> allDemandsAtDate = demand.get(date);
