@@ -60,7 +60,7 @@ public class ConsumerController {
 	 * @return Consumer
 	 */
 	@RequestMapping(value = "/consumers/{uuid}", method = RequestMethod.GET)
-	public Consumer getSingleCustomer(@PathVariable UUID uuid) {
+	public Consumer getSingleConsumer(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid);
 	}
 
@@ -76,18 +76,6 @@ public class ConsumerController {
 	public void linkDeviceToCustomer(@PathVariable UUID consumerUUID, @PathVariable UUID fridgeUUID) {
 		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
 	}
-
-	/**
-	 * Gibt das Standardlastprofil des Consumers zurück
-	 * 
-	 * @param uuid
-	 *            die Consumer-UUID
-	 * @return Lastprofile des Consumers
-	 */
-//	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.GET)
-//	public @ResponseBody Loadprofile getLoadprofile(@PathVariable UUID uuid) {
-//		return ConsumerContainer.instance().get(uuid).getLoadprofile();
-//	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
 	public Offer[] getAllOffers(@PathVariable UUID uuid) {
@@ -108,11 +96,6 @@ public class ConsumerController {
 	public boolean receiveLoadprofileByDevice(@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
 		return true;
-	}
-
-	@RequestMapping(value = "/consumers/{uuid}/deltaLoadprofiles", method = RequestMethod.POST)
-	public void receiveDeltaLoadprofile(@PathVariable UUID uuid, @RequestBody Loadprofile loadprofile) {
-		ConsumerContainer.instance().get(uuid).receiveDeltaLoadprofile(loadprofile);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)

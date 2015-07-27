@@ -97,4 +97,14 @@ public class API {
 		uri += "/replace/" + uuid.toString();
 		return this;
 	}
+
+	public API cancel() {
+		uri += "/cancel";
+		return this;
+	}
+
+	public API changeRequests(UUID uuid) {
+		uri += "/changeRequests/" + uuid;
+		return this;
+	}
 }

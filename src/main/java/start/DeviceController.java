@@ -64,11 +64,6 @@ public class DeviceController {
 		DeviceContainer.instance().get(uuid).ping();
 	}
 
-	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.DELETE)
-	public void deleteSingleDevice(@PathVariable UUID uuid) {
-		DeviceContainer.instance().delete(uuid);
-	}
-
 	@RequestMapping(value = "/devices/{uuid}/", method = RequestMethod.DELETE)
 	public Boolean receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).changeLoadprofile(cr);

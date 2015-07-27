@@ -1208,4 +1208,9 @@ public class Marketplace {
 			}
 		}
 	}
+
+	public Offer getDemand(UUID uuid) {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
