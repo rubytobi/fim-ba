@@ -1,29 +1,20 @@
 package start;
 
-import java.util.Collection;
-import java.util.Map;
 import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Container.ConsumerContainer;
-import Container.DeviceContainer;
 import Entity.Consumer;
 import Entity.Loadprofile;
 import Entity.Offer;
 import Entity.View;
-import Event.InvalidOffer;
-import Packet.FridgeCreation;
 import Packet.OfferNotification;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
