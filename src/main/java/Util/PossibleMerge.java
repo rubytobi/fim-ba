@@ -2,8 +2,8 @@ package Util;
 
 import java.util.GregorianCalendar;
 
+import Entity.Loadprofile;
 import Entity.Offer;
-import start.Loadprofile;
 
 public class PossibleMerge implements Comparable<PossibleMerge>{
 	private Offer offer1, offer2;

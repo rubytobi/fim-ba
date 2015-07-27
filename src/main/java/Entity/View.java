@@ -1,4 +1,4 @@
-package start;
+package Entity;
 
 public class View {
 	public interface Summary {

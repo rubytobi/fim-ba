@@ -2,10 +2,12 @@ package Packet;
 
 import java.net.URI;
 import java.util.Map;
+
+import Entity.Loadprofile;
+
 import java.util.GregorianCalendar;
 
 import Util.DateTime;
-import start.Loadprofile;
 
 /**
  * Paket, mit welchem der Consumer sein Device um eine Anpassung des Lastprofils bittet

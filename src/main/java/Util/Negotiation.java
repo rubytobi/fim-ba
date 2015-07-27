@@ -8,12 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import Container.NegotiationContainer;
+import Entity.Marketplace;
 import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.AnswerToPriceChangeRequest;
 import Packet.EndOfNegotiation;
 import start.Application;
-import start.Marketplace;
 
 public class Negotiation {
 	private Offer offer1, offer2;

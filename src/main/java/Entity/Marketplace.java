@@ -1,4 +1,4 @@
-package start;
+package Entity;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -14,7 +14,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
@@ -23,6 +22,7 @@ import Util.DateTime;
 import Util.PossibleMerge;
 import Util.Negotiation;
 import Util.sortOfferPriceSupplyLowToHigh;
+import start.Application;
 import Util.sortOfferPriceDemandHighToLow;
 
 /**

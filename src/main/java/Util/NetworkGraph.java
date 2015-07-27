@@ -8,9 +8,10 @@ import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.Graphs;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.ui.view.Viewer;
+
+import Entity.Loadprofile;
 import Entity.Offer;
 import start.GeneralController;
-import start.Loadprofile;
 
 public class NetworkGraph {
 	private static NetworkGraph instance;

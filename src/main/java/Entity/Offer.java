@@ -11,8 +11,6 @@ import Util.DeviceStatus;
 import Util.Log;
 import Util.OfferStatus;
 import Util.PossibleMerge;
-import start.Loadprofile;
-import start.View;
 
 /**
  * Klasse fuer Angebote

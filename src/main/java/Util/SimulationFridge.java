@@ -6,7 +6,7 @@ import java.util.Hashtable;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 
-import start.View;
+import Entity.View;
 
 public class SimulationFridge {
 	@JsonView(View.Summary.class)

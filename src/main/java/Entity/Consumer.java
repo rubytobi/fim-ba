@@ -24,8 +24,6 @@ import Util.DateTime;
 import Util.Log;
 import Util.OfferAction;
 import start.Application;
-import start.Loadprofile;
-import start.View;
 
 public class Consumer {
 	/**

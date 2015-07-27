@@ -16,9 +16,6 @@ import Util.DateTime;
 import Util.DeviceStatus;
 import Util.Log;
 import Util.SimulationFridge;
-import start.Device;
-import start.Loadprofile;
-import start.View;
 
 /**
  * Klasse fuer Kuehlschraenke

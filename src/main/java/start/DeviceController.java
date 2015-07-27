@@ -18,7 +18,9 @@ import com.fasterxml.jackson.jaxrs.annotation.JacksonFeatures;
 
 import Container.ConsumerContainer;
 import Container.DeviceContainer;
+import Entity.Device;
 import Entity.Fridge;
+import Entity.View;
 import Event.DeviceNotFound;
 import Event.IllegalDeviceCreation;
 import Event.UnsupportedDeviceType;
