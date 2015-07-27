@@ -1,6 +1,5 @@
 package start;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -23,6 +22,8 @@ import Util.MergedOffers;
 import Util.DateTime;
 import Util.PossibleMerge;
 import Util.Negotiation;
+import Util.sortOfferPriceSupplyLowToHigh;
+import Util.sortOfferPriceDemandHighToLow;
 
 /**
  * Marktplatz, auf welchem alle Angebote eintreffen und zusammengefuehrt werden
@@ -42,7 +43,7 @@ public class Marketplace {
 	 * Maps, die alle noch nicht zusammengeführten Angebote des Marktplatzes
 	 * beinhaltet
 	 */
-	private Map<UUID, Offer> demand = new HashMap<UUID, Offer>();
+	private Map<String, ArrayList<Offer>> demand = new TreeMap<String, ArrayList<Offer>>();
 	/**
 	 * Aktueller eexPreis
 	 */
@@ -100,7 +101,7 @@ public class Marketplace {
 	 */
 	private Map<String, double[]> sumLoadprofilesAllOffers = new TreeMap<String, double[]>();
 
-	private Map<UUID, Offer> supply = new HashMap<UUID, Offer>();
+	private Map<String, ArrayList<Offer>> supply = new TreeMap<String, ArrayList<Offer>>();
 
 	/**
 	 * Erstellt einen neuen Marktplatz mit Prognose = 0 für die nächsten 24h
@@ -212,50 +213,77 @@ public class Marketplace {
 		return deviationAll;
 	}
 
+	/**
+	 * Bestätigt alle verbliebenen Angebot mit übergebenem Start und bei welchen
+	 * die Summe der Lastprofilwerte bis einschließlich des übergebenen Slots >
+	 * 0 sind zu einem Einheitspreis mit Strafe
+	 * 
+	 * @param date
+	 *            Startzeit, für welche alle verbliebenen Angebote bestätigt
+	 *            werden sollen
+	 * @param slot
+	 *            Anzahl der Slots, über die die Summe gebildet werden muss
+	 */
 	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, int slot) {
 		String dateString = DateTime.ToString(date);
-		Set<UUID> demands = demand.keySet();
-		Set<UUID> supplies = supply.keySet();
-		ArrayList<Offer> allDemandsAtDate = new ArrayList<Offer>();
-		ArrayList<Offer> allSuppliesAtDate = new ArrayList<Offer>();
+		// Hole alle Angebote zu dem übergebenen Datum
+		ArrayList<Offer> allDemandsAtDate = demand.get(dateString);
+		ArrayList<Offer> allSuppliesAtDate = supply.get(dateString);
+		ArrayList<Offer> toRemoveFromDemands = new ArrayList<Offer>();
+		ArrayList<Offer> toRemoveFromSupplies = new ArrayList<Offer>();
 		double volumeDemand = 0;
 		double volumeSupply = 0;
 		double sumPricesDemand = 0;
 		double sumPricesSupply = 0;
 
-		for (UUID uuid : demands) {
-			Offer currentOffer = demand.get(uuid);
-			if (DateTime.ToString(currentOffer.getDate()).equals(dateString)) {
-				double sumUntilCurrentSlot = 0;
-				// Berechne die Summe des Lastprofils einschließlich des
-				// aktuellen Slots
-				for (int i = 0; i == slot; i++) {
-					sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
-				}
-
-				// Nur, wenn die oben berechnete Summe des Lastprofils ungleich
-				// 0 ist,
-				// muss das Angebot zum Einheitspreis mit Strafe bestätigt
-				// werden.
-				// Andernfalls nicht, da es noch Zeit hat einen Partner zu
-				// finden.
-				if (sumUntilCurrentSlot != 0) {
-					allDemandsAtDate.add(currentOffer);
-					volumeDemand += currentOffer.getSumAggLoadprofile();
-					sumPricesDemand += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
-				}
+		for (Offer currentOffer : allDemandsAtDate) {
+			double sumUntilCurrentSlot = 0;
+			// Berechne die Summe des Lastprofils einschließlich des aktuellen
+			// Slots
+			for (int i = 0; i == slot; i++) {
+				sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
 			}
+
+			// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0
+			// ist,
+			// muss das Angebot zum Einheitspreis mit Strafe bestätigt werden.
+			// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
+			if (sumUntilCurrentSlot != 0) {
+				volumeDemand += currentOffer.getSumAggLoadprofile();
+				sumPricesDemand += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
+			} else {
+				toRemoveFromDemands.add(currentOffer);
+			}
+		}
+		// Entferne Angebote mit sumUntilCurrentSlot = 0
+		for (Offer removeOffer : toRemoveFromDemands) {
+			allDemandsAtDate.remove(removeOffer);
 		}
 		System.out.println("\nSumPricesDemand: " + sumPricesDemand);
 		System.out.println("VolumeDemand: " + volumeDemand);
 
-		for (UUID uuid : supplies) {
-			Offer currentOffer = supply.get(uuid);
-			if (DateTime.ToString(currentOffer.getDate()).equals(dateString)) {
-				allSuppliesAtDate.add(currentOffer);
+		for (Offer currentOffer : allSuppliesAtDate) {
+			double sumUntilCurrentSlot = 0;
+			// Berechne die Summe des Lastprofils einschließlich des aktuellen
+			// Slots
+			for (int i = 0; i == slot; i++) {
+				sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
+			}
+
+			// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0
+			// ist,
+			// muss das Angebot zum Einheitspreis mit Strafe bestätigt werden.
+			// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
+			if (sumUntilCurrentSlot != 0) {
 				volumeSupply += currentOffer.getSumAggLoadprofile();
 				sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
+			} else {
+				toRemoveFromSupplies.add(currentOffer);
 			}
+		}
+		// Entferne Angebote mit sumUntilCurrentSlot = 0
+		for (Offer removeOffer : toRemoveFromSupplies) {
+			allSuppliesAtDate.remove(removeOffer);
 		}
 		System.out.println("\nSumPricesSupply: " + sumPricesSupply);
 		System.out.println("VolumeSupply: " + volumeSupply);
@@ -292,7 +320,7 @@ public class Marketplace {
 	 */
 	private void confirmOffer(Offer offer, double newPrice) {
 		// Entferne offer von Marktplatz
-		removeOffer(offer.getUUID(), true);
+		removeOffer(offer, true);
 
 		// Nehme Lastprofil von offer in die Summe der Lastprofile aller
 		// bestätigten Angebote auf
@@ -395,13 +423,13 @@ public class Marketplace {
 	 */
 	public boolean findFittingOffer(Offer offer, boolean offerIsSupplyOffer) {
 		System.out.println("***Find fitting Offer***");
-		Set<UUID> set;
+		ArrayList<Offer> offers;
 		if (offerIsSupplyOffer) {
-			set = demand.keySet();
+			offers = demand.get(DateTime.ToString(offer.getDate()));
 		} else {
-			set = supply.keySet();
+			offers = supply.get(DateTime.ToString(offer.getDate()));
 		}
-		if (set == null) {
+		if (offers == null) {
 			return false;
 		}
 		int numSlots = 4;
@@ -446,15 +474,7 @@ public class Marketplace {
 		ArrayList<PossibleMerge> blackListPossibleMergesOfDateOffer = blackListPossibleMerges
 				.get(DateTime.ToString(offer.getDate()));
 
-		for (UUID uuid : set) {
-			Offer compareOffer;
-
-			if (offerIsSupplyOffer) {
-				compareOffer = demand.get(uuid);
-			} else {
-				compareOffer = supply.get(uuid);
-			}
-
+		for (Offer compareOffer : offers) {
 			// Prüfe, ob Kombination der Angebote auf Blacklist
 			// Wenn ja, überspringe dieses Angebot
 			PossibleMerge possibleMerge = new PossibleMerge(offer, compareOffer);
@@ -505,12 +525,56 @@ public class Marketplace {
 	}
 
 	/**
+	 * Gibt die Angebote von Erzeugern für das übergebene Datum zurück, die am
+	 * wenigsten für den erzeugten Strom verlangen.
+	 * 
+	 * @param date
+	 *            Datum für welches die Angebote sein sollen
+	 * @param number
+	 *            Anzahl an Angeboten, die angefragt wird
+	 * @return
+	 */
+	public ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date, int number) {
+		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
+		if (allSuppliesAtDate.size() < number) {
+			number = allSuppliesAtDate.size();
+		}
+		ArrayList<Offer> cheapest = new ArrayList<Offer>();
+		for (int i = 0; i < number; i++) {
+			cheapest.add(allSuppliesAtDate.get(i));
+		}
+		return cheapest;
+	}
+
+	/**
 	 * Liefert den aktuellen EEX-Preis
 	 * 
 	 * @return Aktuellen EEX-Preis
 	 */
 	public static double getEEXPrice() {
 		return Marketplace.eexPrice;
+	}
+
+	/**
+	 * Gibt die Angebote von Verbrauchern für das übergebene Datum zurück, die
+	 * bereit sind am meisten zu zahlen.
+	 * 
+	 * @param date
+	 *            Datum, für welches die Angebote sein sollen
+	 * @param number
+	 *            Anzahl an Angeboten, die angefragt wird
+	 * @return
+	 */
+	public ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar date, int number) {
+		ArrayList<Offer> allDemandsAtDate = demand.get(date);
+		if (allDemandsAtDate.size() < number) {
+			number = allDemandsAtDate.size();
+		}
+		ArrayList<Offer> mostExpensive = new ArrayList<Offer>();
+		for (int i = 0; i < number; i++) {
+			mostExpensive.add(allDemandsAtDate.get(i));
+		}
+		return mostExpensive;
 	}
 
 	public ArrayList<Negotiation> getNegotiations() {
@@ -582,24 +646,13 @@ public class Marketplace {
 			confirmAllRemainingOffersWithOnePrice(nextSlot, 4);
 		}
 		if (make(sumDeviationAll)) {
-			// Nachfrage nach Änderungen dauert zu lang?
 			mergeAllGoodOffers(nextSlot);
 
-			ArrayList<Offer> remainingOffers = new ArrayList<Offer>();
-			Set<UUID> demands = demand.keySet();
-			Set<UUID> supplies = supply.keySet();
+			ArrayList<Offer> remainingOffers = demand.get(DateTime.ToString(nextSlot));
+			ArrayList<Offer> supplies = supply.get(DateTime.ToString(nextSlot));
 
-			for (UUID current : demands) {
-				Offer currentOffer = demand.get(current);
-				if (currentOffer.getDate().equals(nextSlot)) {
-					remainingOffers.add(currentOffer);
-				}
-			}
-			for (UUID current : supplies) {
-				Offer currentOffer = supply.get(current);
-				if (currentOffer.getDate().equals(nextSlot)) {
-					remainingOffers.add(currentOffer);
-				}
+			for (Offer supply : supplies) {
+				remainingOffers.add(supply);
 			}
 
 			// Sortiere verbleibende Angebote absteigend nach Betrag des
@@ -844,9 +897,10 @@ public class Marketplace {
 				price2 = price2 / sumOffer2;
 				System.out.println("Zu erreichende Preise: " + price1 + ", " + price2);
 			}
+
 			// Entferne Angebote von Marktplatz
-			removeOffer(offer1.getUUID(), false);
-			removeOffer(offer2.getUUID(), false);
+			removeOffer(offer1, false);
+			removeOffer(offer2, false);
 
 			// Erstelle neue Verhandlung und speichere Verhandlung unter
 			// negotiatingOffers ab
@@ -866,9 +920,11 @@ public class Marketplace {
 	 *            Neues Angebot, das am Markt teilnehmen will
 	 */
 	public void putOffer(Offer offer) {
+		String date = DateTime.ToString(offer.getDate());
+
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
-		double[] sumAllOffers = sumLoadprofilesAllOffers.get(DateTime.ToString(offer.getDate()));
+		double[] sumAllOffers = sumLoadprofilesAllOffers.get(date);
 		if (sumAllOffers == null) {
 			sumAllOffers = new double[numSlots];
 		}
@@ -876,15 +932,27 @@ public class Marketplace {
 			sumLoadprofile += valuesLoadprofile[i];
 			sumAllOffers[i] += valuesLoadprofile[i];
 		}
-		sumLoadprofilesAllOffers.put(DateTime.ToString(offer.getDate()), sumAllOffers);
+		sumLoadprofilesAllOffers.put(date, sumAllOffers);
 
 		if (sumLoadprofile >= 0) {
 			if (!findFittingOffer(offer, true)) {
-				supply.put(offer.getUUID(), offer);
+				ArrayList<Offer> offers = supply.get(date);
+				if (offers == null) {
+					offers = new ArrayList<Offer>();
+				}
+				offers.add(offer);
+				Collections.sort(offers, new sortOfferPriceSupplyLowToHigh());
+				supply.put(date, offers);
 			}
 		} else {
 			if (!findFittingOffer(offer, false)) {
-				demand.put(offer.getUUID(), offer);
+				ArrayList<Offer> offers = demand.get(date);
+				if (offers == null) {
+					offers = new ArrayList<Offer>();
+				}
+				offers.add(offer);
+				Collections.sort(offers, new sortOfferPriceDemandHighToLow());
+				demand.put(date, offers);
 			}
 		}
 	}
@@ -903,23 +971,34 @@ public class Marketplace {
 	 *            Entferne Summe des Lastprofiles von der Gesamtsumme aller //
 	 *            Lastprofile
 	 */
-	public void removeOffer(UUID offer, boolean confirmed) {
+	public void removeOffer(Offer offer, boolean confirmed) {
+		String date = DateTime.ToString(offer.getDate());
+
 		// Prüfe, ob Angebot auf Marktplatz
-		Offer removeOffer = supply.get(offer);
-		supply.remove(offer);
-		if (removeOffer == null) {
-			removeOffer = demand.get(offer);
-			demand.remove(offer);
-			if (removeOffer == null) {
-				return;
+		ArrayList<Offer> suppliesAtDate = supply.get(date);
+		if (suppliesAtDate.contains(offer)) {
+			suppliesAtDate.remove(offer);
+			if (suppliesAtDate.size() == 0) {
+				supply.remove(date);
+			} else {
+				supply.put(date, suppliesAtDate);
+			}
+		}
+
+		ArrayList<Offer> demandsAtDate = demand.get(date);
+		if (demandsAtDate.contains(offer)) {
+			demandsAtDate.remove(offer);
+			if (demandsAtDate.size() == 0) {
+				demand.remove(date);
+			} else {
+				demand.put(date, demandsAtDate);
 			}
 		}
 
 		if (!confirmed) {
 			// Entferne Summe des Lastprofiles von der Gesamtsumme aller
 			// Lastprofile
-			String date = DateTime.ToString(removeOffer.getDate());
-			double[] values = removeOffer.getAggLoadprofile().getValues();
+			double[] values = offer.getAggLoadprofile().getValues();
 			double[] valuesDeviation = sumLoadprofilesAllOffers.get(date);
 			for (int i = 0; i < numSlots; i++) {
 				valuesDeviation[i] += values[i];
@@ -928,10 +1007,10 @@ public class Marketplace {
 		}
 
 		// Entferne Angebote aus listPossibleMerges
-		removeFromPossibleMerges(removeOffer);
+		removeFromPossibleMerges(offer);
 
 		// Entferne Angebot aus blackListPossibleMerges
-		removeFromBlackListPossibleMerges(removeOffer);
+		removeFromBlackListPossibleMerges(offer);
 	}
 
 	/**
@@ -1013,12 +1092,11 @@ public class Marketplace {
 	 * Marktplatzes.
 	 */
 	public void ping() {
-		Set<UUID> set = demand.keySet();
+		Set<String> set = demand.keySet();
 
-		for (UUID uuidOffer : set) {
-			Offer offer = demand.get(uuidOffer);
+		for (String date : set) {
+			Offer offer = demand.get(date).get(0);
 			confirmOffer(offer, offer.getAggLoadprofile().getMinPrice());
-			demand.remove(offer.getUUID());
 			break;
 		}
 	}
@@ -1047,29 +1125,35 @@ public class Marketplace {
 	 * Demand und Supply auf der Console aus.
 	 */
 	public void allOffersToString() {
-		Set<UUID> demandSet = demand.keySet();
+		Set<String> demandSet = demand.keySet();
 		if (demandSet.size() == 0) {
 			System.out.println("\nNo Demand");
 		} else {
 			System.out.println("\nDemand:");
-			for (UUID uuid : demandSet) {
-				Offer offer = demand.get(uuid);
-				double[] values = offer.getAggLoadprofile().getValues();
-				System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1] + "]["
-						+ values[2] + "][" + values[3] + "]");
+			for (String date : demandSet) {
+				System.out.println(date);
+				ArrayList<Offer> offersAtDate = demand.get(date);
+				for (Offer offer : offersAtDate) {
+					double[] values = offer.getAggLoadprofile().getValues();
+					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1]
+							+ "][" + values[2] + "][" + values[3] + "]");
+				}
 			}
 		}
 
-		Set<UUID> supplySet = supply.keySet();
+		Set<String> supplySet = supply.keySet();
 		if (supplySet.size() == 0) {
 			System.out.println("No Supply");
 		} else {
 			System.out.println("Supply:");
-			for (UUID uuid : supplySet) {
-				Offer offer = supply.get(uuid);
-				double[] values = offer.getAggLoadprofile().getValues();
-				System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1] + "]["
-						+ values[2] + "][" + values[3] + "]");
+			for (String date : supplySet) {
+				System.out.println(date);
+				ArrayList<Offer> offersAtDate = supply.get(date);
+				for (Offer offer : offersAtDate) {
+					double[] values = offer.getAggLoadprofile().getValues();
+					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1]
+							+ "][" + values[2] + "][" + values[3] + "]");
+				}
 			}
 		}
 	}

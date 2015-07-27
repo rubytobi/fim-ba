@@ -47,7 +47,7 @@ public class MarketplaceController {
 	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)
 	public void getOffer(@RequestBody UUID uuid) {
 		Marketplace.instance().getDemand(uuid).invalidate();
-		Marketplace.instance().removeOffer(uuid, false);
+		Marketplace.instance().removeOffer(Marketplace.instance().getDemand(uuid), false);
 	}
 
 	@RequestMapping(value = "/marketplace/ping", method = RequestMethod.POST)

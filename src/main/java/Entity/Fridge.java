@@ -209,14 +209,12 @@ public class Fridge implements Device {
 	public double[] createValuesLoadprofile(double[] schedule) {
 		double[] valuesLoadprofile = new double[numSlots];
 		double summeMin = 0;
-		double summeHour = 0;
 		int n = 0;
 
 		for (int i = 0; i < numSlots * 15; i++) {
 			summeMin = summeMin + schedule[i];
 			if ((i + 1) % 15 == 0 && i != 0) {
-				valuesLoadprofile[n] = summeMin;
-				summeHour = summeHour + valuesLoadprofile[n];
+				valuesLoadprofile[n] = -summeMin;
 				n++;
 				summeMin = 0;
 			}

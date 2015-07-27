@@ -125,8 +125,8 @@ public class Offer implements Comparable<Offer>{
 				+ withoutPrivileges.toString() + ")");
 
 		// füge author respektive neue werte hinzu
-		this.author = withPrivileges.getAuthor();
 		Log.d(uuid, "set author [" + author + "]");
+		this.author = withPrivileges.getAuthor();
 
 		for (Offer o : new Offer[] { withPrivileges, withoutPrivileges }) {
 			// Lastprofile aus bestehendem Angebot einbeziehen
