@@ -40,7 +40,7 @@ public class Application {
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 
 	public static void main(String[] args) {
-		System.setProperty("gs.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
+		System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
 
 		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
 

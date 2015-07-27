@@ -10,11 +10,14 @@ import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.ui.view.Viewer;
 import Entity.Offer;
 import start.GeneralController;
+import start.Loadprofile;
 
 public class NetworkGraph {
 	private static NetworkGraph instance;
 	private Graph graph;
 	private String offerStyle = "fill-color: green;";
+	private String loadprofileStyle = "fill-color: red;";
+	private String deltaLoadprofileStyle = "fill-color: red; shape: box;";
 	private String title = "TRuby - Graph";
 	private UUID graphUUID = UUID.randomUUID();
 
@@ -59,19 +62,24 @@ public class NetworkGraph {
 		Offer[] allOffers = collectionOffers.toArray(new Offer[collectionOffers.size()]);
 
 		for (Offer o : allOffers) {
-			Log.d(graphUUID, "display offer [" + o.toString() + "]");
+			Node offer = graph.addNode(o.getUUID().toString());
+			offer.addAttribute("ui.style", offerStyle);
 
-			Node n = graph.addNode(o.getUUID().toString());
-			n.addAttribute("ui.style", offerStyle + " size: " + (o.getCount() + 10) + "px;");
-			// n.addAttribute("ui.label", o.getUUID().toString());
-		}
+			for (UUID c : o.getAllLoadprofiles().keySet()) {
+				for (Loadprofile l : o.getAllLoadprofiles().get(c).values()) {
+					Node loadprofile = graph.addNode(l.toString());
 
-		for (Offer o : allOffers) {
-			for (UUID consumerUUID : o.getAllLoadprofiles().keySet()) {
-				Log.d(graphUUID,
-						"adding graph edge from [" + consumerUUID.toString() + "] to [" + o.getUUID().toString() + "]");
-				graph.addEdge(UUID.randomUUID().toString(), consumerUUID.toString(), o.getUUID().toString());
+					if (l.isDelta()) {
+						loadprofile.addAttribute("ui.style", deltaLoadprofileStyle);
+					} else {
+						loadprofile.addAttribute("ui.style", loadprofileStyle);
+					}
+
+					graph.addEdge(UUID.randomUUID().toString(), c.toString(), l.toString());
+					graph.addEdge(UUID.randomUUID().toString(), o.getUUID().toString(), l.toString());
+				}
 			}
+
 		}
 	}
 }

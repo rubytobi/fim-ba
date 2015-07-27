@@ -115,8 +115,8 @@ public class Offer {
 				+ withoutPrivileges.toString() + ")");
 
 		// füge author respektive neue werte hinzu
-		Log.d(uuid, "set author [" + author + "]");
 		this.author = withPrivileges.getAuthor();
+		Log.d(uuid, "set author [" + author + "]");
 
 		for (Offer o : new Offer[] { withPrivileges, withoutPrivileges }) {
 			// Lastprofile aus bestehendem Angebot einbeziehen

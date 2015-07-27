@@ -41,7 +41,7 @@ public class Log {
 
 		ErrorLog errorLog = new ErrorLog(uuid, s, string);
 
-		System.out.println(errorLog.toString());
+		apendToSystemOut(errorLog, false);
 
 		ObjectMapper mapper = new ObjectMapper();
 		try {
@@ -51,6 +51,19 @@ public class Log {
 			e.printStackTrace();
 		}
 		apendToFile(s);
+	}
+
+	private static void apendToSystemOut(ErrorLog errorLog, boolean error) {
+		String username = System.getProperty("user.name"); // platform
+															// independent
+
+		if (!username.equals("Tobias")) {
+			if (error)
+				System.err.println(errorLog.toString());
+			else
+				System.out.println(errorLog.toString());
+			return;
+		}
 	}
 
 	private static void apendToFile(String s) {
@@ -74,7 +87,7 @@ public class Log {
 
 		ErrorLog errorLog = new ErrorLog(uuid, s, string);
 
-		System.err.println(errorLog.toString());
+		apendToSystemOut(errorLog, true);
 
 		ObjectMapper mapper = new ObjectMapper();
 		try {
