@@ -12,21 +12,25 @@ public class PossibleMatch implements Comparable<PossibleMatch>{
 	
 	private int numSlots = 4;
 	
-	private double outcomeMerge;
+	private double outcomeMatch;
 	
 	public PossibleMatch(Offer offer1, Offer offer2) {
 		if (! offer1.getDate().equals(offer2.getDate())) {
-			// TODO Fehler, dass Angebote für unterschiedlichen Zeitraum sind
+			// TODO Fehler, dass Angebote fuer unterschiedlichen Zeitraum sind
 			return;
 		}
 		this.offer1 = offer1;
 		this.offer2 = offer2;
 		Loadprofile loadprofile = new Loadprofile(offer1.getAggLoadprofile(), offer2.getAggLoadprofile());
 		this.valuesAggLoadprofile = loadprofile.getValues();
-		this.outcomeMerge = chargeOutcomeMerge();
+		this.outcomeMatch = chargeOutcomeMatch();
 	}
 	
-	private double chargeOutcomeMerge() {
+	/**
+	 * Berechnet den finanziellen Output des moeglichen Matches.
+	 * @return Finanzieller Output.
+	 */
+	private double chargeOutcomeMatch() {
 		double price1 = offer1.getPrice();
 		double price2 = offer2.getPrice();
 		double[] loadprofile1 = offer1.getAggLoadprofile().getValues();
@@ -40,15 +44,29 @@ public class PossibleMatch implements Comparable<PossibleMatch>{
 		return sumOffer1*price1 + sumOffer2*price2;
 	}
 	
+	/**
+	 * Liefert die beiden Angebote des moeglichen Matches.
+	 * @return Ein Array mit den beiden zusammengefuehrten Angeboten
+	 */
 	public Offer[] getOffers() {
 		Offer[] offers = {offer1, offer2};
 		return offers;
 	}
 	
+	/**
+	 * Liefert das aggregierte Lastprofil der beiden Angebote
+	 * des moeglichen Matches.
+	 * @return Array mit den Werten des aggregierten Lastprofils
+	 */
 	public double[] getValuesAggLoadprofile() {
 		return valuesAggLoadprofile;
 	}
 	
+	/**
+	 * Liefert die Summe des aggregierten Lastprofils der 
+	 * beiden Angebote des moeglichen Matches.
+	 * @return	Summe des aggregierten Lastprofils
+	 */
 	public double getSumAggLoadprofile() {
 		double sumAggLoadprofile = 0;
 		for (int i=0; i<numSlots; i++) {
@@ -57,15 +75,25 @@ public class PossibleMatch implements Comparable<PossibleMatch>{
 		return sumAggLoadprofile;
 	}
 	
+	/**
+	 * Liefert das Datum der beiden Angebote des moeglichen
+	 * Matches.
+	 * @return Das Datum der beiden Angebote als GregorianCalendar
+	 */
 	public GregorianCalendar getDate() {
 		return offer1.getDate();
 	}
 	
+	/**
+	 * Liefert alle Informationen des moeglichen Matches
+	 * als String.
+	 * @return String mit allen Informationen des moeglichen Matches
+	 */
 	public String toString() {
 		String agg = " Agg: ";
 		String o1 = "Offer1: ";
 		String o2 = " Offer2: ";
-		String outcome = " Outcome: " +outcomeMerge;
+		String outcome = " Outcome: " +outcomeMatch;
 		double[] values1 = offer1.getAggLoadprofile().getValues();
 		double[] values2 = offer2.getAggLoadprofile().getValues();
 		for (int i=0; i<numSlots; i++) {
@@ -76,17 +104,27 @@ public class PossibleMatch implements Comparable<PossibleMatch>{
 		return o1 + o2 + agg +outcome;
 	}
 	
-	public double getOutcomeMerge() {
-		return outcomeMerge;
+	/**
+	 * Berechnet den finanziellen Output des moeglichen
+	 * Matches.
+	 * @return	Finanziellen Output des moeglichen Matches
+	 */
+	public double getOutcomeMatch() {
+		return outcomeMatch;
 	}
 	
+	/**
+	 * Ueberschreibt die Methode compareTo, so dass die moeglichen
+	 * Matches aufsteigen nach ihrem finanziellen Output 
+	 * sortiert werden koennen.
+	 */
 	@Override
-	public int compareTo(PossibleMatch possibleMerge) {
-		double otherOutcome = possibleMerge.getOutcomeMerge();
-		if (outcomeMerge < otherOutcome) {
+	public int compareTo(PossibleMatch possibleMatch) {
+		double otherOutcome = possibleMatch.getOutcomeMatch();
+		if (outcomeMatch < otherOutcome) {
 			return -1;
 		}
-		else if (outcomeMerge == otherOutcome) {
+		else if (outcomeMatch == otherOutcome) {
 			return 0;
 		}
 		else {
@@ -94,12 +132,15 @@ public class PossibleMatch implements Comparable<PossibleMatch>{
 		}
 	}
 	
+	/**
+	 * Ueberschreibt die Method equals.
+	 * Zwei moegliche Matches werden als gleich angesehen, 
+	 * wenn sie aus den gleichen Angeboten bestehen.
+	 */
 	@Override
 	public boolean equals (Object o) {
-		System.out.println("Equals aufgerufen");
-
-		PossibleMatch possibleMergeToCompare = (PossibleMatch) o;
-		Offer[] offersToCompare = possibleMergeToCompare.getOffers();
+		PossibleMatch possibleMatchToCompare = (PossibleMatch) o;
+		Offer[] offersToCompare = possibleMatchToCompare.getOffers();
 		if (offersToCompare[0].equals(offer1) && offersToCompare[1].equals(offer2) 
 				|| offersToCompare[1].equals(offer1) && offersToCompare[0].equals(offer2)) {
 			return true;

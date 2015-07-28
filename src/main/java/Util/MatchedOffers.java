@@ -1,12 +1,15 @@
 package Util;
 
-import java.util.ArrayList;
 import java.util.GregorianCalendar;
 
 import java.util.UUID;
 
 import Entity.Offer;
 
+/**
+ * Klasse fuer alle zusammengefuehrten Angebote
+ *
+ */
 public class MatchedOffers {
 	double price1, price2;
 	GregorianCalendar time;
@@ -22,7 +25,11 @@ public class MatchedOffers {
 		time = offer1.getAggLoadprofile().getDate();
 	}
 	
-	public String mergedOffersToString() {
+	/**
+	 * Gibt einen String der beiden Zusammengefuehrten Angebote zurueck.
+	 * @return	String der beiden Zusammengefuehrten Angebote
+	 */
+	public String matchedOffersToString() {
 		String o1 = " Offer 1: ";
 		String o2 = " Offer 2: ";
 		double[] values1 = offer1.getAggLoadprofile().getValues();
@@ -37,18 +44,34 @@ public class MatchedOffers {
 		return s;
 	}
 	
+	/**
+	 * Liefert den Preis des 1. Angebots.
+	 * @return Preis des 1. Angebots
+	 */
 	public double getPrice1() {
 		return price1;
 	}
 	
+	/**
+	 * Liefert den Preis des 2. Angebots.
+	 * @return Preis des 2. Angebots
+	 */
 	public double getPrice2() {
 		return price2;
 	}
 	
+	/**
+	 * Liefert die Startzeit der beiden zusammengefuehrten Angebote.
+	 * @return Startzeit der beiden zusammengefuehrten Angebote als GregorianCalendar
+	 */
 	public GregorianCalendar getTime() {
 		return time;
 	}
 	
+	/**
+	 * Liefert die beiden zusammengefuehrten Angebote.
+	 * @return Ein Array mit den beiden zusammengefuehrten Angeboten
+	 */
 	public Offer[] getOffers() {
 		Offer[] offers = new Offer[2];
 		offers[0] = offer1;
@@ -56,6 +79,10 @@ public class MatchedOffers {
 		return offers;
 	}
 	
+	/**
+	 * Liefert die UUID dieser Zusammenfuehrung von zwei Angeboten.
+	 * @return	UUID der Zusammenfuehrung
+	 */
 	public UUID getUUID () {
 		return uuid;
 	}
