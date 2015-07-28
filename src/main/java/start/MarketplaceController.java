@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import Entity.Marketplace;
 import Entity.Offer;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
@@ -46,7 +47,6 @@ public class MarketplaceController {
 
 	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)
 	public void getOffer(@RequestBody UUID uuid) {
-		Marketplace.instance().getDemand(uuid).invalidate();
 		Marketplace.instance().removeOffer(uuid, false);
 	}
 

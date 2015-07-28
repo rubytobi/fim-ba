@@ -20,9 +20,8 @@ public class OfferNotification {
 	 * 
 	 * @param location
 	 *            URL, unter der das neue Angebot zu finden ist
-	 * @param referenceOffer
-	 *            URL des vorhergehenden Angebots, auf dem das neue Angebot
-	 *            aufbaut
+	 * @param offerUUID
+	 *            Angebots-ID
 	 */
 	public OfferNotification(String location, UUID offerUUID) {
 		this.location = location;

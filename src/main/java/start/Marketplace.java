@@ -14,7 +14,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
@@ -23,7 +22,9 @@ import Util.DateTime;
 import Util.PossibleMatch;
 import Util.Negotiation;
 import Util.sortOfferPriceSupplyLowToHigh;
+import start.Application;
 import Util.sortOfferPriceDemandHighToLow;
+import Entity.Offer;
 
 /**
  * Marktplatz, auf welchem alle Angebote eintreffen und zusammengefuehrt werden
@@ -35,6 +36,7 @@ public class Marketplace {
 	 * Angebotskombinationen enthält
 	 */
 	private Map<String, ArrayList<PossibleMatch>> blackListPossibleMatches = new TreeMap<String, ArrayList<PossibleMatch>>();
+
 
 	private ChangeRequestLoadprofile currentAnswer;
 
@@ -125,9 +127,10 @@ public class Marketplace {
 		}
 		return instance;
 	}
-	
+
 	/**
-	 * Überprüft, ob schon Minute 55 oder größer erreicht ist und macht ggf. den nächsten Slot.
+	 * Überprüft, ob schon Minute 55 oder größer erreicht ist und macht ggf. den
+	 * nächsten Slot.
 	 * 
 	 */
 	public void BKV() {
@@ -135,26 +138,25 @@ public class Marketplace {
 		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= 55) {
 			matchNextSlot();
 		}
-		
+
 		// Berechne den Startzeitpunkt der als letztes gemachten Stunde
 		GregorianCalendar slotLastMatched = (GregorianCalendar) nextSlot.clone();
 		slotLastMatched.add(Calendar.HOUR_OF_DAY, -1);
-		
-		// Berechne aktuellen Slot 
+
+		// Berechne aktuellen Slot
 		int slot;
 		if (now.get(Calendar.HOUR_OF_DAY) == slotLastMatched.get(Calendar.HOUR_OF_DAY)) {
 			double minute = now.get(Calendar.MINUTE);
-			slot = (int) Math.floor(minute/15);
-		}
-		else {
+			slot = (int) Math.floor(minute / 15);
+		} else {
 			slot = 0;
 		}
-		
+
 		// Merge zuerst alle guten Angebote und bestätige dann alle
 		// verbliebenen Angebote zu einem Einheitspreis
 		mergeAllGoodOffers(slotLastMatched);
 		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot);
-		
+
 		// Lösche alle Angebote vor dem als letztes gemachten Slot
 		Set<String> dates = listPossibleMatches.keySet();
 		for (String date: dates) {
@@ -163,6 +165,7 @@ public class Marketplace {
 				ArrayList<PossibleMatch> possibleMergesOld = listPossibleMatches.get(date);
 				
 				for (PossibleMatch possibleMerge: possibleMergesOld) {
+
 					// TODO Wie sollen alte Angebote behandelt werden?
 				}
 			}
@@ -211,13 +214,17 @@ public class Marketplace {
 		}
 		return deviationAll;
 	}
-	
+
 	/**
-	 * Bestätigt alle verbliebenen Angebot mit übergebenem Start und bei welchen die
-	 * Summe der Lastprofilwerte bis einschließlich des übergebenen Slots > 0 sind 
-	 * zu einem Einheitspreis mit Strafe
-	 * @param date	Startzeit, für welche alle verbliebenen Angebote bestätigt werden sollen
-	 * @param slot	Anzahl der Slots, über die die Summe gebildet werden muss
+	 * Bestätigt alle verbliebenen Angebot mit übergebenem Start und bei welchen
+	 * die Summe der Lastprofilwerte bis einschließlich des übergebenen Slots >
+	 * 0 sind zu einem Einheitspreis mit Strafe
+	 * 
+	 * @param date
+	 *            Startzeit, für welche alle verbliebenen Angebote bestätigt
+	 *            werden sollen
+	 * @param slot
+	 *            Anzahl der Slots, über die die Summe gebildet werden muss
 	 */
 	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, int slot) {
 		String dateString = DateTime.ToString(date);
@@ -230,74 +237,76 @@ public class Marketplace {
 		double volumeSupply = 0;
 		double sumPricesDemand = 0;
 		double sumPricesSupply = 0;
-		
-		for (Offer currentOffer: allDemandsAtDate) {
+
+		for (Offer currentOffer : allDemandsAtDate) {
 			double sumUntilCurrentSlot = 0;
-			// Berechne die Summe des Lastprofils einschließlich des aktuellen Slots
-			for (int i=0; i==slot; i++) {
+			// Berechne die Summe des Lastprofils einschließlich des aktuellen
+			// Slots
+			for (int i = 0; i == slot; i++) {
 				sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
 			}
-				
-			// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0 ist,
+
+			// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0
+			// ist,
 			// muss das Angebot zum Einheitspreis mit Strafe bestätigt werden.
 			// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
 			if (sumUntilCurrentSlot != 0) {
 				volumeDemand += currentOffer.getSumAggLoadprofile();
-				sumPricesDemand += currentOffer.getSumAggLoadprofile()*currentOffer.getPrice();
-			}
-			else {
+				sumPricesDemand += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
+			} else {
 				toRemoveFromDemands.add(currentOffer);
 			}
 		}
 		// Entferne Angebote mit sumUntilCurrentSlot = 0
-		for (Offer removeOffer: toRemoveFromDemands) {
+		for (Offer removeOffer : toRemoveFromDemands) {
 			allDemandsAtDate.remove(removeOffer);
 		}
-		System.out.println("\nSumPricesDemand: "+sumPricesDemand);
-		System.out.println("VolumeDemand: " +volumeDemand);
-		
-		for (Offer currentOffer: allSuppliesAtDate) {
+		System.out.println("\nSumPricesDemand: " + sumPricesDemand);
+		System.out.println("VolumeDemand: " + volumeDemand);
+
+		for (Offer currentOffer : allSuppliesAtDate) {
 			double sumUntilCurrentSlot = 0;
-			// Berechne die Summe des Lastprofils einschließlich des aktuellen Slots
-			for (int i=0; i==slot; i++) {
+			// Berechne die Summe des Lastprofils einschließlich des aktuellen
+			// Slots
+			for (int i = 0; i == slot; i++) {
 				sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
 			}
-				
-			// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0 ist,
+
+			// Nur, wenn die oben berechnete Summe des Lastprofils ungleich 0
+			// ist,
 			// muss das Angebot zum Einheitspreis mit Strafe bestätigt werden.
 			// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
 			if (sumUntilCurrentSlot != 0) {
 				volumeSupply += currentOffer.getSumAggLoadprofile();
-				sumPricesSupply += currentOffer.getSumAggLoadprofile()*currentOffer.getPrice();
-			}
-			else {
+				sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
+			} else {
 				toRemoveFromSupplies.add(currentOffer);
 			}
 		}
 		// Entferne Angebote mit sumUntilCurrentSlot = 0
-		for (Offer removeOffer: toRemoveFromSupplies) {
+		for (Offer removeOffer : toRemoveFromSupplies) {
 			allSuppliesAtDate.remove(removeOffer);
 		}
-		System.out.println("\nSumPricesSupply: "+sumPricesSupply);
-		System.out.println("VolumeSupply: " +volumeSupply);
-		
-		double middle = (Math.abs(sumPricesDemand)+Math.abs(sumPricesSupply))/2;
-		System.out.println("\nMittelpreis: " +middle);
+		System.out.println("\nSumPricesSupply: " + sumPricesSupply);
+		System.out.println("VolumeSupply: " + volumeSupply);
+
+		double middle = (Math.abs(sumPricesDemand) + Math.abs(sumPricesSupply)) / 2;
+		System.out.println("\nMittelpreis: " + middle);
 
 		// Berechne Strafe
-		double penalty = middle*0.1;
-		System.out.println("Strafe: " +penalty);
-		double priceDemand = Math.abs((middle+penalty)/volumeDemand);
-		double priceSupply = (middle-penalty)/volumeSupply;
-		System.out.println("priceDemand: " +priceDemand);
-		System.out.println("priceSupply: " +priceSupply);
-		System.out.println("Gesamt: " + (priceDemand*volumeDemand + priceSupply*volumeSupply));
-		
+		double penalty = middle * 0.1;
+		System.out.println("Strafe: " + penalty);
+		double priceDemand = Math.abs((middle + penalty) / volumeDemand);
+		double priceSupply = (middle - penalty) / volumeSupply;
+		System.out.println("priceDemand: " + priceDemand);
+		System.out.println("priceSupply: " + priceSupply);
+		System.out.println("Gesamt: " + (priceDemand * volumeDemand + priceSupply * volumeSupply));
+
 		// Bestätige alle Angebote des Zeitrausm mit den errechneten Preisen
-		for (Offer demand: allDemandsAtDate) {
+		for (Offer demand : allDemandsAtDate) {
 			confirmOffer(demand, priceDemand);
 		}
-		for (Offer supply: allSuppliesAtDate) {
+		for (Offer supply : allSuppliesAtDate) {
 			confirmOffer(supply, priceSupply);
 		}
 	}
@@ -315,6 +324,7 @@ public class Marketplace {
 		// Entferne offer von Marktplatz
 		removeOffer(offer.getUUID(), true);
 		
+
 		// Nehme Lastprofil von offer in die Summe der Lastprofile aller
 		// bestätigten Angebote auf
 		double[] values = offer.getAggLoadprofile().getValues().clone();
@@ -358,16 +368,9 @@ public class Marketplace {
 	 * beendet worden, so werden beide Angebote wieder auf den Marktplatz
 	 * gestellt. Die Negotiation wird aus der Liste negotiatingOffers entfernt.
 	 * 
-	 * @param negotiation
+	 * @param end
 	 *            Verhandlung, die beendet wurde
-	 * @param newPrice1
-	 *            Neu verhandelter Preis für Angebot1
-	 * @param newPrice2
-	 *            Neu verhandelter Preis für Angebot2
-	 * @param successfull
-	 *            Gibt an, ob die Verhandlung erfolgreich beendet wurde
 	 */
-
 	public void endOfNegotiation(EndOfNegotiation end) {
 		UUID negotiation = end.getNegotiation();
 		double newPrice1 = end.getNewPrice1();
@@ -474,7 +477,7 @@ public class Marketplace {
 		ArrayList<PossibleMatch> blackListPossibleMergesOfDateOffer = blackListPossibleMatches
 				.get(DateTime.ToString(offer.getDate()));
 
-		for (Offer compareOffer: offers) {
+		for (Offer compareOffer : offers) {
 			// Prüfe, ob Kombination der Angebote auf Blacklist
 			// Wenn ja, überspringe dieses Angebot
 			PossibleMatch possibleMerge = new PossibleMatch(offer, compareOffer);
@@ -523,21 +526,24 @@ public class Marketplace {
 		}
 		return false;
 	}
-	
+
 	/**
 	 * Gibt die Angebote von Erzeugern für das übergebene Datum zurück, die am
 	 * wenigsten für den erzeugten Strom verlangen.
-	 * @param date Datum für welches die Angebote sein sollen
-	 * @param number Anzahl an Angeboten, die angefragt wird
-	 * @return
+	 * 
+	 * @param date
+	 *            Datum für welches die Angebote sein sollen
+	 * @param number
+	 *            Anzahl an Angeboten, die angefragt wird
+	 * @return Liste aller guenstigsten Angebote
 	 */
-	public ArrayList<Offer> getCheapestSupplyOffer (GregorianCalendar date , int number) {
+	public ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date, int number) {
 		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
 		if (allSuppliesAtDate.size() < number) {
 			number = allSuppliesAtDate.size();
 		}
 		ArrayList<Offer> cheapest = new ArrayList<Offer>();
-		for (int i=0; i<number; i++) {
+		for (int i = 0; i < number; i++) {
 			cheapest.add(allSuppliesAtDate.get(i));
 		}
 		return cheapest;
@@ -572,19 +578,22 @@ public class Marketplace {
 	}
 
 	/**
-	 * Gibt die Angebote von Verbrauchern für das übergebene Datum zurück, die bereit 
-	 * sind am meisten zu zahlen. 
-	 * @param date	Datum, für welches die Angebote sein sollen
-	 * @param number Anzahl an Angeboten, die angefragt wird
-	 * @return
+	 * Gibt die Angebote von Verbrauchern für das übergebene Datum zurück, die
+	 * bereit sind am meisten zu zahlen.
+	 * 
+	 * @param date
+	 *            Datum, für welches die Angebote sein sollen
+	 * @param number
+	 *            Anzahl an Angeboten, die angefragt wird
+	 * @return Liste aller teuersten Angebote
 	 */
-	public ArrayList<Offer> getMostExpensiveDemandOffer (GregorianCalendar date, int number) {
+	public ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar date, int number) {
 		ArrayList<Offer> allDemandsAtDate = demand.get(date);
 		if (allDemandsAtDate.size() < number) {
 			number = allDemandsAtDate.size();
 		}
 		ArrayList<Offer> mostExpensive = new ArrayList<Offer>();
-		for (int i=0; i<number; i++) {
+		for (int i = 0; i < number; i++) {
 			mostExpensive.add(allDemandsAtDate.get(i));
 		}
 		return mostExpensive;
@@ -608,8 +617,8 @@ public class Marketplace {
 	 * Liefert die Summe aller auf dem Marktplatz vorhandenen Lastprofile eines
 	 * Zeitraums
 	 * 
-	 * @param time
-	 *         Gibt den Anfang des Zeitraums an
+	 * @param date
+	 *            Gibt den Anfang des Zeitraums an
 	 * @return Array mit der Summe aller auf dem Marktplatz vorhandenen
 	 *         Lastprofile des Zeitraums
 	 */
@@ -620,7 +629,7 @@ public class Marketplace {
 	/**
 	 * Liefert die Summe aller bestätigten Lastprofile eines Zeitraums
 	 * 
-	 * @param time
+	 * @param date
 	 *            Gibt den Anfang des Zeitraums an
 	 * @return Array mit der Summe aller bestätigten Lastprofile des Zeitraums
 	 */
@@ -642,21 +651,24 @@ public class Marketplace {
 		return null;
 	}
 	
+
 	/**
-	 * Gibt zurück, ob für die Höhe der Abweichung von der Prognose
-	 * eine Anpassung erfragt oder der reBAP bezahlt werden soll.
-	 * @param sumDeviationAll Höhe der Abweichung von der Prognose
-	 * @return true, wenn eine Anpassung erfragt werden soll. false,
-	 * wenn der reBAP bezahlt werden soll.
+	 * Gibt zurück, ob für die Höhe der Abweichung von der Prognose eine
+	 * Anpassung erfragt oder der reBAP bezahlt werden soll.
+	 * 
+	 * @param sumDeviationAll
+	 *            Höhe der Abweichung von der Prognose
+	 * @return true, wenn eine Anpassung erfragt werden soll. false, wenn der
+	 *         reBAP bezahlt werden soll.
 	 */
 	public boolean make(double sumDeviationAll) {
 		return true;
 	}
 
 	/**
-	 * Bestätigt alle Angebote des nächsten Slots.
-	 * In Abhängigkeit von der Gesamtabweichung der Angebote von der Prognose
-	 * werden Strafen verhängt oder eine Anpassung erfragt.
+	 * Bestätigt alle Angebote des nächsten Slots. In Abhängigkeit von der
+	 * Gesamtabweichung der Angebote von der Prognose werden Strafen verhängt
+	 * oder eine Anpassung erfragt.
 	 */
 	private void matchNextSlot() {
 		double[] deviationAll = chargeDeviationAll(nextSlot);
@@ -672,77 +684,79 @@ public class Marketplace {
 		}
 		if (make(sumDeviationAll)) {
 			mergeAllGoodOffers(nextSlot);
-			
+
 			ArrayList<Offer> remainingOffers = demand.get(DateTime.ToString(nextSlot));
 			ArrayList<Offer> supplies = supply.get(DateTime.ToString(nextSlot));
-			
-			for (Offer supply: supplies) {
+
+			for (Offer supply : supplies) {
 				remainingOffers.add(supply);
 			}
-			
-			// Sortiere verbleibende Angebote absteigend nach Betrag des Volumens
+
+			// Sortiere verbleibende Angebote absteigend nach Betrag des
+			// Volumens
 			Collections.sort(remainingOffers);
-			
+
 			double[] currentDeviation = chargeDeviationAll(nextSlot);
 			double sumCurrentDeviation = 0;
-			for (int i=0; i<numSlots; i++) {
+			for (int i = 0; i < numSlots; i++) {
 				sumCurrentDeviation += Math.abs(currentDeviation[i]);
 			}
-			
+
 			// Frage verbliebenen Angebote der Reihe nach
 			// nach Ausgleichsmöglichkeiten
-			for (Offer currentOffer: remainingOffers) {
+			for (Offer currentOffer : remainingOffers) {
 				ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(currentOffer.getUUID(), currentDeviation);
 				UUID author = currentOffer.getAuthor();
-				
+
 				// Versende Anfrage an Author
 				RestTemplate rest = new RestTemplate();
 				HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(cr,
 						Application.getRestHeader());
 
-				String url = "http://localhost:8080/consumers/" + author + "/offers/" +currentOffer.getUUID()
+				String url = "http://localhost:8080/consumers/" + author + "/offers/" + currentOffer.getUUID()
 						+ "/receiveChangeRequestLoadprofile";
 
 				try {
 					ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
 				} catch (Exception e) {
 				}
-				
+
 				// Warte, bis eine Antwort vom Consumer eingetroffen ist
-				synchronized(currentAnswer) {
+				synchronized (currentAnswer) {
 					while (currentAnswer == null) {
 						try {
 							currentAnswer.wait();
-						}
-						catch (InterruptedException e) {
+						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 					}
 				}
-				
-				// Berechne die neue Abweichung, wenn die übergebene 
+
+				// Berechne die neue Abweichung, wenn die übergebene
 				// Änderung beachtet wird.
 				double[] possibleChange = currentAnswer.getChange();
 				double[] possibleChangeDeviation = currentDeviation.clone();
 				double sumPossibleChange = 0;
 				double sumPossibleChangeDeviation = 0;
-				for (int i=0; i<numSlots; i++) {
+				for (int i = 0; i < numSlots; i++) {
 					possibleChangeDeviation[i] += possibleChange[i];
 					sumPossibleChange += Math.abs(possibleChange[i]);
 					sumPossibleChangeDeviation += Math.abs(possibleChangeDeviation[i]);
 				}
-				
-				// Prüfe, ob der Consumer eine Änderung vorgenommen hat und wenn ja, 
+
+				// Prüfe, ob der Consumer eine Änderung vorgenommen hat und wenn
+				// ja,
 				// ob diese Änderung zur Verbesserung beiträgt
 				if (sumPossibleChange > 0 && sumPossibleChangeDeviation < sumCurrentDeviation) {
 					// Bestätige das Angebot zum übergebenen Preis
 					confirmOffer(currentOffer, currentOffer.getPrice());
-					
-					// Aktualisiere die Gesamtabweichung aller bestätigter Angebote 
+
+					// Aktualisiere die Gesamtabweichung aller bestätigter
+					// Angebote
 					// und deren Summe
 					currentDeviation = chargeDeviationAll(nextSlot);
 					sumCurrentDeviation = 0;
-					for (int i=0; i<numSlots; i++) {
+					for (int i = 0; i < numSlots; i++) {
 						sumCurrentDeviation += Math.abs(currentDeviation[i]);
 					}
 					// Wenn die Summe = 0 gibt es keine Abweichung mehr und die
@@ -751,20 +765,24 @@ public class Marketplace {
 						break;
 					}
 				}
-			}						
-		} 
-		
+			}
+		}
+
 		// Bestätige alle noch uebrigen Angebote zum selben Preis
 		confirmAllRemainingOffersWithOnePrice(nextSlot, 4);
-		
+
 		// Zähle Variable nextSlot um eins hoch
 		nextSlot.add(Calendar.HOUR_OF_DAY, 1);
 	}
-	
+
 	/**
-	 * Führt alle Angebote eines Zeitraums zusammen, die die Abweichung von der Prognose
-	 * verbessern bzw. mit welchen die Abweichung von der Prognose < 5 ist.
-	 * @param slot Start des Zeitraums, für den die Angebote zusammengeführt werden sollen
+	 * Führt alle Angebote eines Zeitraums zusammen, die die Abweichung von der
+	 * Prognose verbessern bzw. mit welchen die Abweichung von der Prognose < 5
+	 * ist.
+	 * 
+	 * @param slot
+	 *            Start des Zeitraums, für den die Angebote zusammengeführt
+	 *            werden sollen
 	 */
 	private void mergeAllGoodOffers(GregorianCalendar date) {
 		// Hole die Liste aller möglichen Merges
@@ -803,8 +821,8 @@ public class Marketplace {
 				mergeFittingOffers(offers[0], offers[1]);
 			}
 		}
-	}	
-	
+	}
+
 	/**
 	 * Führt Angebote zusammen, die die Annäherung an die Prognose verbessern
 	 * bzw. nicht sehr viel verschlechtern. Die Angebote werden vom Marktplatz
@@ -916,6 +934,7 @@ public class Marketplace {
 				price2 = price2 / sumOffer2;
 				System.out.println("Zu erreichende Preise: " + price1 + ", " + price2);
 			}
+
 			// Entferne Angebote von Marktplatz
 			removeOffer(offer1.getUUID(), false);
 			removeOffer(offer2.getUUID(), false);
@@ -928,8 +947,6 @@ public class Marketplace {
 		}
 	}
 
-	
-
 	/**
 	 * Enthaelt neues Angebot. Gibt es auf dem Marktplatz ein bereits passendes
 	 * Angebot, werden die Angebote direkt zusammengefuehrt und bestaetigt. Gibt
@@ -941,7 +958,7 @@ public class Marketplace {
 	 */
 	public void putOffer(Offer offer) {
 		String date = DateTime.ToString(offer.getDate());
-		
+
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
 		double[] sumAllOffers = sumLoadprofilesAllOffers.get(date);
@@ -962,7 +979,7 @@ public class Marketplace {
 				}
 				offers.add(offer);
 				Collections.sort(offers, new sortOfferPriceSupplyLowToHigh());
-				supply.put(date, offers);				
+				supply.put(date, offers);
 			}
 		} else {
 			if (!findFittingOffer(offer, false)) {
@@ -972,7 +989,7 @@ public class Marketplace {
 				}
 				offers.add(offer);
 				Collections.sort(offers, new sortOfferPriceDemandHighToLow());
-				demand.put(date, offers);	
+				demand.put(date, offers);
 			}
 		}
 	}
@@ -987,6 +1004,9 @@ public class Marketplace {
 	 * 
 	 * @param offer
 	 *            Angebot, das entfernt werden soll
+	 * @param confirmed
+	 *            Entferne Summe des Lastprofiles von der Gesamtsumme aller //
+	 *            Lastprofile
 	 */
 	public void removeOffer(UUID offer, boolean confirmed) {
 		Offer removeOffer = getDemand(offer);
@@ -1016,7 +1036,7 @@ public class Marketplace {
 		// Entferne Angebot aus blackListPossibleMerges
 		removeFromBlackListPossibleMerges(removeOffer);
 	}
-	
+
 	/**
 	 * Entfernt alle möglichen Kombination von der Black List, an denen das
 	 * übergeben Angebot beteiligt ist.
@@ -1041,7 +1061,7 @@ public class Marketplace {
 			blackListPossibleMatches.remove(key);
 		}
 		else {
-			blackListPossibleMatches.put(key,  newBlackList);
+			blackListPossibleMatches.put(key, newBlackList);
 		}
 	}
 
@@ -1098,14 +1118,14 @@ public class Marketplace {
 	 */
 	public void ping() {
 		Set<String> set = demand.keySet();
-		
-		for (String date: set) {
+
+		for (String date : set) {
 			Offer offer = demand.get(date).get(0);
 			confirmOffer(offer, offer.getAggLoadprofile().getMinPrice());
 			break;
 		}
 	}
-	
+
 	public String toString() {
 		String s = "\nMarketplace: \nnumberOfDemands: " + demand.size() + " numberOfSupplies: " + supply.size();
 		s = s + " numberOfNegotiations: " + negotiatingOffers.size() + " numberOfMerges: " + matchedOffers.size();
@@ -1135,14 +1155,14 @@ public class Marketplace {
 			System.out.println("\nNo Demand");
 		} else {
 			System.out.println("\nDemand:");
-			for (String date: demandSet) {
+			for (String date : demandSet) {
 				System.out.println(date);
 				ArrayList<Offer> offersAtDate = demand.get(date);
-				for (Offer offer: offersAtDate) {
+				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1] + "]["
-							+ values[2] + "][" + values[3] + "]");
-				}				
+					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1]
+							+ "][" + values[2] + "][" + values[3] + "]");
+				}
 			}
 		}
 
@@ -1151,14 +1171,14 @@ public class Marketplace {
 			System.out.println("No Supply");
 		} else {
 			System.out.println("Supply:");
-			for (String date: supplySet) {
+			for (String date : supplySet) {
 				System.out.println(date);
 				ArrayList<Offer> offersAtDate = supply.get(date);
-				for (Offer offer: offersAtDate) {
+				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1] + "]["
-							+ values[2] + "][" + values[3] + "]");
-				}				
+					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1]
+							+ "][" + values[2] + "][" + values[3] + "]");
+				}
 			}
 		}
 	}

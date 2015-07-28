@@ -12,13 +12,12 @@ import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
-import start.Device;
-import start.Loadprofile;
-import start.View;
 import Packet.ChangeRequestSchedule;
 import Packet.OfferNotification;
 import Util.DateTime;
 import Util.DeviceStatus;
+import start.Device;
+import start.View;
 
 /**
  * Klasse fuer Waschmaschinen

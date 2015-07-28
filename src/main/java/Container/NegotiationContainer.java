@@ -44,7 +44,7 @@ public class NegotiationContainer {
 	
 	/**
 	 * Fuegt neue Negotiation zum Container hinzu
-	 * @param device Neue Negotiation, das hinzugefuegt werden soll
+	 * @param negotiation Neue Negotiation, das hinzugefuegt werden soll
 	 */
 	public void add(Negotiation negotiation) {
 		negotiations.put(negotiation.getUUID(), negotiation);

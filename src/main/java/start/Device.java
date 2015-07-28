@@ -12,8 +12,8 @@ import Util.DeviceStatus;
  *
  */
 public interface Device {
-	int numSlots = 4;	
-	
+	int numSlots = 4;
+
 	/**
 	 * Ueberprueft, ob die gewuentsche Aenderung des Lastprofils moeglich ist
 	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
@@ -22,25 +22,32 @@ public interface Device {
 	public void changeLoadprofile(ChangeRequestSchedule cr);
 
 	/**
-	 * Das Device speichert das Lastprofil und den Fahrplan zur uebergebenen Zeit als fest ab.
-	 * @param time Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
+	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird
+	 * aufgerufen, wenn eine anderer Wert gemessen wurde, als in der Minute
+	 * geplant war.
+	 * 
+	 * @param timeChanged
+	 *            Zeitpunkt, wann die Abweichung gemessen wurde
+	 * @param valueChanged
+	 *            Wert, der gemessen wurde
 	 */
-	public void confirmLoadprofile (GregorianCalendar time);
+	public void sendDeltaLoadprofile(GregorianCalendar timeChanged, double valueChanged);
 
 	/**
 	 * Liefert die uuid des Devices
+	 * 
 	 * @return Uuid des Devices
 	 */
 	public UUID getUUID();
 
+	public void initialize(Map<String, Object> init);
+
 	/**
 	 * Liefert den aktuellen Status des Devices
+	 * 
 	 * @return Aktueller Status des Devices
 	 */
 	public DeviceStatus getStatus();
-	
-	
-	public void initialize(Map<String, Object> init);
 
 	public void ping();
 
@@ -51,16 +58,18 @@ public interface Device {
 	public void sendNewLoadprofile();
 	
 	/**
-	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer.
-	 * Methode wird aufgerufen, wenn eine anderer Wert gemessen wurde, als in der Minute geplant war.
-	 * @param	timeChanged		Zeitpunkt, wann die Abweichung gemessen wurde
-	 * @param	valueChanged	Wert, der gemessen wurde
-	 */
-	public void sendDeltaLoadprofile(GregorianCalendar timeChanged, double valueChanged);
-	
-	/**
 	 * Legt den Consumer fuer das Device fest
 	 * @param uuid	Uuid des Consumers
 	 */
 	public void setConsumer(UUID consumerUUID);
+
+
+	/**
+	 * Das Device speichert das Lastprofil und den Fahrplan zur uebergebenen
+	 * Zeit als fest ab.
+	 * 
+	 * @param time
+	 *            Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
+	 */
+	public void confirmLoadprofile(GregorianCalendar time);
 }

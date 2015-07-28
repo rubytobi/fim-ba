@@ -264,18 +264,14 @@ public class Consumer {
 	 * des alten Angebots geschickt werden.
 	 * 
 	 * @param oldOffer
+	 *            Angebots-ID des zu ersetzende Angebots
 	 * @param newOffer
+	 *            neue Angebots-ID
 	 */
-	public void replaceOffer(UUID oldOffer, UUID newOffer, UUID author) {
-		Log.d(uuid, new API().consumers(uuid).offers(oldOffer).replace(newOffer).toString() + " by " + author);
+	public void replaceOffer(UUID oldOffer, UUID newOffer) {
+		Log.d(uuid, new API().consumers(uuid).offers(oldOffer).replace(newOffer).toString());
 
 		if (getOfferIntern(oldOffer) == null)
-			// if (allOffers.get(oldOffer) == null)
-			return;
-
-		// prüfen ob neues angebot vom author des alten kommt
-		if (!getOfferIntern(oldOffer).getAuthor().equals(author))
-			// if (!allOffers.get(oldOffer).getAuthor().equals(author))
 			return;
 
 		// das neue Angebot besorgen
@@ -304,8 +300,8 @@ public class Consumer {
 	 * @param uuidOffer
 	 *            Angebots-ID welches bestätigt wird
 	 * @param authKey
-	 *            AuthKey um bestätigung zu verifizieren
-	 * @return
+	 *            Angebotskey
+	 * @return Angebot wurde angenommen ja/nein
 	 */
 	public boolean confirmOfferByConsumer(UUID uuidOffer, UUID authKey) {
 		Log.d(uuid, "-- START confirmOfferByConsumer --");
@@ -314,6 +310,7 @@ public class Consumer {
 
 		// Prüfen ob "AuthKey" übereinstimmt
 		if (!offer.getAuthKey().equals(authKey)) {
+			Log.d(uuid, "Consumer moechte mit ungueltigen authKey Angebot bestaetigen");
 			return false;
 		}
 
@@ -355,7 +352,7 @@ public class Consumer {
 	/**
 	 * Der Marktplatz bestätigt ein Angebot
 	 * 
-	 * @param confirmOffer
+	 * @param answerOffer
 	 *            das bestätigte Angebot
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
@@ -533,8 +530,6 @@ public class Consumer {
 	 * 
 	 * @param date
 	 *            entsprechender Zeitslot
-	 * @param offerToBeExcluded
-	 *            Angebot das ausgeschlossen werden soll
 	 * @return Angebot
 	 */
 	public Offer getOfferWithPrivileges(GregorianCalendar date) {
@@ -557,13 +552,29 @@ public class Consumer {
 	public void ping() {
 		Object[] object = notificationQueue.poll();
 
-		if (object == null)
-			return;
+		if (object == null) {
+			// Log.d(uuid, "notification queue empty");
+
+			Offer offer = getOfferWithPrivileges(DateTime.now());
+
+			if (offer == null) {
+				// Log.d(uuid, "no offerWithPrivileges for sending
+				// notifications");
+				return;
+			} else {
+				// Log.d(uuid, "send notification for current offer");
+
+				OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+				sendOfferNotificationToAllConsumers(notification);
+				return;
+			}
+		}
 
 		OfferAction action = (OfferAction) object[0];
 		OfferNotification notification = (OfferNotification) object[1];
 
 		if (action.equals(OfferAction.SEND)) {
+			Log.d(uuid, "send notification due to notificationQueue");
 			sendOfferNotificationToAllConsumers(notification);
 			return;
 		}
@@ -571,15 +582,17 @@ public class Consumer {
 		Offer offer = getOfferFromUrl(notification.getLocation());
 
 		// Angbeot nicht mehr vorhanden
-		if (offer == null)
+		if (offer == null) {
+			Log.d(uuid, "offer not anymore available");
 			return;
+		}
 
 		// wenn kein eigenes Lastprofil mehr behandelt werden muss, nicht
 		// reagieren auf Angebot
 		Offer offerWithPrivileges = getOfferWithPrivileges(offer.getDate());
 
 		if (offerWithPrivileges == null) {
-			Log.d(uuid, " not able to deal");
+			Log.d(uuid, "not able to deal: " + this.allOffers);
 			return;
 		}
 
@@ -588,7 +601,7 @@ public class Consumer {
 			return;
 		}
 
-		Log.e(this.uuid, offer.toString());
+		Log.e(this.uuid, "working on this offer: " + offer.toString());
 
 		// neues Angebot erstellen und ablegen
 		Offer newOffer = new Offer(offerWithPrivileges, offer);
@@ -694,40 +707,44 @@ public class Consumer {
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
 		}
 	}
-	
-	public void receiveChangeRequestLoadprofile (ChangeRequestLoadprofile cr) {
+
+	public void receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
 		double[] valuesPossibleChange = new double[numSlots];
 		Offer requestedOffer = allOffers.get(cr.getOffer());
-		// TODO Frage eigenes Device nach Änderung und passe noch benötigte Änderung an
-		
+		// TODO Frage eigenes Device nach Änderung und passe noch benötigte
+		// Änderung an
+
 		ChangeRequestLoadprofile possibleChange = new ChangeRequestLoadprofile(cr.getOffer(), valuesPossibleChange);
-		
+
 		// TODO Autor für übergebenes Angebot?
-		// Wenn ja: Frage alle anderen beteiligten Consumer der Reihe nach nach Änderung für deren Lastprofil
-		// ,passe Angebot jeweils gleich an und benachrichtige Marketplace am Ende
+		// Wenn ja: Frage alle anderen beteiligten Consumer der Reihe nach nach
+		// Änderung für deren Lastprofil
+		// ,passe Angebot jeweils gleich an und benachrichtige Marketplace am
+		// Ende
 		// Wenn nein: Versende Antwort als cr an Autor
 		if (allOffers.get(cr.getOffer()).getAuthor() == uuid) {
 			Set<UUID> allConsumers = requestedOffer.getAllLoadprofiles().keySet();
-			
-			// Frage alle beteiligten Consumer nach Änderung für deren Lastprofil
-			for (UUID consumer: allConsumers) {
-				// TODO Sende cr an consumer und passe cr nach Antwort an 
+
+			// Frage alle beteiligten Consumer nach Änderung für deren
+			// Lastprofil
+			for (UUID consumer : allConsumers) {
+				// TODO Sende cr an consumer und passe cr nach Antwort an
 			}
-			
+
 			// Antworte Marketplace mit vorgenommener Änderung
 			RestTemplate rest = new RestTemplate();
 			HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(possibleChange,
 					Application.getRestHeader());
 
-			String url = "http://localhost:8080/marketplace/offer/" +cr.getOffer() + "/receiveAnswerChangeRequestLoadprofile";
+			String url = "http://localhost:8080/marketplace/offer/" + cr.getOffer()
+					+ "/receiveAnswerChangeRequestLoadprofile";
 
 			try {
 				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
 			} catch (Exception e) {
 			}
-		}
-		else {
-			
+		} else {
+
 		}
 	}
 

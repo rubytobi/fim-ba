@@ -11,7 +11,7 @@ import Entity.Offer;
 import Entity.BHKW;
 import Packet.AnswerToOfferFromMarketplace;
 import Util.DateTime;
-import start.Marketplace;
+import Entity.Marketplace;
 import Util.PossibleMatch;
 import Util.Negotiation;
 
