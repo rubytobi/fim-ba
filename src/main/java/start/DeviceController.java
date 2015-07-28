@@ -11,9 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import Container.DeviceContainer;
-import Entity.Device;
 import Entity.Fridge;
-import Entity.View;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
 

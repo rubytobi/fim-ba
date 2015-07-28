@@ -16,6 +16,8 @@ import Packet.ChangeRequestSchedule;
 import Packet.OfferNotification;
 import Util.DateTime;
 import Util.DeviceStatus;
+import start.Device;
+import start.View;
 
 /**
  * Klasse fuer Waschmaschinen

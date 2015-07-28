@@ -2,18 +2,18 @@ package Packet;
 
 import java.net.URI;
 import java.util.Map;
-
-import Entity.Loadprofile;
-
 import java.util.GregorianCalendar;
+import java.util.UUID;
 
 import Util.DateTime;
+import start.Loadprofile;
 
 /**
  * Paket, mit welchem der Consumer sein Device um eine Anpassung des Lastprofils bittet
  *
  */
 public class ChangeRequestSchedule {
+	private UUID uuid;
 	private GregorianCalendar startLoadprofile;
 	private double[] changesLoadprofile;
 	
@@ -25,6 +25,7 @@ public class ChangeRequestSchedule {
 	public ChangeRequestSchedule (GregorianCalendar startLoadprofile, double[] changesLoadprofile) {
 		this.startLoadprofile = startLoadprofile;
 		this.changesLoadprofile = changesLoadprofile;
+		uuid = UUID.randomUUID();
 	}
 	
 	/**
@@ -41,5 +42,13 @@ public class ChangeRequestSchedule {
 	 */
 	public double[] getChangesLoadprofile() {
 		return changesLoadprofile;
+	}
+	
+	/**
+	 * Liefert die UUID der ChangeRequest
+	 * @return UUID der ChangeRequest
+	 */
+	public UUID getUUID() {
+		return uuid;
 	}
 }

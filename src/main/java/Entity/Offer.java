@@ -10,7 +10,9 @@ import Util.API;
 import Util.DeviceStatus;
 import Util.Log;
 import Util.OfferStatus;
-import Util.PossibleMerge;
+import Util.PossibleMatch;
+import start.Loadprofile;
+import start.View;
 
 /**
  * Klasse fuer Angebote
@@ -123,8 +125,8 @@ public class Offer implements Comparable<Offer>{
 				+ withoutPrivileges.toString() + ")");
 
 		// füge author respektive neue werte hinzu
-		this.author = withPrivileges.getAuthor();
 		Log.d(uuid, "set author [" + author + "]");
+		this.author = withPrivileges.getAuthor();
 
 		for (Offer o : new Offer[] { withPrivileges, withoutPrivileges }) {
 			// Lastprofile aus bestehendem Angebot einbeziehen
@@ -239,7 +241,6 @@ public class Offer implements Comparable<Offer>{
 		return authKey;
 	}
 	
-	@JsonIgnore
 	public double getSumAggLoadprofile() {
 		return sumAggLoadprofile;
 	}

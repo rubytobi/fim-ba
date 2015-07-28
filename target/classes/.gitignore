@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /Container/
 /Entity/
 /Event/
@@ -5,3 +6,11 @@
 /Util/
 /start/
 /META-INF/
+=======
+/META-INF/
+/start/
+/Entity/
+/Util/
+/Packet/
+/Container/
+>>>>>>> origin/master

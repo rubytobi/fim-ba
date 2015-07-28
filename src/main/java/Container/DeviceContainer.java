@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import Entity.Device;
+import start.Device;
 
 /**
  * Container, der alle aktiven Devices enthaelt
