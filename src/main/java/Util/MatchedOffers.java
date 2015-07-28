@@ -7,13 +7,13 @@ import java.util.UUID;
 
 import Entity.Offer;
 
-public class MergedOffers {
+public class MatchedOffers {
 	double price1, price2;
 	GregorianCalendar time;
 	Offer offer1, offer2;
 	UUID uuid;
 	
-	public MergedOffers (double price1, double price2, Offer offer1, Offer offer2) {
+	public MatchedOffers (double price1, double price2, Offer offer1, Offer offer2) {
 		this.price1 = price1;
 		this.price2 = price2;
 		this.offer1 = offer1;

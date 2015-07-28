@@ -15,12 +15,34 @@ public interface Device {
 	int numSlots = 4;	
 	
 	/**
-	 * Berechnet Lastprofil auf Viertel-Stunden-Basis fuer uebergebenen Minutenfahrplan.
-	 * Hierbei werden die Werte pro Viertelstunde aufsummiert und als Lastprofil gespeichert.
-	 * @param	schedule	Minuetlicher Fahrplan, fuer den Lastprofil erstellt werden soll
-	 * @return	Array mit den Werten des Lastprofils
+	 * Ueberprueft, ob die gewuentsche Aenderung des Lastprofils moeglich ist
+	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
+	 * @param cr	Enthaelt Informationen, wie das Lastprofil geaendert werden soll 
 	 */
-	public double[] createValuesLoadprofile(double[] values);
+	public void changeLoadprofile(ChangeRequestSchedule cr);
+
+	/**
+	 * Das Device speichert das Lastprofil und den Fahrplan zur uebergebenen Zeit als fest ab.
+	 * @param time Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
+	 */
+	public void confirmLoadprofile (GregorianCalendar time);
+
+	/**
+	 * Liefert die uuid des Devices
+	 * @return Uuid des Devices
+	 */
+	public UUID getUUID();
+
+	/**
+	 * Liefert den aktuellen Status des Devices
+	 * @return Aktueller Status des Devices
+	 */
+	public DeviceStatus getStatus();
+	
+	
+	public void initialize(Map<String, Object> init);
+
+	public void ping();
 
 	/**
 	 * Erzeugt einen neuen Fahrplan und das zugehoerige Lastprofil.
@@ -37,37 +59,8 @@ public interface Device {
 	public void sendDeltaLoadprofile(GregorianCalendar timeChanged, double valueChanged);
 	
 	/**
-	 * Liefert die uuid des Devices
-	 * @return Uuid des Devices
-	 */
-	public UUID getUUID();
-
-	public void initialize(Map<String, Object> init);
-	
-	/**
-	 * Liefert den aktuellen Status des Devices
-	 * @return Aktueller Status des Devices
-	 */
-	public DeviceStatus getStatus();
-
-	public void ping();
-	
-	/**
 	 * Legt den Consumer fuer das Device fest
 	 * @param uuid	Uuid des Consumers
 	 */
 	public void setConsumer(UUID consumerUUID);
-
-	/**
-	 * Ueberprueft, ob die gewuentsche Aenderung des Lastprofils moeglich ist
-	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
-	 * @param cr	Enthaelt Informationen, wie das Lastprofil geaendert werden soll 
-	 */
-	public void changeLoadprofile(ChangeRequestSchedule cr);
-	
-	/**
-	 * Das Device speichert das Lastprofil und den Fahrplan zur uebergebenen Zeit als fest ab.
-	 * @param time Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
-	 */
-	public void confirmLoadprofile (GregorianCalendar time);
 }

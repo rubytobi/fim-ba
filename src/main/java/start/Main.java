@@ -8,110 +8,101 @@ import java.util.ArrayList;
 
 import Entity.Fridge;
 import Entity.Offer;
+import Entity.BHKW;
 import Packet.AnswerToOfferFromMarketplace;
 import Util.DateTime;
 import start.Marketplace;
-import Util.PossibleMerge;
+import Util.PossibleMatch;
 import Util.Negotiation;
 
 public class Main {
 	public static void main(String[] args) {
+		double[] changesKWH = {-1, 5, -4,- 3};
+		double[] planned = {6, 6, 6, 6};
+		double levelHeatReservoir = 5;
+		double sizeHeatReservoir = 10;
+		double chpCoefficient = 1;
+		double maxLoad = 10;
+		double priceFuel = 0.2;
+		double consFuelPerKWh = 1;
 		
-		Marketplace marketplace = Marketplace.instance();
-		UUID author = UUID.randomUUID();
-		UUID author1 = UUID.randomUUID();
-		GregorianCalendar date = DateTime.now();
-		date.set(Calendar.MINUTE, 0);
-		date.set(Calendar.SECOND, 0);
-		date.set(Calendar.MILLISECOND, 0);
-		
-		double[] values1 = {10.0, -20.0, -30.0, -40.0};
-		double[] values2 = {10.0, -20.0, 30.0, -46.0};
-		double[] values3 = {10.0, -22.0, -30, -39.5};
-
-		Loadprofile loadprofile1 = new Loadprofile(values1, date, 8.0);
-		Loadprofile loadprofile2 = new Loadprofile(values2, date, 6.0);
-		Loadprofile loadprofile3 = new Loadprofile(values3, date, 3.0);
-		
-		Offer offer1 = new Offer(author, loadprofile1);
-		Offer offer2 = new Offer(author1, loadprofile2);
-		Offer offer3 = new Offer(author1, loadprofile3);
-		
-		System.out.println("Sum Offer1: " +offer1.getSumAggLoadprofile());
-		System.out.println("Sum Offer2: " +offer2.getSumAggLoadprofile());
-		System.out.println("Sum Offer3: " +offer3.getSumAggLoadprofile());
-
-		marketplace.putOffer(offer1);
-		marketplace.marketplaceToString();
-		marketplace.allOffersToString();
-		marketplace.mergedToString();
-		marketplace.possibleMergesToString();
-		
-		marketplace.putOffer(offer2);
-		marketplace.marketplaceToString();
-		marketplace.allOffersToString();
-		marketplace.mergedToString();
-		marketplace.possibleMergesToString();
-
-		marketplace.putOffer(offer3);
-		marketplace.marketplaceToString();
-		marketplace.allOffersToString();
-		marketplace.mergedToString();
-		marketplace.possibleMergesToString();
-		
-		/*
-		Negotiation negotiation = marketplace.getNegotiations().get(0);
-		System.out.println("\nStart Verhandlung");
-		negotiation.receiveAnswer(author, 2.5);
-		negotiation.receiveAnswer(author, 2.5);
-		//negotiation.receiveAnswer(author, 2.5);
-		
-		System.out.println(marketplace.marketplaceToString());
-		marketplace.allOffersToString();
-		marketplace.mergedToString();
-		marketplace.possibleMergesToString();
-		marketplace.blackListPossibleMergesToString();*/
-
-		
-		/*
-		double[] sum = marketplace.getSumAllOffers(date);
-		for (int i=0; i<4; i++) {
-			System.out.println("Summe: " +sum[i]);
-		}*/
-		/*
-		
-		
-		ArrayList<PossibleMerge> possibleMerges = new ArrayList<PossibleMerge>();
-		PossibleMerge possibleMerge1 = new PossibleMerge(offer1, offer2);
-		PossibleMerge possibleMerge2 = new PossibleMerge(offer1, offer3);
-		PossibleMerge possibleMerge3 = new PossibleMerge(offer2, offer3);
-		possibleMerges.add(possibleMerge1);
-		possibleMerges.add(possibleMerge2);
-		possibleMerges.add(possibleMerge3);
-		Collections.sort(possibleMerges);
-		for (PossibleMerge possibleMerge: possibleMerges) {
-			System.out.println(possibleMerge.toString());
-		}*/
-		
-		/*
 		int numSlots = 4;
-		double[] loadprofile = {1.0, -1.0, 0.0, -5.0};
-		double[] currentDeviation = {1.0, -1.0, 0.0, 2.0};
-		double[] newDeviation = new double[numSlots];
-		double[] worsening = new double[numSlots];
+		
+		double price = 0;
+		
 		for (int i=0; i<numSlots; i++) {
-			newDeviation[i] = -(currentDeviation[i] - loadprofile[i]);
-			System.out.println("New Deviation: " +newDeviation[i]);
-			if (Math.abs(newDeviation[i]) > Math.abs(currentDeviation[i])) {
-				worsening[i] = Math.abs(newDeviation[i]) - Math.abs(currentDeviation[i]);
-				if (newDeviation[i] < 0) {
-					worsening[i] = -worsening[i];
+			double value = changesKWH[i];
+			System.out.println(i+ ". Änderung gewünscht: " +value);
+
+			double powerGained = 0;
+						
+			if (value < 0) {
+				// Prüfe, dass produzierte Last nicht unter 0 fällt
+				if (planned[i] + value < 0) {
+					System.out.println("Produzierte Last fällt unter null");
+					value = -planned[i];
+				}
+				// Berechne Wärme, die nun nicht mehr produziert,
+				// aber benötigt wird und daher vom Wärmespeicher
+				// bezogen werden muss
+				double heat = Math.abs(value/chpCoefficient);
+				if (levelHeatReservoir-heat > 0) {
+					System.out.println("Wärme die wegfällt: " +heat);
+					levelHeatReservoir -= heat;
+					System.out.println("Neuer Füllstand: " +levelHeatReservoir);
+					powerGained = value;
+				}
+				else {
+					// Hole so viel wie möglich aus Speicher
+					System.out.println("Leere Speicher");
+					powerGained = -levelHeatReservoir;
+					levelHeatReservoir = 0;
 				}
 			}
-			else {
-				worsening[i] = 0;
+			if (value > 0) {
+				// Prüfe, das maximale Last nicht überschritten wird
+				if (planned[i] + value > maxLoad) {
+					System.out.println("Maximale Last überschritten");
+					value = maxLoad-planned[i];
+				}
+				// Nehme Strom möglichst vom Wärmespeicher
+				if (levelHeatReservoir > 0) {
+					if (levelHeatReservoir >= value) {
+						// TODO Wie Verhältnis abgeführte Wärme - daraus erzeugter Strom
+						levelHeatReservoir -= value;
+						powerGained = value;
+					}
+					else {
+						powerGained = levelHeatReservoir;
+						levelHeatReservoir = 0;
+					}
+				}
+				
+				if (powerGained != value) {
+					// Produziere restlichen Strom, speichere dabei
+					// als Nebenprodukt produzierte Wärme und 
+					// berechne anfallende Kosten
+					double powerProduced = value-powerGained;
+					double heatProduced = powerProduced*chpCoefficient;
+					System.out.println("Wärme produziert: "+heatProduced);
+					if (levelHeatReservoir+heatProduced <= sizeHeatReservoir) {
+						levelHeatReservoir += heatProduced;
+					}
+					else {
+						powerProduced = sizeHeatReservoir - levelHeatReservoir;
+						levelHeatReservoir = sizeHeatReservoir;
+					}
+					// Berechne, wie viel Energie tatsächlich produziert werden konnte
+					powerGained += powerProduced;
+	
+					// Berechne Preis für zusätzlich benötigten Brennstoff
+					price += Math.abs(powerProduced*consFuelPerKWh*priceFuel);
+				}
 			}
-			System.out.println("Worsening: " +worsening[i]);
-		}*/		
+			changesKWH[i] = powerGained;
+			System.out.println(i+". Änderung wirklich: " +changesKWH[i]);
+			System.out.println("Füllstand Wärmespeicher: " +levelHeatReservoir);
+		}
+		System.out.println("Preis: " +price);
 	}
 }

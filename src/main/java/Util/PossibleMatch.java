@@ -5,7 +5,7 @@ import java.util.GregorianCalendar;
 import Entity.Offer;
 import start.Loadprofile;
 
-public class PossibleMerge implements Comparable<PossibleMerge>{
+public class PossibleMatch implements Comparable<PossibleMatch>{
 	private Offer offer1, offer2;
 	
 	private double[] valuesAggLoadprofile;
@@ -14,7 +14,7 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	
 	private double outcomeMerge;
 	
-	public PossibleMerge(Offer offer1, Offer offer2) {
+	public PossibleMatch(Offer offer1, Offer offer2) {
 		if (! offer1.getDate().equals(offer2.getDate())) {
 			// TODO Fehler, dass Angebote für unterschiedlichen Zeitraum sind
 			return;
@@ -81,7 +81,7 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	}
 	
 	@Override
-	public int compareTo(PossibleMerge possibleMerge) {
+	public int compareTo(PossibleMatch possibleMerge) {
 		double otherOutcome = possibleMerge.getOutcomeMerge();
 		if (outcomeMerge < otherOutcome) {
 			return -1;
@@ -98,7 +98,7 @@ public class PossibleMerge implements Comparable<PossibleMerge>{
 	public boolean equals (Object o) {
 		System.out.println("Equals aufgerufen");
 
-		PossibleMerge possibleMergeToCompare = (PossibleMerge) o;
+		PossibleMatch possibleMergeToCompare = (PossibleMatch) o;
 		Offer[] offersToCompare = possibleMergeToCompare.getOffers();
 		if (offersToCompare[0].equals(offer1) && offersToCompare[1].equals(offer2) 
 				|| offersToCompare[1].equals(offer1) && offersToCompare[0].equals(offer2)) {
