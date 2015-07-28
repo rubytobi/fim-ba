@@ -599,7 +599,7 @@ public class Consumer {
 			return;
 		}
 
-		Log.e(this.uuid, "working on this offer: " + offer.toString());
+		Log.d(this.uuid, "working on this offer: " + offer.toString());
 
 		// neues Angebot erstellen und ablegen
 		Offer newOffer = new Offer(offerWithPrivileges, offer);
@@ -716,11 +716,10 @@ public class Consumer {
 
 		// TODO Autor für übergebenes Angebot?
 		// Wenn ja: Frage alle anderen beteiligten Consumer der Reihe nach nach
-		// Änderung für deren Lastprofil
-		// ,passe Angebot jeweils gleich an und benachrichtige Marketplace am
-		// Ende
+		// Änderung für deren Lastprofil, passe Angebot jeweils gleich an und
+		// benachrichtige Marketplace am Ende
 		// Wenn nein: Versende Antwort als cr an Autor
-		if (allOffers.get(cr.getOffer()).getAuthor() == uuid) {
+		if (allOffers.get(cr.getOffer()).isAuthor(uuid)) {
 			Set<UUID> allConsumers = requestedOffer.getAllLoadprofiles().keySet();
 
 			// Frage alle beteiligten Consumer nach Änderung für deren

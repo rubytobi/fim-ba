@@ -121,9 +121,12 @@ public class Negotiation {
 		String url = "http://localhost:8080/consumers/" + currentOffer.getAuthor() + "/offers/" + offer
 				+ "/negotiation/" + uuid + "/priceChangeRequest";
 
+		Log.d(uuid, url);
+
 		try {
-			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+			rest.exchange(url, HttpMethod.POST, entity, Void.class);
 		} catch (Exception e) {
+			Log.e(uuid, e.toString());
 		}
 
 	}
@@ -286,9 +289,11 @@ public class Negotiation {
 
 		String url = "http://localhost:8080/marketplace/endOfNegotiation/";
 
+		Log.d(uuid, url);
 		try {
-			ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+			rest.exchange(url, HttpMethod.POST, entity, Void.class);
 		} catch (Exception e) {
+			Log.e(uuid, e.toString());
 		}
 	}
 }
