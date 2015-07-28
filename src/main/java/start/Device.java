@@ -59,7 +59,7 @@ public interface Device {
 	
 	/**
 	 * Legt den Consumer fuer das Device fest
-	 * @param uuid	Uuid des Consumers
+	 * @param consumerUUID	Uuid des Consumers
 	 */
 	public void setConsumer(UUID consumerUUID);
 

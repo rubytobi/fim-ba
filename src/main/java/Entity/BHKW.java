@@ -23,46 +23,71 @@ import start.Loadprofile;
 
 
 /**
- * Klasse für Blockheizkraftwerke (BHKW)
+ * Klasse fuer Blockheizkraftwerke (BHKW)
  * @author Admin
  *
  */
 public class BHKW implements Device{
-	// Stromkoeffizient: Strom = Koeffizient * Wärme
+	/**
+	 *  Stromkoeffizient: Strom = Koeffizient * Waerme
+	 */
 	private double chpCoefficient;
 	
-	// Verbrauch für Leistung einer zusätzlichen kWh in l
+	/**
+	 *  Verbrauch fuer Leistung einer zusaetzlichen kWh in l
+	 */
 	private double consFuelPerKWh;
 
-	// UUID des Consumers des BHKW
+	/**
+	 * UUID des Consumers des BHKW
+	 */
 	private UUID consumerUUID;
 
-	// Maximale Last des BHKW
+	/**
+	 *  Maximale Last des BHKW
+	 */
 	private double maxLoad;
 
-	// Preis für 1l Brennstoff
+	/**
+	 *  Preis fuer 1l Brennstoff
+	 */
 	private double priceFuel;
 	
-	// Fahrplan in 15-Minuten Rythmus, den der Consumer gerade aushandelt
-	// mit Füllstand des Reservoirs (0) und Stromerzeugung (1)
+	/**
+	 *  Fahrplan in 15-Minuten Rythmus, den der Consumer gerade aushandelt
+	 *  mit Fuellstand des Reservoirs (0) und Stromerzeugung (1)
+	 */
 	private double[][] scheduleMinutes;
 	
-	// Fahrpläne in 15-Minuten Rythmus, die schon ausgehandelt sind und fest stehen
-	// mit Füllstand des Reservoirs (0) und Stromerzeugung (1)
+	/** 
+	 * Fahrplaene in 15-Minuten Rythmus, die schon ausgehandelt sind 
+	 * und fest stehen mit Fuellstand des Reservoirs (0) und Stromerzeugung (1)
+	 */
 	private TreeMap<String, double[][]> schedulesFixed = new TreeMap<String, double[][]>();
 
-	// Simulator für das BHKW
+	/**
+	 *  Simulator fuer das BHKW
+	 */
 	private SimulationBHKW simulation;
 
-	// Größe des Wärmespeichers
+	/**
+	 *  Groesse des Waermespeichers
+	 */
 	private double sizeHeatReservoir;
 
-	// Status des BHKW
+	/**
+	 *  Status des BHKW
+	 */
 	private DeviceStatus status;
-
+	
+	/**
+	 * Zeitpunkt, ab dem scheduleMinutes gilt
+	 */
 	private GregorianCalendar timeFixed;
 	
-	// UUID des BHKW
+	/**
+	 *  UUID des BHKW
+	 */
 	private UUID uuid;
 	
 	private BHKW() {
@@ -72,10 +97,10 @@ public class BHKW implements Device{
 	
 	/**
 	 * Erstellt ein neues Blockheizkraftwerk.
-	 * @param chpCoefficient	Stromkoeffizient: Strom = Koeffizient * Wärme
+	 * @param chpCoefficient	Stromkoeffizient: Strom = Koeffizient * Waerme
 	 * @param priceFuel			Preis des Brennstoffs pro Liter
-	 * @param consFuelPerKWh	Benötigter Brennstoff in Liter, um eine kWh Strom zu produzieren
-	 * @param sizeHeatReservoir	Größe des Wärmespeichers
+	 * @param consFuelPerKWh	Benoetigter Brennstoff in Liter, um eine kWh Strom zu produzieren
+	 * @param sizeHeatReservoir	Groesse des Waermespeichers
 	 * @param maxLoad			Maximale Last des Blockheizkraftwerks
 	 */
 	public BHKW (double chpCoefficient, double priceFuel, double consFuelPerKWh, double sizeHeatReservoir,
@@ -104,7 +129,7 @@ public class BHKW implements Device{
 		String dateCurrent = DateTime.ToString(cr.getStartLoadprofile());
 		if (! dateCR.equals(dateCurrent)) {
 			// TODO Fehler
-			// ChangeRequest kann nur für scheduleMinutes mit Startzeit
+			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
 			// timeFixed angefragt werden
 		}
 		
@@ -119,12 +144,12 @@ public class BHKW implements Device{
 			double currentLevel = levelReservoir[i];
 						
 			if (value < 0) {
-				// Prüfe, dass produzierte Last nicht unter 0 fällt
+				// Pruefe, dass produzierte Last nicht unter 0 faellt
 				if (planned[i] + value < 0) {
 					value = -planned[i];
 				}
-				// Berechne Wärme, die nun nicht mehr produziert,
-				// aber benötigt wird und daher vom Wärmespeicher
+				// Berechne Waerme, die nun nicht mehr produziert,
+				// aber benoetigt wird und daher vom Waermespeicher
 				// bezogen werden muss
 				double heat = Math.abs(value/chpCoefficient);
 				if (currentLevel-heat > 0) {
@@ -132,20 +157,20 @@ public class BHKW implements Device{
 					powerGained = value;
 				}
 				else {
-					// Fülle Speicher so weit wie möglich auf
+					// Fuelle Speicher so weit wie moeglich auf
 					powerGained = -sizeHeatReservoir;
 					currentLevel = 0;
 				}
 			}
 			if (value > 0) {
-				// Prüfe, das maximale Last nicht überschritten wird
+				// Pruefe, das maximale Last nicht ueberschritten wird
 				if (planned[i] + value > maxLoad) {
 					value = maxLoad-planned[i];
 				}
-				// Nehme Strom möglichst vom Wärmespeicher
+				// Nehme Strom moeglichst vom Waermespeicher
 				if (currentLevel > 0) {
 					if (currentLevel >= value) {
-						// TODO Wie Verhältnis abgeführte Wärme - daraus erzeugter Strom
+						// TODO Wie Verhaeltnis abgefuehrte Waerme - daraus erzeugter Strom
 						currentLevel -= value;
 						powerGained = value;
 					}
@@ -157,7 +182,7 @@ public class BHKW implements Device{
 				
 				if (powerGained != value) {
 					// Produziere restlichen Strom, speichere dabei
-					// als Nebenprodukt produzierte Wärme und 
+					// als Nebenprodukt produzierte Waerme und 
 					// berechne anfallende Kosten
 					double powerProduced = value-powerGained;
 					double heatProduced = powerProduced*chpCoefficient;
@@ -168,10 +193,10 @@ public class BHKW implements Device{
 						powerProduced = sizeHeatReservoir - currentLevel;
 						currentLevel = sizeHeatReservoir;
 					}
-					// Berechne, wie viel Energie tatsächlich produziert werden konnte
+					// Berechne, wie viel Energie tatsaechlich produziert werden konnte
 					powerGained += powerProduced;
 	
-					// Berechne Preis für zusätzlich benötigten Brennstoff
+					// Berechne Preis fuer zusaetzlich benoetigten Brennstoff
 					price += Math.abs(powerProduced*consFuelPerKWh*priceFuel);
 				}
 			}
@@ -184,7 +209,7 @@ public class BHKW implements Device{
 			scheduleMinutes[1][i] = planned[i];
 		}
 		
-		// Schicke Info mit möglichen Änderungen und Preis dafür an Consumer 
+		// Schicke Info mit moeglichen aenderungen und Preis dafuer an Consumer 
 		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), changesKWH, price);
 		
 		/*
@@ -216,7 +241,6 @@ public class BHKW implements Device{
 	
 	/**
 	 * Liefert den aktuellen Status des Kuehlschranks
-	 * 
 	 * @return Aktueller Status des Kuehlschranks
 	 */
 	public DeviceStatus getStatus() {
@@ -247,14 +271,13 @@ public class BHKW implements Device{
 		powerScaled = simulation.getPower(currentTime);
 	
 		if (powerPlanned != powerScaled) {
-			// Schicke DeltaLastprofil, falls weitere Änderungen
+			// Schicke DeltaLastprofil, falls weitere aenderungen
 			sendDeltaLoadprofile(currentTime, powerScaled);
 		}
 	}
 
 	/**
 	 * Speichert den uebergebenen Fahrplan als festen Fahrplan ab
-	 * 
 	 * @param schedule
 	 *            Fahrplan, der abgespeichert werden soll
 	 * @param start
@@ -290,13 +313,13 @@ public class BHKW implements Device{
 		double[] valuesLoadprofile;
 		
 		/*
-		 * Prüfe, ob dateFixed gesetzt, wenn nicht setze neu und erstelle
+		 * Pruefe, ob dateFixed gesetzt, wenn nicht setze neu und erstelle
 		 * initiales Lastprofil
 		 */
 		if (timeFixed == null) {
 			/*
-			 * Wenn noch nicht gesetzt, erstelle initialen Fahrplan für bis zur
-			 * nächsten Stunde
+			 * Wenn noch nicht gesetzt, erstelle initialen Fahrplan fuer bis zur
+			 * naechsten Stunde
 			 */
 			timeFixed = DateTime.now();
 			timeFixed.set(Calendar.SECOND, 0);
@@ -309,7 +332,7 @@ public class BHKW implements Device{
 	
 			saveSchedule(scheduleMinutes, timeFixed);
 		}
-		// Zähle timeFixed um eine Stunde hoch
+		// Zaehle timeFixed um eine Stunde hoch
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = scheduleMinutes[1];
@@ -320,7 +343,7 @@ public class BHKW implements Device{
 	
 	/**
 	 * Legt den Consumer fuer das Device fest
-	 * @param uuid	Uuid des Consumers
+	 * @param consumerUUID	Uuid des Consumers
 	 */
 	public void setConsumer(UUID consumerUUID) {
 		if (status == DeviceStatus.INITIALIZED) {
@@ -337,7 +360,7 @@ public class BHKW implements Device{
 	/**
 	 * Erzeugt bei Bedarf ein Deltalastprofil und sendet es an den Consumer.
 	 * Methode wird aufgerufen, wenn eine anderer Wert gemessen wurde, als in der Minute geplant war.
-	 * @param	timeChanged		Zeitpunkt, wann die Abweichung gemessen wurde
+	 * @param	start		Zeitpunkt, wann die Abweichung gemessen wurde
 	 * @param	valueChanged	Wert, der gemessen wurde
 	 */
 	public void sendDeltaLoadprofile(GregorianCalendar start, double valueChanged) {	
@@ -349,7 +372,7 @@ public class BHKW implements Device{
 		
 		newPlan[minute] = oldPlan[minute];
 		
-		// Prüfe, ob es weitere Abweichungen gibt
+		// Pruefe, ob es weitere Abweichungen gibt
 		if (! oldPlan.equals(newPlan)) {
 			double[] deltaValues = new double[numSlots];
 			for (int i=0; i<numSlots; i++) {
