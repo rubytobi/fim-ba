@@ -43,21 +43,11 @@ public class ErrorLog {
 		this.uuid = uuid;
 		this.message = message;
 
-		Matcher m = errorPattern.matcher(stack);
-
-		// remove package name
-
-		while (m.find()) {
-			this.packageName = m.group(1);
-			this.className = m.group(2);
-			this.functionName = m.group(3);
-			this.occurence = m.group(4);
-		}
-
-		if (packageName == null || className == null || functionName == null || occurence == null) {
-			return;
-		}
-
+		String[] values = stack.split("\\(");
+		this.packageName = values[0].split("\\.")[0];
+		this.className = values[0].split("\\.")[1];
+		this.functionName = values[0].split("\\.")[2];
+		this.occurence = values[1].split("\\)")[0];
 		this.timestamp = DateTime.timestamp();
 	}
 

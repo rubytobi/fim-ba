@@ -308,6 +308,7 @@ public class Consumer {
 
 		// Prüfen ob "AuthKey" übereinstimmt
 		if (!offer.getAuthKey().equals(authKey)) {
+			Log.d(uuid, "Consumer moechte mit ungueltigen authKey Angebot bestaetigen");
 			return false;
 		}
 
@@ -549,13 +550,29 @@ public class Consumer {
 	public void ping() {
 		Object[] object = notificationQueue.poll();
 
-		if (object == null)
-			return;
+		if (object == null) {
+			// Log.d(uuid, "notification queue empty");
+
+			Offer offer = getOfferWithPrivileges(DateTime.now());
+
+			if (offer == null) {
+				// Log.d(uuid, "no offerWithPrivileges for sending
+				// notifications");
+				return;
+			} else {
+				// Log.d(uuid, "send notification for current offer");
+
+				OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+				sendOfferNotificationToAllConsumers(notification);
+				return;
+			}
+		}
 
 		OfferAction action = (OfferAction) object[0];
 		OfferNotification notification = (OfferNotification) object[1];
 
 		if (action.equals(OfferAction.SEND)) {
+			Log.d(uuid, "send notification due to notificationQueue");
 			sendOfferNotificationToAllConsumers(notification);
 			return;
 		}
@@ -563,15 +580,17 @@ public class Consumer {
 		Offer offer = getOfferFromUrl(notification.getLocation());
 
 		// Angbeot nicht mehr vorhanden
-		if (offer == null)
+		if (offer == null) {
+			Log.d(uuid, "offer not anymore available");
 			return;
+		}
 
 		// wenn kein eigenes Lastprofil mehr behandelt werden muss, nicht
 		// reagieren auf Angebot
 		Offer offerWithPrivileges = getOfferWithPrivileges(offer.getDate());
 
 		if (offerWithPrivileges == null) {
-			Log.d(uuid, " not able to deal");
+			Log.d(uuid, "not able to deal: " + this.allOffers);
 			return;
 		}
 
@@ -580,7 +599,7 @@ public class Consumer {
 			return;
 		}
 
-		Log.e(this.uuid, offer.toString());
+		Log.e(this.uuid, "working on this offer: " + offer.toString());
 
 		// neues Angebot erstellen und ablegen
 		Offer newOffer = new Offer(offerWithPrivileges, offer);
