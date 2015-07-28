@@ -1,7 +1,6 @@
 package Entity;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 
 import org.springframework.http.MediaType;

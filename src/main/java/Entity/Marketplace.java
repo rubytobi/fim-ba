@@ -11,14 +11,15 @@ import java.util.Set;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
 import Util.MatchedOffers;
+import Util.API;
 import Util.DateTime;
+import Util.Log;
 import Util.PossibleMatch;
 import Util.Negotiation;
 import Util.sortOfferPriceSupplyLowToHigh;
@@ -60,7 +61,7 @@ public class Marketplace {
 	private double maxDeviation = 0.05 * 100;
 
 	/**
-	 * Map, die alle bisher zusammengefuehrten Angebote nach Zeitslot beinhaltet 
+	 * Map, die alle bisher zusammengefuehrten Angebote nach Zeitslot beinhaltet
 	 */
 	private Map<String, ArrayList<MatchedOffers>> matchedOffers = new TreeMap<String, ArrayList<MatchedOffers>>();
 
@@ -86,19 +87,21 @@ public class Marketplace {
 	private Map<String, double[]> prediction = new TreeMap<String, double[]>();
 
 	/**
-	 * Map, die die Summe der Abweichungen aller zusammengefuehrter Angebote nach
-	 * Zeitslot beinhaltet
+	 * Map, die die Summe der Abweichungen aller zusammengefuehrter Angebote
+	 * nach Zeitslot beinhaltet
 	 */
 	private Map<String, double[]> sumLoadprofilesConfirmedOffers = new TreeMap<String, double[]>();
 
 	/**
-	 * Map, die die Summe der Abweichungen aller auf dem Marktplatz verfuegbaren,
-	 * aller gerade verhandelten und aller vom Marktplatz zusammengefuehrten
-	 * Angebote nach Zeitslot beinhaltet
+	 * Map, die die Summe der Abweichungen aller auf dem Marktplatz
+	 * verfuegbaren, aller gerade verhandelten und aller vom Marktplatz
+	 * zusammengefuehrten Angebote nach Zeitslot beinhaltet
 	 */
 	private Map<String, double[]> sumLoadprofilesAllOffers = new TreeMap<String, double[]>();
 
 	private Map<String, ArrayList<Offer>> supply = new TreeMap<String, ArrayList<Offer>>();
+
+	private UUID uuid = UUID.randomUUID();
 
 	/**
 	 * Erstellt einen neuen Marktplatz mit Prognose = 0 fuer die naechsten 24h
@@ -125,8 +128,8 @@ public class Marketplace {
 	}
 
 	/**
-	 * ueberprueft, ob schon Minute 55 oder groeßer erreicht ist und macht ggf. den
-	 * naechsten Slot.
+	 * ueberprueft, ob schon Minute 55 oder groeßer erreicht ist und macht ggf.
+	 * den naechsten Slot.
 	 * 
 	 */
 	public void BKV() {
@@ -198,9 +201,9 @@ public class Marketplace {
 	}
 
 	/**
-	 * Bestaetigt alle verbliebenen Angebot mit uebergebenem Start und bei welchen
-	 * die Summe der Lastprofilwerte bis einschließlich des uebergebenen Slots >
-	 * 0 sind zu einem Einheitspreis mit Strafe
+	 * Bestaetigt alle verbliebenen Angebot mit uebergebenem Start und bei
+	 * welchen die Summe der Lastprofilwerte bis einschließlich des uebergebenen
+	 * Slots > 0 sind zu einem Einheitspreis mit Strafe
 	 * 
 	 * @param date
 	 *            Startzeit, fuer welche alle verbliebenen Angebote bestaetigt
@@ -305,7 +308,6 @@ public class Marketplace {
 	private void confirmOffer(Offer offer, double newPrice) {
 		// Entferne offer von Marktplatz
 		removeOffer(offer.getUUID(), true);
-		
 
 		// Nehme Lastprofil von offer in die Summe der Lastprofile aller
 		// bestaetigten Angebote auf
@@ -333,12 +335,13 @@ public class Marketplace {
 			HttpEntity<AnswerToOfferFromMarketplace> entity = new HttpEntity<AnswerToOfferFromMarketplace>(answerOffer,
 					Application.getRestHeader());
 
-			String url = "http://localhost:8080/consumers/" + consumer + "/offers/" + offer.getUUID()
-					+ "/confirmByMarketplace";
+			String url = new API().consumers(consumer).offers(offer.getUUID()).confirmByMarketplace().toString();
 
+			Log.d(uuid, url);
 			try {
-				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+				rest.exchange(url, HttpMethod.POST, entity, Void.class);
 			} catch (Exception e) {
+				Log.d(uuid, e.getMessage());
 			}
 		}
 	}
@@ -434,7 +437,8 @@ public class Marketplace {
 			}
 		}
 
-		// Gibt die Abweichung von der Prognose fuer alle bestaetigten Lastprofile
+		// Gibt die Abweichung von der Prognose fuer alle bestaetigten
+		// Lastprofile
 		// und das aktuelle Angebot an
 		double[] deviationOfferPrediction = new double[numSlots];
 		double sumDeviationOfferPrediction = 0;
@@ -452,7 +456,8 @@ public class Marketplace {
 		// Hole den Array aller bereits in listPossibleMatches hinterlegten
 		// possibleMatches
 		// fuer die Startzeit dateOffer
-		ArrayList<PossibleMatch> possibleMatchesOfDateOffer = listPossibleMatches.get(DateTime.ToString(offer.getDate()));
+		ArrayList<PossibleMatch> possibleMatchesOfDateOffer = listPossibleMatches
+				.get(DateTime.ToString(offer.getDate()));
 		if (possibleMatchesOfDateOffer == null) {
 			possibleMatchesOfDateOffer = new ArrayList<PossibleMatch>();
 		}
@@ -502,7 +507,8 @@ public class Marketplace {
 			}
 		}
 
-		// Fuege Array mit allen neuen Kombinationen zu listPossibleMatches hinzu
+		// Fuege Array mit allen neuen Kombinationen zu listPossibleMatches
+		// hinzu
 		if (possibleMatchesOfDateOffer.size() != 0) {
 			listPossibleMatches.put(DateTime.ToString(offer.getDate()), possibleMatchesOfDateOffer);
 		}
@@ -510,8 +516,8 @@ public class Marketplace {
 	}
 
 	/**
-	 * Gibt die Angebote von Erzeugern fuer das uebergebene Datum zurueck, die am
-	 * wenigsten fuer den erzeugten Strom verlangen.
+	 * Gibt die Angebote von Erzeugern fuer das uebergebene Datum zurueck, die
+	 * am wenigsten fuer den erzeugten Strom verlangen.
 	 * 
 	 * @param date
 	 *            Datum fuer welches die Angebote sein sollen
@@ -530,7 +536,7 @@ public class Marketplace {
 		}
 		return cheapest;
 	}
-	
+
 	/**
 	 * 
 	 * @param uuid
@@ -539,9 +545,9 @@ public class Marketplace {
 	public Offer getDemand(UUID uuid) {
 		// TODO Auto-generated method stub
 		Set<String> demands = demand.keySet();
-		for (String current: demands) {
+		for (String current : demands) {
 			ArrayList<Offer> demandOffers = demand.get(current);
-			for (Offer offer: demandOffers) {
+			for (Offer offer : demandOffers) {
 				if (offer.getUUID() == uuid) {
 					return offer;
 				}
@@ -560,8 +566,8 @@ public class Marketplace {
 	}
 
 	/**
-	 * Gibt die Angebote von Verbrauchern fuer das uebergebene Datum zurueck, die
-	 * bereit sind am meisten zu zahlen.
+	 * Gibt die Angebote von Verbrauchern fuer das uebergebene Datum zurueck,
+	 * die bereit sind am meisten zu zahlen.
 	 * 
 	 * @param date
 	 *            Datum, fuer welches die Angebote sein sollen
@@ -618,13 +624,13 @@ public class Marketplace {
 	public double[] getSumConfirmedOffers(GregorianCalendar date) {
 		return sumLoadprofilesConfirmedOffers.get(DateTime.ToString(date));
 	}
-	
+
 	public Offer getSupply(UUID uuid) {
 		// TODO Auto-generated method stub
 		Set<String> supplies = supply.keySet();
-		for (String current: supplies) {
+		for (String current : supplies) {
 			ArrayList<Offer> supplyOffers = supply.get(current);
-			for (Offer offer: supplyOffers) {
+			for (Offer offer : supplyOffers) {
 				if (offer.getUUID() == uuid) {
 					return offer;
 				}
@@ -632,7 +638,6 @@ public class Marketplace {
 		}
 		return null;
 	}
-	
 
 	/**
 	 * Gibt zurueck, ob fuer die Hoehe der Abweichung von der Prognose eine
@@ -698,8 +703,10 @@ public class Marketplace {
 				String url = "http://localhost:8080/consumers/" + author + "/offers/" + currentOffer.getUUID()
 						+ "/receiveChangeRequestLoadprofile";
 
+				Log.d(uuid, url);
+
 				try {
-					ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+					rest.exchange(url, HttpMethod.POST, entity, Void.class);
 				} catch (Exception e) {
 				}
 
@@ -726,7 +733,8 @@ public class Marketplace {
 					sumPossibleChangeDeviation += Math.abs(possibleChangeDeviation[i]);
 				}
 
-				// Pruefe, ob der Consumer eine aenderung vorgenommen hat und wenn
+				// Pruefe, ob der Consumer eine aenderung vorgenommen hat und
+				// wenn
 				// ja,
 				// ob diese aenderung zur Verbesserung beitraegt
 				if (sumPossibleChange > 0 && sumPossibleChangeDeviation < sumCurrentDeviation) {
@@ -777,7 +785,8 @@ public class Marketplace {
 		// zusammen
 		for (PossibleMatch possibleMatch : possibleMatches) {
 			Offer[] offers = possibleMatch.getOffers();
-			// Wenn eines der Angebote in offersJustMatched ist, wurde es bereits
+			// Wenn eines der Angebote in offersJustMatched ist, wurde es
+			// bereits
 			// bei einem vorherigen Schleifendurchlauf zusammengefuehrt und
 			// bestaetigt und steht nicht mehr zur Verfuegung
 			if (offersJustMatched.contains(offers[0]) || offersJustMatched.contains(offers[1])) {
@@ -808,8 +817,8 @@ public class Marketplace {
 	/**
 	 * Fuehrt Angebote zusammen, die die Annaeherung an die Prognose verbessern
 	 * bzw. nicht sehr viel verschlechtern. Die Angebote werden vom Marktplatz
-	 * entfernt. Passt der Preis, so werden die Angebote direkt bestaetigt. Passt
-	 * der Preis nicht, wird eine Verhandlung mit den beiden Angeboten
+	 * entfernt. Passt der Preis, so werden die Angebote direkt bestaetigt.
+	 * Passt der Preis nicht, wird eine Verhandlung mit den beiden Angeboten
 	 * gestartet.
 	 * 
 	 * @param offer1
@@ -920,7 +929,7 @@ public class Marketplace {
 			// Entferne Angebote von Marktplatz
 			removeOffer(offer1.getUUID(), false);
 			removeOffer(offer2.getUUID(), false);
-			
+
 			// Erstelle neue Verhandlung und speichere Verhandlung unter
 			// negotiatingOffers ab
 			Negotiation negotiation = new Negotiation(offer1, offer2, price1, price2, sumOffer1, sumOffer2);
@@ -943,7 +952,7 @@ public class Marketplace {
 		String date = DateTime.ToString(dateGreg);
 		GregorianCalendar currentDate = (GregorianCalendar) nextSlot.clone();
 		currentDate.add(Calendar.HOUR_OF_DAY, -1);
-		
+
 		// Pruefe, dass Angebot nicht in Vergangenheit liegt
 		if (dateGreg.before(currentDate)) {
 			return;
@@ -1006,7 +1015,7 @@ public class Marketplace {
 		if (removeOffer == null) {
 			return;
 		}
-		
+
 		String date = DateTime.ToString(removeOffer.getDate());
 
 		if (!confirmed) {
@@ -1022,7 +1031,7 @@ public class Marketplace {
 
 		// Entferne Angebote aus listPossibleMatches
 		removeFromPossibleMatches(removeOffer);
-		
+
 		// Entferne Angebot aus blackListPossibleMatches
 		removeFromBlackListPossibleMatches(removeOffer);
 	}
@@ -1041,7 +1050,7 @@ public class Marketplace {
 			return;
 		}
 		ArrayList<PossibleMatch> newBlackList = new ArrayList<PossibleMatch>();
-		for (PossibleMatch current: oldBlackList) {
+		for (PossibleMatch current : oldBlackList) {
 			Offer[] offers = current.getOffers();
 			if (!(offers[0].equals(offer) || offers[1].equals(offer))) {
 				newBlackList.add(current);
@@ -1049,8 +1058,7 @@ public class Marketplace {
 		}
 		if (newBlackList.size() == 0) {
 			blackListPossibleMatches.remove(key);
-		}
-		else {
+		} else {
 			blackListPossibleMatches.put(key, newBlackList);
 		}
 	}

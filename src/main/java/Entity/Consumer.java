@@ -1,7 +1,6 @@
 package Entity;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -735,12 +734,14 @@ public class Consumer {
 			HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(possibleChange,
 					Application.getRestHeader());
 
-			String url = "http://localhost:8080/marketplace/offer/" + cr.getOffer()
-					+ "/receiveAnswerChangeRequestLoadprofile";
+			String url = new API().marketplace().offers(cr.getOffer()).receiveAnswerChangeRequestLoadprofile()
+					.toString();
 
+			Log.d(uuid, url);
 			try {
-				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
+				rest.exchange(url, HttpMethod.POST, entity, Void.class);
 			} catch (Exception e) {
+				Log.d(uuid, e.getMessage());
 			}
 		} else {
 
