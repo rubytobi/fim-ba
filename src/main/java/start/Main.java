@@ -10,99 +10,40 @@ import Entity.Fridge;
 import Entity.Offer;
 import Entity.BHKW;
 import Packet.AnswerToOfferFromMarketplace;
+import Packet.ChangeRequestSchedule;
 import Util.DateTime;
 import Entity.Marketplace;
 import Util.PossibleMatch;
 import Util.Negotiation;
+import Util.SimulationBHKW;
 
 public class Main {
 	public static void main(String[] args) {
-		double[] changesKWH = {-1, 5, -4,- 3};
-		double[] planned = {6, 6, 6, 6};
-		double levelHeatReservoir = 5;
-		double sizeHeatReservoir = 10;
-		double chpCoefficient = 1;
-		double maxLoad = 10;
-		double priceFuel = 0.2;
-		double consFuelPerKWh = 1;
+		SimulationBHKW simulation = new SimulationBHKW(50);
 		
-		int numSlots = 4;
-		
-		double price = 0;
-		
-		for (int i=0; i<numSlots; i++) {
-			double value = changesKWH[i];
-			System.out.println(i+ ". Änderung gewünscht: " +value);
+		GregorianCalendar start = DateTime.now();
+		start.set(Calendar.MINUTE, 0);
+		start.set(Calendar.SECOND, 0);
+		start.set(Calendar.MILLISECOND, 0);
 
-			double powerGained = 0;
-						
-			if (value < 0) {
-				// Prüfe, dass produzierte Last nicht unter 0 fällt
-				if (planned[i] + value < 0) {
-					System.out.println("Produzierte Last fällt unter null");
-					value = -planned[i];
-				}
-				// Berechne Wärme, die nun nicht mehr produziert,
-				// aber benötigt wird und daher vom Wärmespeicher
-				// bezogen werden muss
-				double heat = Math.abs(value/chpCoefficient);
-				if (levelHeatReservoir-heat > 0) {
-					System.out.println("Wärme die wegfällt: " +heat);
-					levelHeatReservoir -= heat;
-					System.out.println("Neuer Füllstand: " +levelHeatReservoir);
-					powerGained = value;
-				}
-				else {
-					// Hole so viel wie möglich aus Speicher
-					System.out.println("Leere Speicher");
-					powerGained = -levelHeatReservoir;
-					levelHeatReservoir = 0;
-				}
-			}
-			if (value > 0) {
-				// Prüfe, das maximale Last nicht überschritten wird
-				if (planned[i] + value > maxLoad) {
-					System.out.println("Maximale Last überschritten");
-					value = maxLoad-planned[i];
-				}
-				// Nehme Strom möglichst vom Wärmespeicher
-				if (levelHeatReservoir > 0) {
-					if (levelHeatReservoir >= value) {
-						// TODO Wie Verhältnis abgeführte Wärme - daraus erzeugter Strom
-						levelHeatReservoir -= value;
-						powerGained = value;
-					}
-					else {
-						powerGained = levelHeatReservoir;
-						levelHeatReservoir = 0;
-					}
-				}
-				
-				if (powerGained != value) {
-					// Produziere restlichen Strom, speichere dabei
-					// als Nebenprodukt produzierte Wärme und 
-					// berechne anfallende Kosten
-					double powerProduced = value-powerGained;
-					double heatProduced = powerProduced*chpCoefficient;
-					System.out.println("Wärme produziert: "+heatProduced);
-					if (levelHeatReservoir+heatProduced <= sizeHeatReservoir) {
-						levelHeatReservoir += heatProduced;
-					}
-					else {
-						powerProduced = sizeHeatReservoir - levelHeatReservoir;
-						levelHeatReservoir = sizeHeatReservoir;
-					}
-					// Berechne, wie viel Energie tatsächlich produziert werden konnte
-					powerGained += powerProduced;
-	
-					// Berechne Preis für zusätzlich benötigten Brennstoff
-					price += Math.abs(powerProduced*consFuelPerKWh*priceFuel);
-				}
-			}
-			changesKWH[i] = powerGained;
-			System.out.println(i+". Änderung wirklich: " +changesKWH[i]);
-			System.out.println("Füllstand Wärmespeicher: " +levelHeatReservoir);
+		double[][] plan = simulation.getNewSchedule(start);
+		for (int i=0; i<60; i++) {
+			System.out.println((i+1)+ ". Minute: Füllstand: " +plan[0][i]+ ", Erzeugung: " +plan[1][i]);
 		}
-		System.out.println("Preis: " +price);
+		
+		start.add(Calendar.HOUR, 1);
+		double[][] plan2 = simulation.getNewSchedule(start);
+		for (int i=0; i<60; i++) {
+			System.out.println((i+1)+ ". Minute: Füllstand: " +plan2[0][i]+ ", Erzeugung: " +plan2[1][i]);
+		}
+		
+		BHKW bhkw = new BHKW(1, 0.5, 1, 10, 50);
+		bhkw.sendNewLoadprofile();
+		
+		start.add(Calendar.HOUR_OF_DAY,  -1);
+		double[] changes = {-1, 2, 10, -2};
+		ChangeRequestSchedule cr = new ChangeRequestSchedule(start, changes);
+		
+		bhkw.changeLoadprofile(cr);
 	}
 }
