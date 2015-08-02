@@ -1,7 +1,6 @@
 package Entity;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -20,14 +19,17 @@ import Packet.OfferNotification;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 import Util.API;
+import Util.API2;
 import Util.DateTime;
+import Util.Identifiable;
 import Util.Log;
 import Util.OfferAction;
+import Util.Transferable;
 import start.Application;
 import start.Loadprofile;
 import start.View;
 
-public class Consumer {
+public class Consumer implements Identifiable {
 	/**
 	 * Alle Angebote mit denen verhandelt wird oder wurde
 	 */
@@ -731,19 +733,9 @@ public class Consumer {
 			}
 
 			// Antworte Marketplace mit vorgenommener Änderung
-			RestTemplate rest = new RestTemplate();
-			HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(possibleChange,
-					Application.getRestHeader());
-
-			String url = "http://localhost:8080/marketplace/offer/" + cr.getOffer()
-					+ "/receiveAnswerChangeRequestLoadprofile";
-
-			try {
-				ResponseEntity<Void> response = rest.exchange(url, HttpMethod.POST, entity, Void.class);
-			} catch (Exception e) {
-			}
-		} else {
-
+			API2<ChangeRequestLoadprofile, Void> api = new API2<ChangeRequestLoadprofile, Void>(Void.class);
+			api.marketplace().offers(cr.getOffer()).receiveAnswerChangeRequestLoadprofile();
+			api.call(this, HttpMethod.POST, possibleChange);
 		}
 	}
 

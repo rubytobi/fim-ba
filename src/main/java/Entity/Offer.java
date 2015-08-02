@@ -7,10 +7,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Util.API;
-import Util.DeviceStatus;
 import Util.Log;
 import Util.OfferStatus;
-import Util.PossibleMatch;
 import start.Loadprofile;
 import start.View;
 
@@ -18,27 +16,37 @@ import start.View;
  * Klasse fuer Angebote
  *
  */
-public class Offer implements Comparable<Offer>{
-	// Aggregiertes Lastprofil über alle Lastprofile
+public class Offer implements Comparable<Offer> {
+	/**
+	 * Aggregiertes Lastprofil über alle Lastprofile
+	 */
 	@JsonView(View.Summary.class)
 	private Loadprofile aggLoadprofile;
-	
-	// Gesamtsumme aller Lastprofile
+
+	/**
+	 * Gesamtsumme aller Lastprofile
+	 */
 	private double sumAggLoadprofile;
 
 	@JsonView(View.Summary.class)
 	@JsonProperty("authKey")
 	private UUID authKey = null;
 
-	// Alle beteiligten Lastprofile
+	/**
+	 * Alle beteiligten Lastprofile
+	 */
 	@JsonView(View.Summary.class)
 	private HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = new HashMap<UUID, HashMap<UUID, Loadprofile>>();
 
-	// Preis, zu dem das aggregierte Lastprofil aktuell an der B�rse ist
+	/**
+	 * Preis, zu dem das aggregierte Lastprofil aktuell an der Börse ist
+	 */
 	@JsonView(View.Summary.class)
 	private double aggPrice;
 
-	// Consumer, von dem man das Angebot erhalten hat
+	/**
+	 * Consumer, von dem man das Angebot erhalten hat
+	 */
 	@JsonView(View.Summary.class)
 	private UUID author = null;
 
@@ -47,7 +55,7 @@ public class Offer implements Comparable<Offer>{
 
 	@JsonView(View.Summary.class)
 	private OfferStatus status;
-	
+
 	private int numSlots = 4;
 
 	private Offer() {
@@ -87,7 +95,7 @@ public class Offer implements Comparable<Offer>{
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		this.aggLoadprofile = loadprofile;
 		sumAggLoadprofile = 0;
-		for (int i=0; i<numSlots; i++) {
+		for (int i = 0; i < numSlots; i++) {
 			sumAggLoadprofile += aggLoadprofile.getValues()[i];
 		}
 
@@ -166,9 +174,9 @@ public class Offer implements Comparable<Offer>{
 				}
 			}
 		}
-		
+
 		sumAggLoadprofile = 0;
-		for (int i=0; i<numSlots; i++) {
+		for (int i = 0; i < numSlots; i++) {
 			sumAggLoadprofile += aggLoadprofile.getValues()[i];
 		}
 
@@ -240,7 +248,7 @@ public class Offer implements Comparable<Offer>{
 	public UUID getAuthKey() {
 		return authKey;
 	}
-	
+
 	public double getSumAggLoadprofile() {
 		return sumAggLoadprofile;
 	}
@@ -262,17 +270,15 @@ public class Offer implements Comparable<Offer>{
 	public boolean isAuthor(UUID uuid) {
 		return this.author.equals(uuid);
 	}
-	
+
 	@Override
 	public int compareTo(Offer offer) {
 		double otherSum = Math.abs(offer.getSumAggLoadprofile());
 		if (otherSum < Math.abs(sumAggLoadprofile)) {
 			return -1;
-		}
-		else if (otherSum == Math.abs(sumAggLoadprofile)) {
+		} else if (otherSum == Math.abs(sumAggLoadprofile)) {
 			return 0;
-		}
-		else {
+		} else {
 			return 1;
 		}
 	}

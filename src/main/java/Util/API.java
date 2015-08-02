@@ -1,12 +1,8 @@
 package Util;
 
 import java.util.UUID;
-import java.util.regex.Pattern;
-
-import Entity.Offer;
 
 public class API {
-	private static String api;
 	private String uri = "http://localhost:8080";
 
 	public API consumers() {
@@ -105,6 +101,16 @@ public class API {
 
 	public API changeRequests(UUID uuid) {
 		uri += "/changeRequests/" + uuid;
+		return this;
+	}
+
+	public API receiveAnswerChangeRequestLoadprofile() {
+		uri += "/receiveAnswerChangeRequestLoadprofile";
+		return this;
+	}
+
+	public API confirmByMarketplace() {
+		uri += "/confirmByMarketplace";
 		return this;
 	}
 }
