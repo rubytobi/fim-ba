@@ -16,7 +16,7 @@ import start.View;
  * Klasse fuer Angebote
  *
  */
-public class Offer implements Comparable<Offer> {
+public class Offer implements Comparable<Offer>, Cloneable {
 	/**
 	 * Aggregiertes Lastprofil über alle Lastprofile
 	 */
@@ -65,23 +65,6 @@ public class Offer implements Comparable<Offer> {
 	}
 
 	/**
-	 * 
-	 */
-	public String toString() {
-		return "{author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size()
-				+ "}";
-	}
-
-	/**
-	 * Liefert die Anzahl der Lastprofile des Angebots
-	 * 
-	 * @return Anzahl der Lastprofile des Angebots
-	 */
-	public int getCount() {
-		return allLoadprofiles.size();
-	}
-
-	/**
 	 * Erstellt neues Angebot auf Basis eines Lastprofils
 	 * 
 	 * @param author
@@ -107,15 +90,6 @@ public class Offer implements Comparable<Offer> {
 		this.aggPrice = loadprofile.getMinPrice();
 
 		status = OfferStatus.VALID;
-	}
-
-	/**
-	 * Liefert URL des Angebots
-	 * 
-	 * @return URL des Angebots als String
-	 */
-	public String getLocation() {
-		return new API().consumers(author).offers(uuid).toString();
 	}
 
 	/**
@@ -189,6 +163,32 @@ public class Offer implements Comparable<Offer> {
 		Log.d(uuid, "-- END Offer(): " +
 
 		toString());
+	}
+
+	/**
+	 * 
+	 */
+	public String toString() {
+		return "{author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size()
+				+ "}";
+	}
+
+	/**
+	 * Liefert die Anzahl der Lastprofile des Angebots
+	 * 
+	 * @return Anzahl der Lastprofile des Angebots
+	 */
+	public int getCount() {
+		return allLoadprofiles.size();
+	}
+
+	/**
+	 * Liefert URL des Angebots
+	 * 
+	 * @return URL des Angebots als String
+	 */
+	public String getLocation() {
+		return new API().consumers(author).offers(uuid).toString();
 	}
 
 	/**
@@ -281,5 +281,20 @@ public class Offer implements Comparable<Offer> {
 		} else {
 			return 1;
 		}
+	}
+
+	@Override
+	public Offer clone() {
+		return new Offer(this, null);
+	}
+
+	public void addLoadprofile(UUID consumer, Loadprofile loadprofile) {
+		if (!allLoadprofiles.containsKey(consumer)) {
+			allLoadprofiles.put(consumer, new HashMap<UUID, Loadprofile>());
+		}
+
+		allLoadprofiles.get(consumer).put(loadprofile.getUUID(), loadprofile);
+
+		this.aggLoadprofile = new Loadprofile(aggLoadprofile, loadprofile);
 	}
 }

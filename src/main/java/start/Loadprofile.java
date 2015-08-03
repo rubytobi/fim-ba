@@ -4,6 +4,8 @@ import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import Packet.ChangeRequestSchedule;
 import Util.DateTime;
 
 /**
@@ -100,6 +102,24 @@ public class Loadprofile {
 
 		// TODO: annahme: nehme stets den billigeren preis
 		this.minPrice = Math.min(lp1.getMinPrice(), lp2.getMinPrice());
+	}
+
+	/**
+	 * Erzeugt ein Lastprofil mit einer fixen UUID
+	 * 
+	 * @param uuid
+	 * @param changesLoadprofile
+	 * @param startLoadprofile
+	 * @param d
+	 */
+	public Loadprofile(UUID uuid, double[] changesLoadprofile, GregorianCalendar startLoadprofile, double d) {
+		this(changesLoadprofile, startLoadprofile, d);
+		this.uuid = uuid;
+	}
+
+	public Loadprofile(ChangeRequestSchedule cr) {
+		this(cr.getChangesLoadprofile(), cr.getStartLoadprofile(), 0.0);
+		this.uuid = cr.getUUID();
 	}
 
 	/**

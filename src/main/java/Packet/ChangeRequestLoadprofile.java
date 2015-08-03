@@ -2,9 +2,7 @@ package Packet;
 
 import java.util.UUID;
 
-import Util.Transferable;
-
-public class ChangeRequestLoadprofile implements Transferable {
+public class ChangeRequestLoadprofile  {
 	UUID offer;
 	double[] change;
 

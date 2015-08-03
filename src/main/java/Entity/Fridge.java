@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
 import Util.API;
+import Util.API2;
 import Util.DateTime;
 import Util.DeviceStatus;
 import Util.Log;
@@ -229,19 +230,19 @@ public class Fridge implements Device {
 	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
 	 *            soll
 	 */
-	public void changeLoadprofile(ChangeRequestSchedule cr) {
+	public double[] changeLoadprofile(ChangeRequestSchedule cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		int[] changesMinute = new int[numSlots];
 		double[][] plannedSchedule = scheduleMinutes;
 		// Minute Max(0), Temperatur Max(1)
 		double[][] maxSlots = new double[2][numSlots], minSlots = new double[2][numSlots];
-	
+
 		// Berechne, wie viele Minuten zusätzlich bzw. weniger
 		// gekühlt werden muss
 		for (int i = 0; i < numSlots; i++) {
 			changesMinute[i] = (int) Math.ceil(changesKWH[i] / consCooling);
 		}
-	
+
 		// Berechne für jeden Slot das aktuelle Maximum und Minimum und in
 		// welcher Minute es eintritt
 		for (int i = 0; i < numSlots; i++) {
@@ -258,7 +259,7 @@ public class Fridge implements Device {
 				}
 			}
 		}
-	
+
 		/*
 		 * Prüfe, ob die Änderungen der vorhergehenden Slots ein über-/ unter-
 		 * schreiten der maximalen/ minimalen Temperatur erzwingen. Passe das
@@ -266,30 +267,29 @@ public class Fridge implements Device {
 		 * vorhergehenden Slots an
 		 */
 		int changesBefore = changesMinute[0];
-	
+
 		for (int i = 1; i < numSlots; i++) {
 			if (changesBefore != 0) {
 				if (changesBefore < 0) {
 					minSlots[1][i] -= changesBefore * fallCooling;
 					if (minSlots[1][i] < minTemp2) {
-						declineChangedLoadprofile(cr);
-						return;
+						return cr.getChangesLoadprofile();
 					}
 				} else {
 					maxSlots[1][i] += changesBefore * riseWarming;
 					if (maxSlots[1][i] > maxTemp2) {
 						declineChangedLoadprofile(cr);
-						return;
+						return null;
 					}
 				}
 			}
 			changesBefore += changesMinute[i];
 		}
-	
+
 		// Wie viele Changes (1) darf ich erst ab Minute (0) machen?
 		int[][] minutePossibleChange = new int[2][numSlots];
 		int change;
-	
+
 		for (int i = 0; i < numSlots; i++) {
 			change = changesMinute[i];
 			if (change != 0) {
@@ -297,7 +297,7 @@ public class Fridge implements Device {
 					minSlots[1][i] -= change * fallCooling;
 					if (minSlots[1][i] < minTemp2) {
 						minutePossibleChange[0][i] = (int) minSlots[0][i] + 1;
-	
+
 						// Berechne, wie viele Changes vor dem Eintritt des
 						// Minimums möglich sind
 						double currentMin = minSlots[1][i];
@@ -308,13 +308,13 @@ public class Fridge implements Device {
 							amountChanges++;
 						}
 						minutePossibleChange[1][i] = change - amountChanges;
-	
+
 						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
 							declineChangedLoadprofile(cr);
-							return;
+							return null;
 						}
 					}
-	
+
 					else {
 						minutePossibleChange[0][i] = 0;
 						minutePossibleChange[1][i] = change;
@@ -323,7 +323,7 @@ public class Fridge implements Device {
 					maxSlots[1][i] -= change * riseWarming;
 					if (maxSlots[1][i] > maxTemp2) {
 						minutePossibleChange[0][i] = (int) maxSlots[0][i] + 1;
-	
+
 						// Berechne, wie viele Changes vor dem Eintritt des
 						// Minimums möglich sind
 						double currentMax = minSlots[1][i];
@@ -334,10 +334,10 @@ public class Fridge implements Device {
 							amountChanges++;
 						}
 						minutePossibleChange[1][i] = change - amountChanges;
-	
+
 						if (minutePossibleChange[1][i] + minutePossibleChange[0][i] > 59) {
 							declineChangedLoadprofile(cr);
-							return;
+							return null;
 						}
 					} else {
 						minutePossibleChange[0][i] = 0;
@@ -347,12 +347,13 @@ public class Fridge implements Device {
 			}
 		}
 		double[][] newSchedule = chargeChangedSchedule(changesMinute, minutePossibleChange);
-	
+
 		if (newSchedule != null) {
 			confirmChangedLoadprofile(cr);
+			return null;
 		} else {
 			declineChangedLoadprofile(cr);
-	
+			return null;
 		}
 	}
 
@@ -360,7 +361,7 @@ public class Fridge implements Device {
 		double[][] newSchedule = scheduleMinutes;
 		int currentChange;
 		boolean changed = false;
-	
+
 		// Berechne Slotsweise neuen Plan
 		for (int slot = 0; slot < numSlots; slot++) {
 			currentChange = changesLoadprofile[slot];
@@ -372,12 +373,12 @@ public class Fridge implements Device {
 				searchFor = consCooling;
 				change = 0.0;
 			}
-	
+
 			int minuteExtreme = minutePossibleChanges[0][slot];
 			int amountBefore = minutePossibleChanges[1][slot];
 			int amountAfter = Math.abs(currentChange) - amountBefore;
 			int currentMinute = slot * 15;
-	
+
 			// Mache die mögliche Anzahl an Änderungen vor dem Extremum
 			while (currentMinute <= minuteExtreme) {
 				if (currentMinute == 0) {
@@ -397,14 +398,14 @@ public class Fridge implements Device {
 						newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + fallCooling;
 					}
 				}
-	
+
 				currentMinute++;
-	
+
 				if (currentMinute == slot * 15 && amountBefore != 0) {
 					return null;
 				}
 			}
-	
+
 			// Mache die restliche Anzahl an Änderungen nach dem Extremum
 			while (currentMinute < (slot + 1) * 15) {
 				// Passe so bald wie möglich Plan an und berechne pro Änderung
@@ -421,9 +422,9 @@ public class Fridge implements Device {
 						newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + fallCooling;
 					}
 				}
-	
+
 				currentMinute++;
-	
+
 				if (currentMinute == slot * 15 && amountAfter != 0) {
 					return null;
 				}
@@ -498,11 +499,11 @@ public class Fridge implements Device {
 	private void confirmChangedLoadprofile(ChangeRequestSchedule cr) {
 		double[] changes = cr.getChangesLoadprofile();
 		double sum = 0;
-	
+
 		for (int i = 0; i < numSlots; i++) {
 			sum += changes[i];
 		}
-	
+
 		double costs;
 		costs = sum * consCooling;
 		if (costs < 0) {
@@ -637,7 +638,7 @@ public class Fridge implements Device {
 	 */
 	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		int size = 15 * numSlots;
-	
+
 		for (int i = 0; i < size; i++) {
 			double[] values = { schedule[0][i], schedule[1][i] };
 			schedulesFixed.put(DateTime.ToString(start), values);
@@ -649,7 +650,7 @@ public class Fridge implements Device {
 
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
 		RestTemplate rest = new RestTemplate();
-	
+
 		String url = new API().consumers(consumerUUID).loadprofiles().toString();
 		try {
 			RequestEntity<Loadprofile> request = RequestEntity.post(new URI(url)).accept(MediaType.APPLICATION_JSON)
@@ -667,7 +668,7 @@ public class Fridge implements Device {
 	 */
 	public void sendNewLoadprofile() {
 		double[] valuesLoadprofile;
-	
+
 		/*
 		 * Prüfe, ob dateFixed gesetzt, wenn nicht setze neu und erstelle
 		 * initiales Lastprofil
@@ -680,12 +681,12 @@ public class Fridge implements Device {
 			timeFixed = DateTime.now();
 			timeFixed.set(Calendar.SECOND, 0);
 			timeFixed.set(Calendar.MILLISECOND, 0);
-	
+
 			chargeNewSchedule();
 			valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
-	
+
 			timeFixed.set(Calendar.MINUTE, 0);
-	
+
 			saveSchedule(scheduleMinutes, timeFixed);
 			loadprofilesFixed.put(DateTime.ToString(timeFixed), valuesLoadprofile);
 		}
@@ -693,7 +694,7 @@ public class Fridge implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
-	
+
 		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0, false);
 		sendLoadprofileToConsumer(loadprofile);
 	}
@@ -711,7 +712,7 @@ public class Fridge implements Device {
 		} else {
 			throw new IllegalDeviceState();
 		}
-	
+
 		// sende an den eigenen consumer das lastprofil
 		sendNewLoadprofile();
 	}
@@ -733,10 +734,10 @@ public class Fridge implements Device {
 		compare.add(Calendar.HOUR_OF_DAY, 1);
 		boolean change;
 		boolean firstSchedule = true;
-	
+
 		aenderung.set(Calendar.SECOND, 0);
 		aenderung.set(Calendar.MILLISECOND, 0);
-	
+
 		/*
 		 * Berechne ab Zeitpunkt der Abweichung einschließlich des aktuellen
 		 * Plans scheduleMinutes neue Fahrpläne, neue Lastprofile und
@@ -745,12 +746,12 @@ public class Fridge implements Device {
 		while (!DateTime.ToString(startLoadprofile).equals(DateTime.ToString(compare))) {
 			// Berechne neuen Fahrplan
 			double[][] deltaSchedule = chargeDeltaSchedule(aenderung, newTemperature, firstSchedule);
-	
+
 			saveSchedule(deltaSchedule, startLoadprofile);
-	
+
 			firstSchedule = false;
 			newTemperature = deltaSchedule[1][15 * numSlots - 1];
-	
+
 			double[] newValues = createValuesLoadprofile(deltaSchedule[0]);
 			aenderung.set(Calendar.MINUTE, 0);
 			double[] oldValues;
@@ -759,13 +760,13 @@ public class Fridge implements Device {
 			} else {
 				oldValues = loadprofilesFixed.get(DateTime.ToString(startLoadprofile));
 			}
-	
+
 			double[] deltaValues = new double[4];
-	
+
 			if (oldValues == null) {
 				Log.e(this.uuid, DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
 			}
-	
+
 			change = false;
 			for (int i = 0; i < 4; i++) {
 				deltaValues[i] = newValues[i] - oldValues[i];
@@ -777,7 +778,7 @@ public class Fridge implements Device {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
 				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0, true);
 				sendLoadprofileToConsumer(deltaLoadprofile);
-	
+
 				// Abspeichern des neuen Lastprofils
 				loadprofilesFixed.put(DateTime.ToString(startLoadprofile), newValues);
 			} else {

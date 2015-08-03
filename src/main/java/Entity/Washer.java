@@ -324,7 +324,8 @@ public class Washer implements Device {
 		// TODO
 	}
 
-	public void changeLoadprofile(ChangeRequestSchedule cr) {
+	public double[] changeLoadprofile(ChangeRequestSchedule cr) {
+		return null;
 		// TODO
 	}
 

@@ -17,9 +17,12 @@ public interface Device {
 	/**
 	 * Ueberprueft, ob die gewuentsche Aenderung des Lastprofils moeglich ist
 	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
-	 * @param cr	Enthaelt Informationen, wie das Lastprofil geaendert werden soll 
+	 * 
+	 * @param cr
+	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
+	 *            soll
 	 */
-	public void changeLoadprofile(ChangeRequestSchedule cr);
+	public double[] changeLoadprofile(ChangeRequestSchedule cr);
 
 	/**
 	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird
@@ -52,17 +55,18 @@ public interface Device {
 	public void ping();
 
 	/**
-	 * Erzeugt einen neuen Fahrplan und das zugehoerige Lastprofil.
-	 * Das Lastprofil wird an den Consumer geschickt.
+	 * Erzeugt einen neuen Fahrplan und das zugehoerige Lastprofil. Das
+	 * Lastprofil wird an den Consumer geschickt.
 	 */
 	public void sendNewLoadprofile();
-	
+
 	/**
 	 * Legt den Consumer fuer das Device fest
-	 * @param consumerUUID	Uuid des Consumers
+	 * 
+	 * @param consumerUUID
+	 *            Uuid des Consumers
 	 */
 	public void setConsumer(UUID consumerUUID);
-
 
 	/**
 	 * Das Device speichert das Lastprofil und den Fahrplan zur uebergebenen

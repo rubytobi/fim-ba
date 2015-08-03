@@ -13,6 +13,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.sun.research.ws.wadl.Response;
 
+@SuppressWarnings("hiding")
 public class API2<Request, Response> {
 	private String uri = "http://localhost:8080";
 	private Class<Response> responseType = null;
@@ -168,6 +169,11 @@ public class API2<Request, Response> {
 		// Pass the new person and header
 
 		return headers;
+	}
+
+	public API2<Request, Response> changeRequest() {
+		uri += "/changeRequest";
+		return this;
 	}
 
 }

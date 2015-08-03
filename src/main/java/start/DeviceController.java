@@ -92,8 +92,8 @@ public class DeviceController {
 	 *            Device-ID
 	 */
 	@RequestMapping(value = "/devices/{uuid}/", method = RequestMethod.DELETE)
-	public void receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
-		DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
+	public double[] receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
+		return DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
 	}
 
 	/**
