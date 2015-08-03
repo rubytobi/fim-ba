@@ -70,7 +70,7 @@ public class Application {
 
 			String url;
 
-			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5);
+			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5, 0.3);
 
 			HttpEntity<FridgeCreation> entityFridge = new HttpEntity<FridgeCreation>(fridgeCreation, getRestHeader());
 

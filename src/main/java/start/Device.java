@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.GregorianCalendar;
 
 import Packet.ChangeRequestSchedule;
+import Packet.AnswerChangeRequest;
 import Util.DeviceStatus;
 
 /**
@@ -19,7 +20,7 @@ public interface Device {
 	 * und sendet eine Bestaetigung bzw. Absage an den Consumer
 	 * @param cr	Enthaelt Informationen, wie das Lastprofil geaendert werden soll 
 	 */
-	public void changeLoadprofile(ChangeRequestSchedule cr);
+	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr);
 
 	/**
 	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird

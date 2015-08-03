@@ -40,7 +40,7 @@ public class DeviceController {
 	public @ResponseBody UUID addDevice(@RequestBody FridgeCreation params) {
 		Fridge fridge = new Fridge(params.getMaxTemp1(), params.getMaxTemp2(), params.getMinTemp1(),
 				params.getMinTemp2(), params.getFallCooling(), params.getRiseWarming(), params.getConsCooling(),
-				params.getCurrTemp());
+				params.getCurrTemp(), params.getPriceCooling());
 
 		DeviceContainer.instance().add(fridge);
 		return fridge.getUUID();
