@@ -24,6 +24,7 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import Container.DeviceContainer;
 import Entity.Consumer;
 import Entity.Fridge;
 import Packet.FridgeCreation;
@@ -32,7 +33,6 @@ import Packet.FridgeCreation;
 @EnableScheduling
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
-	private static int countFridges = 0;
 	private static final int maxFridges = 5;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 
@@ -61,13 +61,12 @@ public class Application {
 
 	@Scheduled(fixedRate = 100)
 	public static void init() {
-		if (countFridges < maxFridges) {
-			countFridges++;
+		if (DeviceContainer.instance().size() < maxFridges) {
 			RestTemplate rest = new RestTemplate();
 
 			String url;
 
-			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5);
+			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5, 0.3);
 
 			HttpEntity<FridgeCreation> entityFridge = new HttpEntity<FridgeCreation>(fridgeCreation, getRestHeader());
 

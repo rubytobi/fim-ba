@@ -13,14 +13,18 @@ import org.springframework.web.client.RestTemplate;
 
 import com.sun.research.ws.wadl.Response;
 
+import Entity.Consumer;
+import start.Device;
+
 @SuppressWarnings("hiding")
 public class API2<Request, Response> {
-	private String uri = "http://localhost:8080";
+	private String uri = null;
 	private Class<Response> responseType = null;
 	private Response response = null;
 
 	public API2(Class<Response> responseType) {
 		this.responseType = responseType;
+		clear();
 	}
 
 	public API2<Request, Response> consumers() {
@@ -137,7 +141,7 @@ public class API2<Request, Response> {
 
 		RestTemplate rest = new RestTemplate();
 
-		HttpEntity<Request> entity = new HttpEntity<Request>(what, getHeaders());
+		HttpEntity<Request> entity = new HttpEntity<Request>(what, headers(who));
 
 		try {
 			ResponseEntity<Response> response = rest.exchange(uri, how, entity, responseType);
@@ -148,7 +152,7 @@ public class API2<Request, Response> {
 
 			this.response = response.getBody();
 		} catch (Exception e) {
-			Log.e(who.getUUID(), e.getMessage());
+			Log.d(who.getUUID(), e.toString() + " - -- - " + who.toString() + " - -- - " + what.toString());
 		}
 
 		this.response = null;
@@ -158,7 +162,7 @@ public class API2<Request, Response> {
 		return response;
 	}
 
-	private HttpHeaders getHeaders() {
+	private HttpHeaders headers(Identifiable who) {
 		// Prepare acceptable media type
 		List<MediaType> acceptableMediaTypes = new ArrayList<MediaType>();
 		acceptableMediaTypes.add(MediaType.APPLICATION_JSON);
@@ -168,12 +172,23 @@ public class API2<Request, Response> {
 		headers.setAccept(acceptableMediaTypes);
 		// Pass the new person and header
 
+		if (who instanceof Device) {
+			headers.add("Device-UUID", who.getUUID().toString());
+		} else if (who instanceof Consumer) {
+			headers.add("Consumer-UUID", who.getUUID().toString());
+		}
+
 		return headers;
 	}
 
 	public API2<Request, Response> changeRequest() {
 		uri += "/changeRequest";
 		return this;
+	}
+
+	public void clear() {
+		uri = "http://localhost:8080";
+		response = null;
 	}
 
 }

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,7 @@ import Container.ConsumerContainer;
 import Entity.Consumer;
 import Entity.Offer;
 import Packet.OfferNotification;
+import Util.Identity;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 
@@ -114,7 +116,8 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
-	public void receiveLoadprofileByDevice(@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
+	public void receiveLoadprofileByDevice(@RequestHeader(value = "Device-UUID", required = true) String identity,
+			@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
 	}
 

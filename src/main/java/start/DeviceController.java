@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonView;
 import Container.DeviceContainer;
 import Entity.Fridge;
+import Packet.AnswerChangeRequest;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
 
@@ -40,7 +41,7 @@ public class DeviceController {
 	public @ResponseBody UUID addDevice(@RequestBody FridgeCreation params) {
 		Fridge fridge = new Fridge(params.getMaxTemp1(), params.getMaxTemp2(), params.getMinTemp1(),
 				params.getMinTemp2(), params.getFallCooling(), params.getRiseWarming(), params.getConsCooling(),
-				params.getCurrTemp());
+				params.getCurrTemp(), params.getPriceCooling());
 
 		DeviceContainer.instance().add(fridge);
 		return fridge.getUUID();
@@ -92,7 +93,7 @@ public class DeviceController {
 	 *            Device-ID
 	 */
 	@RequestMapping(value = "/devices/{uuid}/", method = RequestMethod.DELETE)
-	public double[] receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
+	public AnswerChangeRequest receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
 		return DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
 	}
 

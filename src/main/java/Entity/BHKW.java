@@ -52,6 +52,11 @@ public class BHKW implements Device {
 	private double priceFuel;
 
 	/**
+	 * Fahrplan, der für die aktuelle ChangeRequest errechnet wurde
+	 */
+	private double[][] scheduleCurrentChangeRequest;
+
+	/**
 	 * Fahrplan in Minuten Rythmus, den der Consumer gerade aushandelt mit
 	 * Fuellstand des Reservoirs (0) und Stromerzeugung (1)
 	 */
@@ -87,6 +92,14 @@ public class BHKW implements Device {
 	 * UUID des BHKW
 	 */
 	private UUID uuid;
+
+	/**
+	 * waitForAnswerCR: Gibt an, ob aktuell auf die Antwort auf eine Change
+	 * Request gewartet wird waitForChargeDeltaLoadprofile: Gibt an, ob während
+	 * des Wartens auf die Antwort einer Change Request eine Termperaturänderung
+	 * war
+	 */
+	private boolean waitForAnswerCR, waitToChargeDeltaLoadprofile;
 
 	private BHKW() {
 		status = DeviceStatus.CREATED;
@@ -132,7 +145,7 @@ public class BHKW implements Device {
 	 *            soll
 	 * @return
 	 */
-	public double[] changeLoadprofile(ChangeRequestSchedule cr) {
+	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		String dateCR = DateTime.ToString(cr.getStartLoadprofile());
 		String dateCurrent = DateTime.ToString(cr.getStartLoadprofile());
@@ -248,29 +261,22 @@ public class BHKW implements Device {
 			changes[1][i] = changesKWH[i];
 			System.out.println("Level: " + changes[0][i] + " Strom: " + changes[1][i]);
 		}
-		chargeChangedSchedule(changes);
 
-		// Schicke Info mit moeglichen aenderungen und Preis dafuer an Consumer
+		double[][] newSchedule = chargeChangedSchedule(changes);
+		for (int i = 0; i < numSlots * 15; i++) {
+			scheduleCurrentChangeRequest[0][i] = newSchedule[0][i];
+			scheduleCurrentChangeRequest[1][i] = newSchedule[1][i];
+		}
+
+		// Schicke Info mit moeglichen Aenderungen und Preis dafuer an Consumer
 		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), changesKWH, price);
 
-		/*
-		 * RestTemplate rest = new RestTemplate();
-		 * 
-		 * // TODO Passe url an String url = new
-		 * API().consumers(consumerUUID).loadprofiles().toString();
-		 * 
-		 * try { RequestEntity<AnswerChangeRequest> request =
-		 * RequestEntity.post(new URI(url)).accept(MediaType.APPLICATION_JSON)
-		 * .body(answer); rest.exchange(request, Boolean.class); } catch
-		 * (Exception e) { // TODO Auto-generated catch block
-		 * e.printStackTrace(); }
-		 */
-
-		return null;
+		waitForAnswerCR = true;
+		return answer;
 	}
 
-	private void chargeChangedSchedule(double[][] changes) {
-		double[][] planned = scheduleMinutes;
+	private double[][] chargeChangedSchedule(double[][] changes) {
+		double[][] planned = scheduleMinutes.clone();
 		double[] plannedPowerLoadprofile = createValuesLoadprofile(planned[1]);
 
 		// Verteile Änderungen auf ganze Viertelstunde
@@ -458,6 +464,7 @@ public class BHKW implements Device {
 				}
 			}
 		}
+		return changesPerMinute;
 	}
 
 	/**
@@ -540,6 +547,45 @@ public class BHKW implements Device {
 	}
 
 	/**
+	 * Methode wird aufgerufen, wenn die Bestätigung/ Absage für den
+	 * scheduleCurrentChangeRequest eintrifft. War während des Wartens auf diese
+	 * Antwort eine Änderung und muss evtl. ein Deltalastprofil erstellt werden,
+	 * so wird das erledigt und an den Consumer gesendet
+	 * 
+	 * @param acceptChange
+	 *            Gibt an, ob das Angebot vom Consumer bestätigt (true) oder
+	 *            abgelehnt (false) wird
+	 */
+	public void receiveAnswerChangeRequest(boolean acceptChange) {
+		if (acceptChange) {
+			scheduleMinutes = scheduleCurrentChangeRequest;
+		}
+		// Erstelle das aktuelle Deltalastprofil, wenn während des Wartens auf
+		// die Antwort eine Temperaturänderung war
+		if (waitToChargeDeltaLoadprofile) {
+			double[] oldPlan = scheduleMinutes[1];
+			double[] newPlan = simulation.getNewSchedule(timeFixed)[1];
+			;
+			double[] deltaValues = new double[numSlots];
+
+			double sumDeltaValues = 0;
+			for (int i = 0; i < numSlots; i++) {
+				deltaValues[i] = oldPlan[i] - newPlan[i];
+				sumDeltaValues += Math.abs(deltaValues[i]);
+			}
+
+			if (sumDeltaValues != 0) {
+				// Versende deltaValues als Delta-Lastprofil an den Consumer
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed, 0.0, true);
+				sendLoadprofileToConsumer(deltaLoadprofile);
+			}
+			waitToChargeDeltaLoadprofile = false;
+		}
+		scheduleCurrentChangeRequest = null;
+		waitForAnswerCR = false;
+	}
+
+	/**
 	 * Speichert den uebergebenen Fahrplan als festen Fahrplan ab
 	 * 
 	 * @param schedule
@@ -549,6 +595,44 @@ public class BHKW implements Device {
 	 */
 	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		schedulesFixed.put(DateTime.ToString(start), schedule);
+	}
+
+	/**
+	 * Erzeugt bei Bedarf ein Deltalastprofil und sendet es an den Consumer.
+	 * Methode wird aufgerufen, wenn eine anderer Wert gemessen wurde, als in
+	 * der Minute geplant war.
+	 * 
+	 * @param start
+	 *            Zeitpunkt, wann die Abweichung gemessen wurde
+	 * @param valueChanged
+	 *            Wert, der gemessen wurde
+	 */
+	public void sendDeltaLoadprofile(GregorianCalendar start, double valueChanged) {
+		int minute = start.get(Calendar.MINUTE);
+		start.set(Calendar.MINUTE, 0);
+
+		double[] oldPlan = schedulesFixed.get(start)[1];
+		double[] newPlan = simulation.getNewSchedule(start)[1];
+
+		newPlan[minute] = oldPlan[minute];
+
+		// Pruefe, ob es weitere Abweichungen gibt
+		if (!oldPlan.equals(newPlan)) {
+			if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed)) && waitForAnswerCR) {
+				// Warte mit Versenden des Delta-Lastprofils auf die Antwort der
+				// ChangeRequest
+				waitToChargeDeltaLoadprofile = true;
+			} else {
+				double[] deltaValues = new double[numSlots];
+				for (int i = 0; i < numSlots; i++) {
+					deltaValues[i] = oldPlan[i] - newPlan[i];
+				}
+
+				// Versende deltaValues als Delta-Lastprofil an den Consumer
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start, 0.0, true);
+				sendLoadprofileToConsumer(deltaLoadprofile);
+			}
+		}
 	}
 
 	/**
@@ -624,37 +708,5 @@ public class BHKW implements Device {
 
 		// sende an den eigenen Consumer das Lastprofil
 		sendNewLoadprofile();
-	}
-
-	/**
-	 * Erzeugt bei Bedarf ein Deltalastprofil und sendet es an den Consumer.
-	 * Methode wird aufgerufen, wenn eine anderer Wert gemessen wurde, als in
-	 * der Minute geplant war.
-	 * 
-	 * @param start
-	 *            Zeitpunkt, wann die Abweichung gemessen wurde
-	 * @param valueChanged
-	 *            Wert, der gemessen wurde
-	 */
-	public void sendDeltaLoadprofile(GregorianCalendar start, double valueChanged) {
-		int minute = start.get(Calendar.MINUTE);
-		start.set(Calendar.MINUTE, 0);
-
-		double[] oldPlan = schedulesFixed.get(start)[1];
-		double[] newPlan = simulation.getNewSchedule(start)[1];
-
-		newPlan[minute] = oldPlan[minute];
-
-		// Pruefe, ob es weitere Abweichungen gibt
-		if (!oldPlan.equals(newPlan)) {
-			double[] deltaValues = new double[numSlots];
-			for (int i = 0; i < numSlots; i++) {
-				deltaValues[i] = oldPlan[i] - newPlan[i];
-			}
-
-			// Versende deltaValues als Delta-Lastprofil an den Consumer
-			Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start, 0.0, true);
-			sendLoadprofileToConsumer(deltaLoadprofile);
-		}
 	}
 }

@@ -809,21 +809,12 @@ public class Consumer implements Identifiable {
 	}
 
 	private void sendOfferNotificationToAllConsumers(OfferNotification notification) {
-		RestTemplate rest = new RestTemplate();
-
-		HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
-				Application.getRestHeader());
-
-		String url;
+		API2<OfferNotification, Void> api2 = new API2<>(Void.class);
 
 		for (Consumer c : getAllConsumers()) {
-			url = new API().consumers(c.getUUID()).offers().toString();
-
-			try {
-				rest.exchange(url, HttpMethod.POST, entity, String.class);
-			} catch (Exception e) {
-				Log.e(this.uuid, e.getMessage());
-			}
+			api2.consumers(c.getUUID()).offers().toString();
+			api2.call(this, HttpMethod.POST, notification);
+			api2.clear();
 		}
 	}
 

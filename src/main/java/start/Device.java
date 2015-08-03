@@ -5,13 +5,15 @@ import java.util.UUID;
 import java.util.GregorianCalendar;
 
 import Packet.ChangeRequestSchedule;
+import Packet.AnswerChangeRequest;
 import Util.DeviceStatus;
+import Util.Identifiable;
 
 /**
  * Interface fuer alle Verbrauchsgeraete
  *
  */
-public interface Device {
+public interface Device extends Identifiable {
 	int numSlots = 4;
 
 	/**
@@ -22,7 +24,7 @@ public interface Device {
 	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
 	 *            soll
 	 */
-	public double[] changeLoadprofile(ChangeRequestSchedule cr);
+	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr);
 
 	/**
 	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird

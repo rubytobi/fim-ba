@@ -549,9 +549,9 @@ public class Marketplace {
 	}
 
 	/**
-	 * 
-	 * @param uuid
-	 * @return
+	 * Gibt das Verbrauchsangebot mit der übergebenen UUID zurück
+	 * @param uuid	UUID des erfragten Verbrauchangebots
+	 * @return	Verbrauchsangebot mit der übergebenen UUID
 	 */
 	public Offer getDemand(UUID uuid) {
 		// TODO Auto-generated method stub
@@ -956,6 +956,13 @@ public class Marketplace {
 	 */
 	public void putOffer(Offer offer) {
 		String date = DateTime.ToString(offer.getDate());
+		
+		GregorianCalendar latestDate = (GregorianCalendar) nextSlot.clone();
+		latestDate.add(Calendar.HOUR_OF_DAY, -1);
+		if (offer.getDate().before(latestDate)) {
+			// TODO Absage an Sender des Angebots?
+			return;
+		}
 
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
