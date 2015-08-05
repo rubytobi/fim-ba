@@ -13,14 +13,12 @@ import org.springframework.web.client.RestTemplate;
 
 import com.sun.research.ws.wadl.Response;
 
-import Entity.Consumer;
-import start.Device;
-
 @SuppressWarnings("hiding")
 public class API2<Request, Response> {
 	private String uri = null;
 	private Class<Response> responseType = null;
 	private Response response = null;
+	private UUID responseUUID;
 
 	public API2(Class<Response> responseType) {
 		this.responseType = responseType;
@@ -143,19 +141,30 @@ public class API2<Request, Response> {
 
 		HttpEntity<Request> entity = new HttpEntity<Request>(what, headers(who));
 
+		ResponseEntity<Response> response = null;
 		try {
-			ResponseEntity<Response> response = rest.exchange(uri, how, entity, responseType);
+			response = rest.exchange(uri, how, entity, responseType);
 
-			if (response.getBody() instanceof Void && response.getBody() == null) {
-				Log.d(who.getUUID(), "no response expected and nothing received");
+			if (response.getBody() == null && !responseType.toString().equals("class java.lang.Void")) {
+				Log.d(who.getUUID(),
+						"no response received and expected following: " + responseType + " # " + how + " " + uri);
 			}
 
 			this.response = response.getBody();
+
+			try {
+				this.responseUUID = UUID.fromString(response.getHeaders().getFirst("UUID"));
+			} catch (Exception e) {
+				System.out.println("no uuid: " + uri);
+			}
+
+			return;
 		} catch (Exception e) {
-			Log.d(who.getUUID(), e.toString() + " - -- - " + who.toString() + " - -- - " + what.toString());
+			Log.d(who.getUUID(), e + " - -- - " + who + " - -- - " + what + " - -- - " + response);
 		}
 
 		this.response = null;
+		this.responseUUID = null;
 	}
 
 	public Response getResponse() {
@@ -172,11 +181,8 @@ public class API2<Request, Response> {
 		headers.setAccept(acceptableMediaTypes);
 		// Pass the new person and header
 
-		if (who instanceof Device) {
-			headers.add("Device-UUID", who.getUUID().toString());
-		} else if (who instanceof Consumer) {
-			headers.add("Consumer-UUID", who.getUUID().toString());
-		}
+		headers.add("UUID", who.getUUID().toString());
+		headers.add("Class", who.getClass().getSimpleName());
 
 		return headers;
 	}
@@ -189,6 +195,20 @@ public class API2<Request, Response> {
 	public void clear() {
 		uri = "http://localhost:8080";
 		response = null;
+	}
+
+	public API2<Request, Response> supplies(int i) {
+		uri += "/supplies/" + i;
+		return this;
+	}
+
+	public API2<Request, Response> prediction() {
+		uri += "/prediction";
+		return this;
+	}
+
+	public UUID getSenderUUID() {
+		return responseUUID;
 	}
 
 }

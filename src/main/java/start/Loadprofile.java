@@ -5,6 +5,7 @@ import java.util.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import Entity.Offer;
 import Packet.ChangeRequestSchedule;
 import Util.DateTime;
 
@@ -216,5 +217,9 @@ public class Loadprofile {
 
 	public UUID getUUID() {
 		return uuid;
+	}
+
+	public Offer toOffer(UUID author) {
+		return new Offer(author, this);
 	}
 }

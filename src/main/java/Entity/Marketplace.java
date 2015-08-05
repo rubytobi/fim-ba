@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import Packet.AnswerToOfferFromMarketplace;
@@ -19,17 +20,20 @@ import Packet.ChangeRequestLoadprofile;
 import Util.MatchedOffers;
 import Util.API;
 import Util.DateTime;
+import Util.Identifiable;
 import Util.Log;
 import Util.PossibleMatch;
+import Util.ResponseBuilder;
 import Util.Negotiation;
 import Util.sortOfferPriceSupplyLowToHigh;
 import start.Application;
+import start.Loadprofile;
 import Util.sortOfferPriceDemandHighToLow;
 
 /**
  * Marktplatz, auf welchem alle Angebote eintreffen und zusammengefuehrt werden
  */
-public class Marketplace {
+public class Marketplace implements Identifiable {
 	/**
 	 * Map, die nach Startzeit alle schon erfolglos verhandelten
 	 * Angebotskombinationen enthaelt
@@ -1242,5 +1246,39 @@ public class Marketplace {
 				System.out.println("	" + (i + 1) + ". : " + possibleMatch.get(i).toString());
 			}
 		}
+	}
+
+	public ResponseEntity<double[]> getPrediction() {
+		String dateString = DateTime.ToString(DateTime.currentTimeSlot());
+
+		return new ResponseBuilder<double[]>(this).body(prediction.get(dateString)).build();
+	}
+
+	public Offer[] getSupplies(int count) {
+		if (count < 0) {
+			// abfangen falscher negativer werte
+			count = 0;
+		}
+
+		String dateString = DateTime.ToString(DateTime.currentTimeSlot());
+
+		if (!supply.containsKey(dateString) || supply.get(dateString) == null) {
+			return new Offer[] {
+					new Offer(uuid, new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot(), 0.0)) };
+		}
+
+		count = Math.min(count, supply.get(dateString).size());
+
+		Offer[] list = new Offer[count];
+
+		for (int i = 0; i < count; i++) {
+			list[i] = supply.get(dateString).get(i);
+		}
+
+		return list;
+	}
+
+	public UUID getUUID() {
+		return uuid;
 	}
 }

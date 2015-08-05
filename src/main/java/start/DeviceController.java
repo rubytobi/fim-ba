@@ -1,7 +1,10 @@
 package start;
 
+import java.net.URI;
 import java.util.GregorianCalendar;
 import java.util.UUID;
+
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,9 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonView;
 import Container.DeviceContainer;
 import Entity.Fridge;
+import Entity.Marketplace;
 import Packet.AnswerChangeRequest;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
+import Util.API;
 
 @RestController
 public class DeviceController {
@@ -92,9 +97,14 @@ public class DeviceController {
 	 * @param uuid
 	 *            Device-ID
 	 */
-	@RequestMapping(value = "/devices/{uuid}/", method = RequestMethod.DELETE)
-	public AnswerChangeRequest receiveChangeRequest(@RequestBody ChangeRequestSchedule cr, @PathVariable UUID uuid) {
-		return DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
+	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.DELETE)
+	public ResponseEntity<AnswerChangeRequest> receiveChangeRequest(@RequestBody ChangeRequestSchedule cr,
+			@PathVariable UUID uuid) {
+		AnswerChangeRequest body = DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
+		URI location = new API().devices(uuid).toURI();
+
+		return ResponseEntity.created(location).header("UUID", uuid.toString())
+				.header("Class", DeviceContainer.instance().get(uuid).getClass().getSimpleName()).body(body);
 	}
 
 	/**

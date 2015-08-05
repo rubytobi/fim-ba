@@ -1,6 +1,5 @@
 package Entity;
 
-import java.net.URI;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -9,17 +8,17 @@ import org.apache.commons.lang.ArrayUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.OfferNotification;
+import Packet.AnswerChangeRequest;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
+import Util.Score;
 import Util.API;
 import Util.API2;
 import Util.DateTime;
@@ -31,6 +30,22 @@ import start.Loadprofile;
 import start.View;
 
 public class Consumer implements Identifiable {
+	final class DeviationOfferComparator implements Comparator<Offer> {
+
+		@Override
+		public int compare(Offer o1, Offer o2) {
+			double d = o1.getAggLoadprofile().chargeDeviationOtherProfile(o2.getAggLoadprofile());
+
+			if (d < 0) {
+				return -1;
+			} else if (d > 0) {
+				return 1;
+			} else {
+				return 0;
+			}
+		}
+	}
+
 	/**
 	 * Alle Angebote mit denen verhandelt wird oder wurde
 	 */
@@ -49,12 +64,6 @@ public class Consumer implements Identifiable {
 	 */
 	@JsonView(View.Summary.class)
 	private UUID device = null;
-
-	/**
-	 * Aktuelles Stundenlastprofil (evtl. auch schon aggregiert mit anderen
-	 * Teilnehmern)
-	 */
-	// private Loadprofile loadprofile = null;
 
 	/**
 	 * Maximale Anzahl der zu vergleichenden Martplatz-Angebote
@@ -78,6 +87,8 @@ public class Consumer implements Identifiable {
 	private UUID uuid;
 
 	private HashMap<UUID, Offer> allOfferMerges = new HashMap<UUID, Offer>();
+
+	private HashMap<UUID, HashMap<UUID, ChangeRequestLoadprofile>> allOfferContributions = new HashMap<UUID, HashMap<UUID, ChangeRequestLoadprofile>>();
 
 	/**
 	 * Anlage eines neuen Consumers. ID und maxMarketplaceOffersToCompare werden
@@ -387,8 +398,15 @@ public class Consumer implements Identifiable {
 	}
 
 	private Offer[] getMarketplaceSupplies(int i) {
-		// TODO
-		return new Offer[0];
+		API2<Void, Offer[]> api2 = new API2<Void, Offer[]>(Offer[].class);
+		api2.marketplace().supplies(i);
+		api2.call(this, HttpMethod.GET, null);
+
+		if (api2.getResponse() == null) {
+			return new Offer[] {};
+		}
+
+		return api2.getResponse();
 	}
 
 	public int getNumSlots() {
@@ -422,14 +440,16 @@ public class Consumer implements Identifiable {
 	 *            entsprechender Zeitslot
 	 * @return Angebot
 	 */
-	public Offer getOfferWithPrivileges(GregorianCalendar date) {
+	public Offer[] getOfferWithPrivileges(GregorianCalendar date) {
+		ArrayList<Offer> list = new ArrayList<Offer>();
+
 		for (Offer o : allOffers.values()) {
 			if (o.isAuthor(uuid) && o.getDate().equals(date)) {
-				return o;
+				list.add(o);
 			}
 		}
 
-		return null;
+		return list.toArray(new Offer[list.size()]);
 	}
 
 	/**
@@ -445,16 +465,21 @@ public class Consumer implements Identifiable {
 		if (object == null) {
 			// Log.d(uuid, "notification queue empty");
 
-			Offer offer = getOfferWithPrivileges(DateTime.now());
+			Offer[] offerList = getOfferWithPrivileges(DateTime.now());
 
-			if (offer == null) {
+			if (offerList.length == 0) {
 				// Log.d(uuid, "no offerWithPrivileges for sending
 				// notifications");
 				return;
 			} else {
 				// Log.d(uuid, "send notification for current offer");
 
-				OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+				int minimum = 0;
+				int maximum = offerList.length - 1;
+				int i = minimum + (int) (Math.random() * maximum);
+
+				OfferNotification notification = new OfferNotification(offerList[i].getLocation(),
+						offerList[i].getUUID());
 				sendOfferNotificationToAllConsumers(notification);
 				return;
 			}
@@ -469,152 +494,175 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
-		Offer offer = getOfferFromUrl(notification.getLocation());
+		Offer receivedOffer = getOfferFromUrl(notification.getLocation());
 
-		// Angbeot nicht mehr vorhanden
-		if (offer == null) {
+		// Angebot nicht mehr vorhanden
+		if (receivedOffer == null) {
 			Log.d(uuid, "offer not anymore available");
 			return;
 		}
 
 		// Angebot nicht mehr gültig
-		if (!offer.isValid()) {
+		if (!receivedOffer.isValid()) {
 			Log.d(uuid, "invalid offer!");
 			return;
 		}
 
 		// wenn kein eigenes Lastprofil mehr behandelt werden muss, nicht
 		// reagieren auf Angebot
-		Offer offerWithPrivileges = getOfferWithPrivileges(offer.getDate());
+		Offer[] offerWithPrivileges = getOfferWithPrivileges(receivedOffer.getDate());
 
-		if (offerWithPrivileges == null) {
+		if (offerWithPrivileges.length == 0) {
 			Log.d(uuid, "not able to deal: " + this.allOffers);
 			return;
 		}
 
-		TreeSet<Score> offerTree = new TreeSet<Score>();
-		for (Offer m : getMarketplaceSupplies(maxMarketplaceOffersToCompare)) {
-			offerTree.add(new Score(m, new Offer(offerWithPrivileges, offer)));
+		TreeSet<Score> scorecard = new TreeSet<Score>();
+		for (Offer marketplace : getMarketplaceSupplies(maxMarketplaceOffersToCompare)) {
+			for (Offer own : offerWithPrivileges) {
+				scorecard.add(new Score(marketplace, own, null, null));
+			}
 		}
 
-		Log.d(uuid, "OfferTree: " + offerTree);
+		if (scorecard.isEmpty()) {
+			API2<Void, double[]> api2 = new API2<Void, double[]>(double[].class);
+			api2.marketplace().prediction();
+			api2.call(this, HttpMethod.GET, null);
 
-		if (offerTree.isEmpty()) {
+			double[] prediction = api2.getResponse();
+			Loadprofile lp = new Loadprofile(prediction, DateTime.currentTimeSlot(), 0.0);
+			Offer marketplace = new Offer(api2.getSenderUUID(), lp);
+
+			for (Offer own : offerWithPrivileges) {
+				scorecard.add(new Score(marketplace, own, null, null));
+			}
+		}
+
+		Log.d(uuid, "Scorecard: " + scorecard);
+
+		if (scorecard.isEmpty()) {
 			Log.e(uuid, "getMarketplaceSupplies returns null?");
 			return;
 		}
 
-		Score bestScore = offerTree.first();
+		// auslesen des bisherigen besten angebots
+		Score bestScore = scorecard.first();
 
-		// eigenes angebot gegen das beste vom marktplatz
-		double eVSm = offerWithPrivileges.getAggLoadprofile()
-				.chargeDeviationOtherProfile(bestScore.getMarketplace().getAggLoadprofile());
-		// neues gemeinsames angebot gegen das beste vom marktplatz
-		double nVSm = offerWithPrivileges.getAggLoadprofile()
-				.chargeDeviationOtherProfile(bestScore.getTempOffer().getAggLoadprofile());
+		// besten score um erhaltenes angbeot erweitern
+		Score s = bestScore.clone();
+		s.setReceivedOffer(receivedOffer);
+		scorecard.add(s);
 
-		Log.d(uuid, "nVSm [" + nVSm + "] <-> eVSm [" + eVSm + "]");
+		Offer newOffer = null;
 
-		if (nVSm > eVSm) {
-			Log.d(uuid, "mögliche verbesserung eruieren");
-			// der zusammenschluss ist primär nicht gut, da die abweichung
-			// erhöht wird. versuche durch anpassung von lastprofilen eine
-			// besserung zu erreichen
+		if (bestScore.equals(scorecard.first())) {
+			Log.d(uuid, "versuche das eigene lastprofil anzupassen, um besser zu werden");
+			HashMap<UUID, ChangeRequestLoadprofile> contributions = improveOwnOffer(bestScore.getOwn(), receivedOffer,
+					bestScore);
 
-			// berchnen der abweichung
-			HashMap<UUID, ChangeRequestSchedule> contributions = new HashMap<UUID, ChangeRequestSchedule>();
-			ChangeRequestSchedule aim = new ChangeRequestSchedule(offer.getDate(), bestScore.getDelta());
-
-			for (UUID c : offerWithPrivileges.getAllLoadprofiles().keySet()) {
-				Log.d(c, "Ziel CR: " + aim.toString());
-				if (aim.isZero()) {
-					Log.d(uuid, "changerequest ziel zu 100% erreicht");
-					break;
-				}
-
-				API2<ChangeRequestSchedule, ChangeRequestSchedule> api2 = new API2<ChangeRequestSchedule, ChangeRequestSchedule>(
-						ChangeRequestSchedule.class);
-				api2.consumers(c).offers(offerWithPrivileges.getUUID()).changeRequest();
-				api2.call(this, HttpMethod.POST, aim);
-
-				Log.d(uuid, "device ermöglicht folgenden changerequest: " + api2.getResponse());
-
-				contributions.put(c, api2.getResponse());
-
-				if (aim.equals(api2.getResponse())) {
-					Log.d(uuid, "device ermöglicht genau das angefragte. gesamt cr konnte ermöglicht werden");
-					// anfrage wurde bestätigt
-					// gesamt cr konnte reserviert werden
-				}
-
-				// ziel um zugesagte änderung in der antwort verringern
-				for (int i = 0; i < 4; i++) {
-					aim.getChangesLoadprofile()[i] -= api2.getResponse().getChangesLoadprofile()[i];
-				}
-			}
-
-			Offer newTempOffer = offer.clone();
-
-			for (UUID c : contributions.keySet()) {
-				newTempOffer.addLoadprofile(c, contributions.get(c).toLoadprofile());
-			}
-
-			nVSm = offerWithPrivileges.getAggLoadprofile()
-					.chargeDeviationOtherProfile(newTempOffer.getAggLoadprofile());
-
-			if (!aim.isZero() && nVSm > eVSm) {
-				Log.d(uuid, "gesamt cr konnte nicht realisiert werden, angebot nicht gut und wird verworfen");
+			if (contributions == null) {
+				Log.d(uuid, "nicht konnte erreicht werden");
 				return;
+			} else {
+				newOffer = new Offer(new Offer(bestScore.getOwn(), receivedOffer), contributions);
+				allOfferContributions.put(newOffer.getUUID(), contributions);
 			}
-
-			// neues Angebot erstellen
-			Offer newOffer = null;
-
-			for (UUID c : contributions.keySet()) {
-				API2<Void, Loadprofile> api2 = new API2<Void, Loadprofile>(Loadprofile.class);
-				api2.consumers(c).offers(offerWithPrivileges.getUUID()).changeRequest().confirm(); // falscher
-																									// pfad?!
-				api2.call(this, HttpMethod.GET, null);
-
-				if (newOffer == null) {
-					newOffer = new Offer(offer, new Offer(c, api2.getResponse()));
-				} else {
-					newOffer = new Offer(newOffer, new Offer(c, api2.getResponse()));
-				}
-			}
-
-			// neues angebot ablegen
-			allOfferMerges.put(newOffer.getUUID(), offerWithPrivileges);
-
-			// neue notification erstellen
-			OfferNotification newNotification = new OfferNotification(newOffer.getLocation(), newOffer.getUUID());
-
-			// notification versenden
-			API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
-			api2.consumers(offer.getAuthor()).offers(offer.getUUID()).answer().toString();
-			api2.call(this, HttpMethod.POST, newNotification);
 		} else {
-			Log.d(this.uuid, "working on this offer: " + offer.toString());
+			// neues Angebot erstellen
+			newOffer = bestScore.getMerge();
+		}
 
-			// neues Angebot erstellen und ablegen
-			Offer newOffer = new Offer(offerWithPrivileges, offer);
-			addOffer(newOffer);
-			allOfferMerges.put(newOffer.getUUID(), offerWithPrivileges);
+		// neues Angebot ablegen
+		addOffer(newOffer);
+		allOfferMerges.put(newOffer.getUUID(), bestScore.getOwn());
 
-			// neue notification erstellen
-			OfferNotification newNotification = new OfferNotification(newOffer.getLocation(), newOffer.getUUID());
+		// neue notification erstellen
+		OfferNotification newNotification = new OfferNotification(newOffer.getLocation(), newOffer.getUUID());
 
-			// notification versenden
-			String url = new API().consumers(offer.getAuthor()).offers(offer.getUUID()).answer().toString();
+		// notification versenden
+		API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
+		api2.consumers(receivedOffer.getAuthor()).offers(receivedOffer.getUUID()).answer();
+		api2.call(this, HttpMethod.POST, newNotification);
+	}
 
-			try {
-				RequestEntity<OfferNotification> request = RequestEntity.post(new URI(url))
-						.accept(MediaType.APPLICATION_JSON).body(newNotification);
-				new RestTemplate().exchange(request, Void.class);
-			} catch (Exception e) {
-				Log.e(this.uuid, e.getMessage());
+	private HashMap<UUID, ChangeRequestLoadprofile> improveOwnOffer(Offer ownOffer, Offer receivedOffer,
+			Score bestScore) {
+		// der zusammenschluss ist primär nicht gut, da die abweichung
+		// erhöht wird. versuche durch anpassung von lastprofilen eine
+		// besserung zu erreichen
+		Log.d(uuid, "mögliche verbesserung eruieren");
+
+		// berechnen der abweichung
+		HashMap<UUID, ChangeRequestLoadprofile> contributions = new HashMap<UUID, ChangeRequestLoadprofile>();
+		ChangeRequestLoadprofile aim = new ChangeRequestLoadprofile(receivedOffer.getUUID(), bestScore.getDelta());
+
+		for (UUID c : ownOffer.getAllLoadprofiles().keySet()) {
+			Log.d(c, "Ziel CR: " + aim.toString());
+			if (aim.isZero()) {
+				Log.d(uuid, "changerequest ziel zu 100% erreicht");
+				break;
+			}
+
+			API2<ChangeRequestLoadprofile, ChangeRequestLoadprofile> api2 = new API2<ChangeRequestLoadprofile, ChangeRequestLoadprofile>(
+					ChangeRequestLoadprofile.class);
+			api2.consumers(c).offers(ownOffer.getUUID()).changeRequest();
+			api2.call(this, HttpMethod.POST, aim);
+
+			Log.d(uuid, "device ermöglicht folgenden changerequest: " + api2.getResponse());
+
+			if (!api2.getResponse().isZero()) {
+				contributions.put(c, api2.getResponse());
+			}
+
+			if (aim.equals(api2.getResponse())) {
+				Log.d(uuid, "device ermöglicht genau das angefragte. gesamt cr konnte ermöglicht werden");
+				// anfrage wurde bestätigt
+				// gesamt cr konnte reserviert werden
+			}
+
+			// ziel um zugesagte änderung in der antwort verringern
+			for (int i = 0; i < 4; i++) {
+				aim.getChange()[i] -= api2.getResponse().getChange()[i];
 			}
 		}
+
+		if (contributions.size() > 0) {
+			Log.d(uuid, "eine verbesserung konnte erreicht werden");
+			return null;
+		}
+
+		// eigenes angebot um erhaltene CRs erweitern
+		Offer contributionOffer = null;
+
+		for (UUID c : contributions.keySet()) {
+			if (contributionOffer == null) {
+				contributionOffer = contributions.get(c).toLoadprofile().toOffer(c);
+			} else {
+				contributionOffer = new Offer(contributionOffer, contributions.get(c).toLoadprofile().toOffer(c));
+			}
+		}
+
+		// neue abweichung des erweiterten angebots gegenüber dem
+		// marktplatzangebot berechnen
+		// TODO logik prüfen!
+		Score newScore = new Score(bestScore.getMarketplace(), bestScore.getOwn(), receivedOffer, contributionOffer);
+		if (newScore.getScore() >= bestScore.getScore()) {
+			Log.d(uuid, "abweichung konnte nicht verringert werden, angebot nicht gut und wird verworfen");
+
+			// change requests aufheben
+			API2<Void, Void> api2_decline = new API2<Void, Void>(Void.class);
+			for (UUID c : contributions.keySet()) {
+				// TODO pfad muss noch geklärt werden!
+				api2_decline.consumers(c).offers(ownOffer.getUUID()).changeRequest().decline();
+				api2_decline.call(this, HttpMethod.GET, null);
+				api2_decline.clear();
+
+			}
+
+			return null;
+		}
+
+		return contributions;
 	}
 
 	public void priceChangeRequest(AnswerToOfferFromMarketplace answerOffer, UUID negotiation) {
@@ -712,7 +760,14 @@ public class Consumer implements Identifiable {
 		return true;
 	}
 
-	public boolean receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+	public ChangeRequestLoadprofile receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+		Offer affectedOffer = allOffers.get(cr.getOffer());
+
+		if (affectedOffer == null) {
+			Log.d(uuid, "angebot nicht vorhanden");
+			return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
+		}
+
 		// liste der zugesagten änderungen
 		HashMap<UUID, Double[]> contributions = new HashMap<UUID, Double[]>();
 
@@ -721,38 +776,27 @@ public class Consumer implements Identifiable {
 		// angefragte änderung
 		double[] request = cr.getChange().clone();
 
-		Offer requestedOffer = allOffers.get(cr.getOffer());
-
 		// Frage eigenes Device nach Änderung
 		// ( und passe noch benötigte Änderung an )
-		for (int i = 0; i < 3; i++) {
-			API2<ChangeRequestLoadprofile, Boolean> api = new API2<ChangeRequestLoadprofile, Boolean>(Boolean.class);
-			api.devices(device);
-			api.call(this, HttpMethod.DELETE, new ChangeRequestLoadprofile(cr.getOffer(), request));
+		API2<ChangeRequestSchedule, AnswerChangeRequest> api2 = new API2<ChangeRequestSchedule, AnswerChangeRequest>(
+				AnswerChangeRequest.class);
+		api2.devices(device);
+		api2.call(this, HttpMethod.DELETE, new ChangeRequestSchedule(DateTime.currentTimeSlot(), request));
 
-			if (api.getResponse()) {
-				Log.d(uuid, "device confirmed changerequest");
+		AnswerChangeRequest answer = api2.getResponse();
 
-				// verbleibenden change aktualisiseren
-				for (int j = 0; j < 4; j++) {
-					remainingChange[i] -= request[i];
-				}
+		Log.d(uuid, "request [" + Arrays.toString(request) + "], response ["
+				+ Arrays.toString(answer.getPossibleChanges()) + "]");
 
-				contributions.put(uuid, ArrayUtils.toObject(request));
-
-				break;
-			} else {
-				Log.d(uuid, "device declined changerequest");
-
-				// teste die volumenmäßige hälfte des changerequests
-				for (int j = 0; j < 4; j++) {
-					request[j] /= 2;
-				}
-			}
+		// verbleibenden change aktualisiseren
+		for (int i = 0; i < 4; i++) {
+			remainingChange[i] -= answer.getPossibleChanges()[i];
 		}
 
+		contributions.put(uuid, ArrayUtils.toObject(answer.getPossibleChanges()));
+
 		if (isRemainingChangeZero(remainingChange)) {
-			return true;
+			return new ChangeRequestLoadprofile(cr.getOffer(), answer.getPossibleChanges());
 		}
 
 		ChangeRequestLoadprofile possibleChange = new ChangeRequestLoadprofile(cr.getOffer(), remainingChange);
@@ -762,14 +806,14 @@ public class Consumer implements Identifiable {
 		// Änderung für deren Lastprofil, passe Angebot jeweils gleich an und
 		// benachrichtige Marketplace am Ende
 		// Wenn nein: Versende Antwort als cr an Autor
-		if (!requestedOffer.isAuthor(uuid)) {
+		if (!affectedOffer.isAuthor(uuid)) {
 			// kann nichts weiteres tun, muss absagen
-			return false;
+			return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
 		}
 
 		// Frage alle beteiligten Consumer nach Änderung für deren
 		// Lastprofil
-		for (UUID consumer : requestedOffer.getAllLoadprofiles().keySet()) {
+		for (UUID consumer : affectedOffer.getAllLoadprofiles().keySet()) {
 			API2<ChangeRequestLoadprofile, Boolean> api = new API2<ChangeRequestLoadprofile, Boolean>(Boolean.class);
 			api.consumers(consumer);
 			// TODO Sende cr an consumer und passe cr nach Antwort an
@@ -780,7 +824,7 @@ public class Consumer implements Identifiable {
 		api.marketplace().offers(cr.getOffer()).receiveAnswerChangeRequestLoadprofile();
 		api.call(this, HttpMethod.POST, possibleChange);
 
-		return false;
+		return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
 	}
 
 	/**
@@ -832,50 +876,5 @@ public class Consumer implements Identifiable {
 
 	public void setDevice(UUID uuid) {
 		device = uuid;
-	}
-}
-
-final class Score implements Comparable<Score> {
-	Offer marketplace;
-	Offer tempOffer;
-	double score;
-
-	public Score(Offer marketplace, Offer tempOffer) {
-		this.marketplace = marketplace;
-		this.tempOffer = tempOffer;
-
-		this.score = tempOffer.getAggLoadprofile().chargeDeviationOtherProfile(marketplace.getAggLoadprofile());
-	}
-
-	public double getScore() {
-		return score;
-	}
-
-	@Override
-	public int compareTo(Score o) {
-		return Double.compare(getScore(), o.getScore());
-	}
-
-	public Offer getTempOffer() {
-		return this.tempOffer;
-	}
-
-	public Offer getMarketplace() {
-		return this.marketplace;
-	}
-
-	public String toString() {
-		return "Score [score=" + getScore() + ",marketplace=" + marketplace.getUUID().toString() + ",tempOffer="
-				+ tempOffer.getUUID().toString() + "]";
-	}
-
-	public double[] getDelta() {
-		double[] delta = new double[4];
-
-		for (int i = 0; i < 4; i++) {
-			delta[i] = marketplace.getAggLoadprofile().getValues()[i] - tempOffer.getAggLoadprofile().getValues()[i];
-		}
-
-		return delta;
 	}
 }

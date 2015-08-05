@@ -4,22 +4,17 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import Entity.Marketplace;
 import Entity.Offer;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
-import Event.DeviceNotFound;
-import Event.IllegalDeviceCreation;
-import Event.UnsupportedDeviceType;
 
 @RestController
 public class MarketplaceController {
@@ -33,6 +28,16 @@ public class MarketplaceController {
 		Map<String, Object> map = new TreeMap<String, Object>();
 		map.put("eexprice", Marketplace.getEEXPrice());
 		return map;
+	}
+
+	@RequestMapping(value = "/marketplace/prediction", method = RequestMethod.GET)
+	public ResponseEntity<double[]> getPrediction() {
+		return Marketplace.instance().getPrediction();
+	}
+
+	@RequestMapping(value = "/marketplace/supplies/{count}", method = RequestMethod.GET)
+	public Offer[] getSupplies(@PathVariable int count) {
+		return Marketplace.instance().getSupplies(count);
 	}
 
 	@RequestMapping(value = "/marketplace/demands", method = RequestMethod.POST)
@@ -54,12 +59,12 @@ public class MarketplaceController {
 	public void ping() {
 		Marketplace.instance().ping();
 	}
-	
+
 	@RequestMapping(value = "/marketplace/endOfNegotiation", method = RequestMethod.POST)
 	public void endOfNegotiation(@RequestBody EndOfNegotiation end) {
 		Marketplace.instance().endOfNegotiation(end);
 	}
-	
+
 	@RequestMapping(value = "/marketplace/offer/{uuid}/receiveAnswerChangeRequestLoadprofile", method = RequestMethod.GET)
 	public void receiveAnswerChangeRequestLoadprofile(@RequestBody ChangeRequestLoadprofile cr) {
 		Marketplace.instance().receiveAnswerChangeRequestLoadprofile(cr);

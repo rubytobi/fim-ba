@@ -1,0 +1,107 @@
+package Util;
+
+import Entity.Offer;
+
+public class Score implements Comparable<Score>, Cloneable {
+	private Offer marketplace;
+	private Offer own;
+	private Double score = null;
+	private boolean hasReceived = false;
+	private boolean hasChangeRequest = false;
+	private Offer received;
+	private Offer changeRequest;
+	private Offer merge = null;
+
+	public Score(Offer marketplace, Offer own, Offer received, Offer changeRequest) {
+		this.marketplace = marketplace;
+		this.own = own;
+		this.received = received;
+		this.changeRequest = changeRequest;
+
+		if (received != null) {
+			hasReceived = true;
+		}
+
+		if (changeRequest != null) {
+			hasChangeRequest = true;
+		}
+	}
+
+	public Offer getMerge() {
+		if (merge == null) {
+			merge = own;
+
+			if (hasReceived) {
+				merge = new Offer(merge, received);
+			}
+
+			if (hasChangeRequest) {
+				merge = new Offer(merge, changeRequest);
+			}
+		}
+
+		return merge;
+	}
+
+	public double getScore() {
+		if (score == null) {
+			score = marketplace.getAggLoadprofile().chargeDeviationOtherProfile(getMerge().getAggLoadprofile());
+		}
+
+		return score;
+	}
+
+	@Override
+	public int compareTo(Score o) {
+		return Double.compare(getScore(), o.getScore());
+	}
+
+	public Offer getOwn() {
+		return this.own;
+	}
+
+	public Offer getMarketplace() {
+		return this.marketplace;
+	}
+
+	public String toString() {
+		return "Score [score=" + getScore() + ",marketplace=" + marketplace.getUUID().toString() + ",tempOffer="
+				+ own.getUUID().toString() + "]";
+	}
+
+	public double[] getDelta() {
+		double[] delta = new double[4];
+
+		for (int i = 0; i < 4; i++) {
+			delta[i] = marketplace.getAggLoadprofile().getValues()[i] - own.getAggLoadprofile().getValues()[i];
+		}
+
+		return delta;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof Score) {
+			if (((Score) obj).getOwn().getUUID().equals(own.getUUID())
+					&& ((Score) obj).getMarketplace().getUUID().equals(marketplace.getUUID())) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	@Override
+	public Score clone() {
+		return new Score(marketplace, own, received, changeRequest);
+	}
+
+	public void setReceivedOffer(Offer receivedOffer) {
+		if (receivedOffer == null) {
+			return;
+		}
+
+		hasReceived = true;
+		this.received = receivedOffer;
+	}
+}

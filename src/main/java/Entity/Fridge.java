@@ -3,7 +3,6 @@ package Entity;
 import java.util.*;
 
 import org.springframework.http.HttpMethod;
-import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
@@ -476,7 +475,7 @@ public class Fridge implements Device {
 
 		double priceChange = sumMinutesCooling * priceCooling;
 
-		// Gbit mögliche Änderungen und deren Preis zurück
+		// Gibt mögliche Änderungen und deren Preis zurück
 		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), newChangesKWH, priceChange);
 		return answer;
 	}
@@ -754,37 +753,12 @@ public class Fridge implements Device {
 		return valuesLoadprofile;
 	}
 
-	private void confirmChangedLoadprofile(ChangeRequestSchedule cr) {
-		double[] changes = cr.getChangesLoadprofile();
-		double sum = 0;
-
-		for (int i = 0; i < numSlots; i++) {
-			sum += changes[i];
-		}
-
-		double costs;
-		costs = sum * consCooling;
-		if (costs < 0) {
-			costs = 0;
-		}
-		// TODO Sende Bestätigung, dass in ChangeRequest gesendete Änderung
-		// möglich ist
-		// Teile Kosten für diese Änderung mit. Der Consumer muss dann das
-		// Angebot so ändern,
-		// dass die zusätzlichen Kosten ausgeglichen werden
-	}
-
 	public void confirmLoadprofile(GregorianCalendar time) {
 		if (DateTime.ToString(timeFixed).equals(DateTime.ToString(time))) {
 			saveSchedule(scheduleMinutes, timeFixed);
 			// TODO speichere Lastprofil?
 			sendNewLoadprofile();
 		}
-	}
-
-	private void declineChangedLoadprofile(ChangeRequestSchedule cr) {
-		// TODO Sende Absage, dass in ChangeRequest gesendete Änderung nicht
-		// möglich ist
 	}
 
 	/**
@@ -946,7 +920,7 @@ public class Fridge implements Device {
 	}
 
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
-		API2<Loadprofile, Boolean> api2 = new API2<Loadprofile, Boolean>(Boolean.class);
+		API2<Loadprofile, Void> api2 = new API2<Loadprofile, Void>(Void.class);
 		api2.consumers(consumerUUID).loadprofiles();
 		api2.call(this, HttpMethod.POST, loadprofile);
 	}

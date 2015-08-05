@@ -1,10 +1,10 @@
 package Packet;
 
-import java.net.URI;
-import java.util.Map;
 import java.util.Arrays;
 import java.util.GregorianCalendar;
 import java.util.UUID;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import Util.DateTime;
 import start.Loadprofile;
@@ -18,6 +18,10 @@ public class ChangeRequestSchedule implements Cloneable {
 	private UUID uuid;
 	private GregorianCalendar startLoadprofile;
 	private double[] changesLoadprofile;
+
+	protected ChangeRequestSchedule() {
+		// dummy
+	}
 
 	/**
 	 * Erstellt neue ChangeRequest
@@ -85,6 +89,7 @@ public class ChangeRequestSchedule implements Cloneable {
 		return new ChangeRequestSchedule((GregorianCalendar) startLoadprofile.clone(), changesLoadprofile.clone());
 	}
 
+	@JsonIgnore
 	public boolean isZero() {
 		for (int i = 0; i < 4; i++) {
 			if (changesLoadprofile[i] != 0) {

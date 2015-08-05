@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
+import Packet.ChangeRequestLoadprofile;
 import Util.API;
 import Util.Log;
 import Util.OfferStatus;
@@ -26,7 +27,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	/**
 	 * Gesamtsumme aller Lastprofile
 	 */
-	private double sumAggLoadprofile;
+	@JsonIgnore
+	private Double sumAggLoadprofile;
 
 	@JsonView(View.Summary.class)
 	@JsonProperty("authKey")
@@ -76,12 +78,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this();
 
 		// Erstellt neues Angebot auf Basis eines Lastprofils
-		this.aggLoadprofile = loadprofile;
-		sumAggLoadprofile = 0;
-		for (int i = 0; i < numSlots; i++) {
-			sumAggLoadprofile += aggLoadprofile.getValues()[i];
-		}
-
 		HashMap<UUID, Loadprofile> loadprofiles = new HashMap<UUID, Loadprofile>();
 		loadprofiles.put(loadprofile.getUUID(), loadprofile);
 		allLoadprofiles.put(author, loadprofiles);
@@ -90,6 +86,50 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this.aggPrice = loadprofile.getMinPrice();
 
 		status = OfferStatus.VALID;
+	}
+
+	public Offer(Offer withPrivileges, HashMap<UUID, ChangeRequestLoadprofile> contributions) {
+		this();
+
+		Log.d(uuid, "Offer(withPrivileges=" + withPrivileges.toString() + ",contributions=" + contributions.toString()
+				+ ")");
+
+		// füge author respektive neue werte hinzu
+		author = withPrivileges.getAuthor();
+		Log.d(uuid, "set author [" + author + "]");
+
+		// Lastprofile aus bestehendem Angebot einbeziehen
+		for (UUID consumerUUID : withPrivileges.getAllLoadprofiles().keySet()) {
+			// Neuer Consumer kommt hinzu
+			if (!this.allLoadprofiles.containsKey(consumerUUID)) {
+				Log.d(uuid, "new consumer [" + consumerUUID + "] in offer");
+				this.allLoadprofiles.put(consumerUUID, new HashMap<UUID, Loadprofile>());
+			}
+
+			for (UUID loadprofileUUID : withPrivileges.getAllLoadprofiles().get(consumerUUID).keySet()) {
+				if (this.allLoadprofiles.get(consumerUUID).containsKey(loadprofileUUID)) {
+					// ein bereits existierendes loadprofile soll
+					// hinzugefügt
+					// werden???
+					Log.d(uuid, "adding an existing loadprofile [" + loadprofileUUID + "] to the offer ["
+							+ this.toString() + "]");
+					continue;
+				}
+
+				Log.d(uuid, "new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
+				Loadprofile value = withPrivileges.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
+				this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
+			}
+		}
+
+		for (UUID consumer : contributions.keySet()) {
+			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate(), 0.0));
+		}
+
+		aggPrice = aggLoadprofile.getMinPrice();
+		authKey = UUID.randomUUID();
+		status = OfferStatus.VALID;
+		Log.d(uuid, "-- END Offer(): " + toString());
 	}
 
 	/**
@@ -107,8 +147,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 				+ withoutPrivileges.toString() + ")");
 
 		// füge author respektive neue werte hinzu
-		Log.d(uuid, "set author [" + author + "]");
 		this.author = withPrivileges.getAuthor();
+		Log.d(uuid, "set author [" + author + "]");
 
 		for (Offer o : new Offer[] { withPrivileges, withoutPrivileges }) {
 			// Lastprofile aus bestehendem Angebot einbeziehen
@@ -137,32 +177,10 @@ public class Offer implements Comparable<Offer>, Cloneable {
 			}
 		}
 
-		// generate aggLoadprofile
-		for (UUID consumerUUID : this.allLoadprofiles.keySet()) {
-			for (UUID loadprofileUUID : this.allLoadprofiles.get(consumerUUID).keySet()) {
-				Loadprofile lp = this.allLoadprofiles.get(consumerUUID).get(loadprofileUUID);
-				if (this.aggLoadprofile == null) {
-					this.aggLoadprofile = lp;
-				} else {
-					this.aggLoadprofile = new Loadprofile(this.aggLoadprofile, lp);
-				}
-			}
-		}
-
-		sumAggLoadprofile = 0;
-		for (int i = 0; i < numSlots; i++) {
-			sumAggLoadprofile += aggLoadprofile.getValues()[i];
-		}
-
-		this.aggPrice = aggLoadprofile.getMinPrice();
-
-		this.authKey = UUID.randomUUID();
-
+		aggPrice = getAggLoadprofile().getMinPrice();
+		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
-
-		Log.d(uuid, "-- END Offer(): " +
-
-		toString());
+		Log.d(uuid, "-- END Offer(): " + toString());
 	}
 
 	/**
@@ -197,6 +215,18 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * @return Aggregiertes Lastprofil des Angebots
 	 */
 	public Loadprofile getAggLoadprofile() {
+		if (aggLoadprofile == null) {
+			for (UUID consumerUUID : this.allLoadprofiles.keySet()) {
+				for (UUID loadprofileUUID : this.allLoadprofiles.get(consumerUUID).keySet()) {
+					Loadprofile lp = this.allLoadprofiles.get(consumerUUID).get(loadprofileUUID);
+					if (this.aggLoadprofile == null) {
+						this.aggLoadprofile = lp;
+					} else {
+						this.aggLoadprofile = new Loadprofile(this.aggLoadprofile, lp);
+					}
+				}
+			}
+		}
 		return aggLoadprofile;
 	}
 
@@ -250,6 +280,13 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	}
 
 	public double getSumAggLoadprofile() {
+		if (sumAggLoadprofile == null) {
+			sumAggLoadprofile = 0.0;
+			for (int i = 0; i < numSlots; i++) {
+				sumAggLoadprofile += aggLoadprofile.getValues()[i];
+			}
+		}
+
 		return sumAggLoadprofile;
 	}
 
@@ -263,38 +300,34 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * @return Startzeitpunkt des Angebots als GregorianCalendar
 	 */
 	public GregorianCalendar getDate() {
-		return this.aggLoadprofile.getDate();
+		return getAggLoadprofile().getDate();
 	}
 
 	@JsonIgnore
 	public boolean isAuthor(UUID uuid) {
-		return this.author.equals(uuid);
+		return getAuthor().equals(uuid);
 	}
 
 	@Override
 	public int compareTo(Offer offer) {
 		double otherSum = Math.abs(offer.getSumAggLoadprofile());
-		if (otherSum < Math.abs(sumAggLoadprofile)) {
+		if (otherSum < Math.abs(getSumAggLoadprofile())) {
 			return -1;
-		} else if (otherSum == Math.abs(sumAggLoadprofile)) {
+		} else if (otherSum == Math.abs(getSumAggLoadprofile())) {
 			return 0;
 		} else {
 			return 1;
 		}
 	}
 
-	@Override
-	public Offer clone() {
-		return new Offer(this, null);
-	}
-
-	public void addLoadprofile(UUID consumer, Loadprofile loadprofile) {
+	private void addLoadprofile(UUID consumer, Loadprofile loadprofile) {
 		if (!allLoadprofiles.containsKey(consumer)) {
 			allLoadprofiles.put(consumer, new HashMap<UUID, Loadprofile>());
 		}
 
 		allLoadprofiles.get(consumer).put(loadprofile.getUUID(), loadprofile);
 
-		this.aggLoadprofile = new Loadprofile(aggLoadprofile, loadprofile);
+		this.aggLoadprofile = null;
+		this.sumAggLoadprofile = null;
 	}
 }

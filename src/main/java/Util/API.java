@@ -1,5 +1,7 @@
 package Util;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.UUID;
 
 public class API {
@@ -112,5 +114,20 @@ public class API {
 	public API confirmByMarketplace() {
 		uri += "/confirmByMarketplace";
 		return this;
+	}
+
+	public API prediction() {
+		uri += "/prediction";
+		return this;
+	}
+
+	public URI toURI() {
+		try {
+			return new URI(uri);
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return null;
+		}
 	}
 }

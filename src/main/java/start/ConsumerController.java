@@ -2,6 +2,8 @@ package start;
 
 import java.util.UUID;
 
+import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -13,9 +15,9 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Container.ConsumerContainer;
 import Entity.Consumer;
+import Entity.Marketplace;
 import Entity.Offer;
 import Packet.OfferNotification;
-import Util.Identity;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 
@@ -116,7 +118,7 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
-	public void receiveLoadprofileByDevice(@RequestHeader(value = "Device-UUID", required = true) String identity,
+	public void receiveLoadprofileByDevice(@RequestHeader(value = "UUID", required = true) String identity,
 			@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
 	}
@@ -160,6 +162,23 @@ public class ConsumerController {
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/receiveChangeRequestLoadprofile", method = RequestMethod.POST)
 	public void receiveChangeRequestLoadprofile(@PathVariable UUID uuid, @RequestBody ChangeRequestLoadprofile cr) {
 		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+	}
+
+	/**
+	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils
+	 * 
+	 * @param uuid
+	 *            Consumer-ID
+	 * @param cr
+	 *            Aenderungsaufforderung
+	 */
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest", method = RequestMethod.POST)
+	public ResponseEntity<ChangeRequestLoadprofile> receiveChangeRequest(@PathVariable UUID uuid,
+			@RequestBody ChangeRequestLoadprofile cr) {
+		ChangeRequestLoadprofile body = ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+
+		return ResponseEntity.ok().header("UUID", ConsumerContainer.instance().get(uuid).getUUID().toString())
+				.header("Class", ConsumerContainer.instance().get(uuid).getClass().getSimpleName()).body(body);
 	}
 
 	/**
