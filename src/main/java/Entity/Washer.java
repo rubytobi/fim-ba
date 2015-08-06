@@ -14,7 +14,6 @@ import com.fasterxml.jackson.annotation.JsonView;
 import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
 import Util.DateTime;
-import Util.DeviceStatus;
 import Util.View;
 
 /**

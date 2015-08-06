@@ -2,6 +2,8 @@ package Util;
 
 import java.util.UUID;
 
+import Entity.Identifiable;
+
 public class Identity {
 	private UUID uuid = null;
 	private String name = null;

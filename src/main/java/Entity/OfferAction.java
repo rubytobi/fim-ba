@@ -1,4 +1,4 @@
-package Util;
+package Entity;
 
 public enum OfferAction {
 	SEND, RECEIVE

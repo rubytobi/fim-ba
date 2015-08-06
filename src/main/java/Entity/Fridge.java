@@ -10,7 +10,6 @@ import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
 import Util.API2;
 import Util.DateTime;
-import Util.DeviceStatus;
 import Util.Log;
 import Util.SimulationFridge;
 import Util.View;

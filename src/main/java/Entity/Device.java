@@ -6,8 +6,6 @@ import java.util.GregorianCalendar;
 
 import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
-import Util.DeviceStatus;
-import Util.Identifiable;
 
 /**
  * Interface fuer alle Verbrauchsgeraete

@@ -16,7 +16,6 @@ import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
 import Util.API;
 import Util.DateTime;
-import Util.DeviceStatus;
 import Util.SimulationBHKW;
 
 /**

@@ -1,4 +1,4 @@
-package Util;
+package Entity;
 
 import java.util.UUID;
 

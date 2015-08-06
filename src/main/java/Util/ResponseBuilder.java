@@ -6,6 +6,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import Entity.Identifiable;
+
 public class ResponseBuilder<T> {
 	private HttpHeaders headers = new HttpHeaders();
 	private T body = null;

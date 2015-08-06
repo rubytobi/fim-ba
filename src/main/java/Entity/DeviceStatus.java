@@ -1,4 +1,4 @@
-package Util;
+package Entity;
 
 public enum DeviceStatus {
 	// Konstruktor ohne konkrete Werte aufgerufen

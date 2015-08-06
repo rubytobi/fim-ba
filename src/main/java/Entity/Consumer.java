@@ -22,9 +22,7 @@ import Util.View;
 import Util.API;
 import Util.API2;
 import Util.DateTime;
-import Util.Identifiable;
 import Util.Log;
-import Util.OfferAction;
 import start.Application;
 
 public class Consumer implements Identifiable {

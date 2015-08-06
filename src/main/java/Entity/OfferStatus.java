@@ -1,4 +1,4 @@
-package Util;
+package Entity;
 
 public enum OfferStatus {
 	INITIALIZED, VALID, INVALID, ACCEPTED

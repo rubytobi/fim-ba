@@ -13,6 +13,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.sun.research.ws.wadl.Response;
 
+import Entity.Identifiable;
+
 @SuppressWarnings("hiding")
 public class API2<Request, Response> {
 	private String uri = null;
