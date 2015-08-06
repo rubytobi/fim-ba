@@ -10,8 +10,7 @@ import Packet.ChangeRequestLoadprofile;
 import Util.API;
 import Util.Log;
 import Util.OfferStatus;
-import start.Loadprofile;
-import start.View;
+import Util.View;
 
 /**
  * Klasse fuer Angebote

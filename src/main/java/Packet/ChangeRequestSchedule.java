@@ -6,8 +6,8 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import Entity.Loadprofile;
 import Util.DateTime;
-import start.Loadprofile;
 
 /**
  * Paket, mit welchem der Consumer sein Device um eine Anpassung des Lastprofils

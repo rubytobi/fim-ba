@@ -18,6 +18,7 @@ import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
 import Util.Score;
+import Util.View;
 import Util.API;
 import Util.API2;
 import Util.DateTime;
@@ -25,8 +26,6 @@ import Util.Identifiable;
 import Util.Log;
 import Util.OfferAction;
 import start.Application;
-import start.Loadprofile;
-import start.View;
 
 public class Consumer implements Identifiable {
 	final class DeviationOfferComparator implements Comparator<Offer> {

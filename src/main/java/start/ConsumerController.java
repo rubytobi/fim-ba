@@ -14,8 +14,10 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Container.ConsumerContainer;
 import Entity.Consumer;
+import Entity.Loadprofile;
 import Entity.Offer;
 import Packet.OfferNotification;
+import Util.View;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 

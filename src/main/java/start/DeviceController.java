@@ -14,11 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonView;
 import Container.DeviceContainer;
+import Entity.Device;
 import Entity.Fridge;
 import Packet.AnswerChangeRequest;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
 import Util.API;
+import Util.View;
 
 @RestController
 public class DeviceController {

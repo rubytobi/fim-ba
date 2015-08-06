@@ -4,7 +4,8 @@ import java.util.Arrays;
 import java.util.GregorianCalendar;
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import start.Loadprofile;
+
+import Entity.Loadprofile;
 
 /**
  * Paket, mit welchem der Consumer seine Partner-Consumers um eine Anpassung des

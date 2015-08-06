@@ -1,11 +1,10 @@
-package start;
+package Entity;
 
 import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import Entity.Offer;
 import Packet.ChangeRequestSchedule;
 import Util.DateTime;
 

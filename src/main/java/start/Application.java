@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 
 import Container.DeviceContainer;
 import Entity.Consumer;
+import Entity.Device;
 import Entity.Fridge;
 import Packet.FridgeCreation;
 

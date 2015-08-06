@@ -6,8 +6,6 @@ import java.util.Hashtable;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
 
-import start.View;
-
 public class SimulationFridge {
 	@JsonView(View.Summary.class)
 	private boolean doorOpen;

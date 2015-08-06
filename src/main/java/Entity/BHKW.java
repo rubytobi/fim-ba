@@ -18,8 +18,6 @@ import Util.API;
 import Util.DateTime;
 import Util.DeviceStatus;
 import Util.SimulationBHKW;
-import start.Device;
-import start.Loadprofile;
 
 /**
  * Klasse fuer Blockheizkraftwerke (BHKW)
