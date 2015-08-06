@@ -18,7 +18,7 @@ import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
 import Util.MatchedOffers;
-import Util.API2;
+import Util.API;
 import Util.DateTime;
 import Util.Log;
 import Util.PossibleMatch;
@@ -332,7 +332,7 @@ public class Marketplace implements Identifiable {
 		Set<UUID> set = offer.getAllLoadprofiles().keySet();
 
 		for (UUID consumer : set) {
-			API2<AnswerToOfferFromMarketplace, Void> api2 = new API2<AnswerToOfferFromMarketplace, Void>(Void.class);
+			API<AnswerToOfferFromMarketplace, Void> api2 = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
 			api2.consumers(consumer).offers(offer.getUUID()).confirmByMarketplace();
 			api2.call(this, HttpMethod.POST, answerOffer);
 		}

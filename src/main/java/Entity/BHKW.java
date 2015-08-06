@@ -1,6 +1,5 @@
 package Entity;
 
-import java.net.URI;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Map;
@@ -8,15 +7,10 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
-import org.springframework.web.client.RestTemplate;
-
 import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
 import Util.API;
-import Util.API2;
 import Util.DateTime;
 import Util.SimulationBHKW;
 
@@ -641,7 +635,7 @@ public class BHKW implements Device {
 	 *            Lastprofil, das an den Consumer gesendet werden soll
 	 */
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
-		API2<Loadprofile, Void> api2 = new API2<Loadprofile, Void>(Void.class);
+		API<Loadprofile, Void> api2 = new API<Loadprofile, Void>(Void.class);
 		api2.consumers(consumerUUID).loadprofiles();
 		api2.call(this, HttpMethod.POST, loadprofile);
 	}

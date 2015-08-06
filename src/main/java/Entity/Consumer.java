@@ -14,7 +14,7 @@ import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
 import Util.Score;
 import Util.View;
-import Util.API2;
+import Util.API;
 import Util.DateTime;
 import Util.Log;
 
@@ -129,7 +129,7 @@ public class Consumer implements Identifiable {
 		// check offer at its location if valid, date and if it is better
 
 		// confirm offer
-		API2<Void, Boolean> api2 = new API2<Void, Boolean>(Boolean.class);
+		API<Void, Boolean> api2 = new API<Void, Boolean>(Boolean.class);
 		api2.consumers(offer.getAuthor()).offers(offer.getUUID()).confirm(offer.getAuthKey());
 		api2.call(this, HttpMethod.GET, null);
 
@@ -172,7 +172,7 @@ public class Consumer implements Identifiable {
 				continue;
 			}
 
-			API2<Void, Void> api2_replace = new API2<Void, Void>(Void.class);
+			API<Void, Void> api2_replace = new API<Void, Void>(Void.class);
 			api2_replace.consumers(consumerUUID).offers(respondedOffer.getUUID()).replace(offer.getUUID());
 			api2_replace.call(this, HttpMethod.GET, null);
 		}
@@ -283,7 +283,7 @@ public class Consumer implements Identifiable {
 				continue;
 			}
 
-			API2<Void, Void> api2 = new API2<Void, Void>(Void.class);
+			API<Void, Void> api2 = new API<Void, Void>(Void.class);
 			api2.consumers(consumerUUID).offers(vX.getUUID()).replace(offer.getUUID());
 			api2.call(this, HttpMethod.GET, null);
 		}
@@ -313,7 +313,7 @@ public class Consumer implements Identifiable {
 		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
 			if (lp.isDelta()) {
 				// Schicke Bestätigung zu Loadprofile an Device
-				API2<Void, Void> api2 = new API2<Void, Void>(Void.class);
+				API<Void, Void> api2 = new API<Void, Void>(Void.class);
 				api2.devices(device).confirmLoadprofile().toString();
 				api2.call(this, HttpMethod.POST, null);
 			}
@@ -330,7 +330,7 @@ public class Consumer implements Identifiable {
 	 * @return Consumers
 	 */
 	private Consumer[] getAllConsumers() {
-		API2<Void, Consumer[]> api2 = new API2<Void, Consumer[]>(Consumer[].class);
+		API<Void, Consumer[]> api2 = new API<Void, Consumer[]>(Consumer[].class);
 		api2.consumers();
 		api2.call(this, HttpMethod.GET, null);
 
@@ -352,7 +352,7 @@ public class Consumer implements Identifiable {
 	}
 
 	private Offer[] getMarketplaceSupplies(int i) {
-		API2<Void, Offer[]> api2 = new API2<Void, Offer[]>(Offer[].class);
+		API<Void, Offer[]> api2 = new API<Void, Offer[]>(Offer[].class);
 		api2.marketplace().supplies(i);
 		api2.call(this, HttpMethod.GET, null);
 
@@ -368,7 +368,7 @@ public class Consumer implements Identifiable {
 	}
 
 	private Offer getOfferFromUrl(UUID consumer, UUID offer) {
-		API2<Void, Offer> api2 = new API2<Void, Offer>(Offer.class);
+		API<Void, Offer> api2 = new API<Void, Offer>(Offer.class);
 		api2.consumers(consumer).offers(offer);
 		api2.call(this, HttpMethod.GET, null);
 
@@ -472,7 +472,7 @@ public class Consumer implements Identifiable {
 		}
 
 		if (scorecard.isEmpty()) {
-			API2<Void, double[]> api2 = new API2<Void, double[]>(double[].class);
+			API<Void, double[]> api2 = new API<Void, double[]>(double[].class);
 			api2.marketplace().prediction();
 			api2.call(this, HttpMethod.GET, null);
 
@@ -527,7 +527,7 @@ public class Consumer implements Identifiable {
 		OfferNotification newNotification = new OfferNotification(newOffer.getAuthor(), newOffer.getUUID());
 
 		// notification versenden
-		API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
+		API<OfferNotification, Void> api2 = new API<OfferNotification, Void>(Void.class);
 		api2.consumers(receivedOffer.getAuthor()).offers(receivedOffer.getUUID()).answer();
 		api2.call(this, HttpMethod.POST, newNotification);
 	}
@@ -550,7 +550,7 @@ public class Consumer implements Identifiable {
 				break;
 			}
 
-			API2<ChangeRequestLoadprofile, ChangeRequestLoadprofile> api2 = new API2<ChangeRequestLoadprofile, ChangeRequestLoadprofile>(
+			API<ChangeRequestLoadprofile, ChangeRequestLoadprofile> api2 = new API<ChangeRequestLoadprofile, ChangeRequestLoadprofile>(
 					ChangeRequestLoadprofile.class);
 			api2.consumers(c).offers(ownOffer.getUUID()).changeRequest();
 			api2.call(this, HttpMethod.POST, aim);
@@ -598,7 +598,7 @@ public class Consumer implements Identifiable {
 			Log.d(uuid, "abweichung konnte nicht verringert werden, angebot nicht gut und wird verworfen");
 
 			// change requests aufheben
-			API2<Void, Void> api2_decline = new API2<Void, Void>(Void.class);
+			API<Void, Void> api2_decline = new API<Void, Void>(Void.class);
 			for (UUID c : contributions.keySet()) {
 				// TODO pfad muss noch geklärt werden!
 				api2_decline.consumers(c).offers(ownOffer.getUUID()).changeRequest().decline();
@@ -672,7 +672,7 @@ public class Consumer implements Identifiable {
 
 			OfferNotification notification = new OfferNotification(uuid, deltaOffer.getUUID());
 
-			API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
+			API<OfferNotification, Void> api2 = new API<OfferNotification, Void>(Void.class);
 
 			for (Consumer c : getAllConsumers()) {
 				api2.consumers(c.getUUID()).offers();
@@ -696,7 +696,7 @@ public class Consumer implements Identifiable {
 
 		// Frage eigenes Device nach Änderung
 		// ( und passe noch benötigte Änderung an )
-		API2<ChangeRequestSchedule, AnswerChangeRequest> api2 = new API2<ChangeRequestSchedule, AnswerChangeRequest>(
+		API<ChangeRequestSchedule, AnswerChangeRequest> api2 = new API<ChangeRequestSchedule, AnswerChangeRequest>(
 				AnswerChangeRequest.class);
 		api2.devices(device);
 		api2.call(this, HttpMethod.DELETE, new ChangeRequestSchedule(DateTime.currentTimeSlot(), cr.getChange()));
@@ -768,7 +768,7 @@ public class Consumer implements Identifiable {
 	}
 
 	private void sendOfferNotificationToAllConsumers(OfferNotification notification) {
-		API2<OfferNotification, Void> api2 = new API2<>(Void.class);
+		API<OfferNotification, Void> api2 = new API<>(Void.class);
 
 		for (Consumer c : getAllConsumers()) {
 			api2.consumers(c.getUUID()).offers().toString();
@@ -799,7 +799,7 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
-		API2<Void, Void> api2 = new API2<Void, Void>(Void.class);
+		API<Void, Void> api2 = new API<Void, Void>(Void.class);
 		api2.devices(device).changeRequest().decline();
 		api2.call(this, HttpMethod.GET, null);
 	}

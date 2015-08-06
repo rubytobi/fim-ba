@@ -8,7 +8,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
-import Util.API2;
+import Util.API;
 import Util.DateTime;
 import Util.Log;
 import Util.SimulationFridge;
@@ -909,7 +909,7 @@ public class Fridge implements Device {
 	}
 
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
-		API2<Loadprofile, Void> api2 = new API2<Loadprofile, Void>(Void.class);
+		API<Loadprofile, Void> api2 = new API<Loadprofile, Void>(Void.class);
 		api2.consumers(consumerUUID).loadprofiles();
 		api2.call(this, HttpMethod.POST, loadprofile);
 	}
