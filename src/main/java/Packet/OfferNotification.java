@@ -8,8 +8,8 @@ import java.util.UUID;
  *
  */
 public class OfferNotification {
-	private String location = null;
-	private UUID offerUUID = null;
+	private UUID consumer = null;
+	private UUID offer = null;
 
 	public OfferNotification() {
 		// dummy konstruktor
@@ -23,9 +23,9 @@ public class OfferNotification {
 	 * @param offerUUID
 	 *            Angebots-ID
 	 */
-	public OfferNotification(String location, UUID offerUUID) {
-		this.location = location;
-		this.offerUUID = offerUUID;
+	public OfferNotification(UUID consumer, UUID offer) {
+		this.consumer = consumer;
+		this.offer = offer;
 	}
 
 	/**
@@ -33,12 +33,12 @@ public class OfferNotification {
 	 * 
 	 * @return URL des neuen Angebots als String
 	 */
-	public String getLocation() {
-		return location;
+	public UUID getConsumer() {
+		return consumer;
 	}
 
-	public UUID getOfferUUID() {
-		return offerUUID;
+	public UUID getOffer() {
+		return offer;
 	}
 
 	/**
@@ -48,6 +48,6 @@ public class OfferNotification {
 	 *         enthaelt
 	 */
 	public String toString() {
-		return "OfferNotification [location=" + location + ",referenceOffer=" + offerUUID + "]";
+		return "OfferNotification [consumer=" + consumer + ",offer=" + offer + "]";
 	}
 }

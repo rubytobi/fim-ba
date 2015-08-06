@@ -1,6 +1,5 @@
 package start;
 
-import java.net.URI;
 import java.util.GregorianCalendar;
 import java.util.UUID;
 
@@ -19,7 +18,7 @@ import Entity.Fridge;
 import Packet.AnswerChangeRequest;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
-import Util.API;
+import Util.ResponseBuilder;
 import Util.View;
 
 @RestController
@@ -102,10 +101,8 @@ public class DeviceController {
 	public ResponseEntity<AnswerChangeRequest> receiveChangeRequest(@RequestBody ChangeRequestSchedule cr,
 			@PathVariable UUID uuid) {
 		AnswerChangeRequest body = DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
-		URI location = new API().devices(uuid).toURI();
 
-		return ResponseEntity.created(location).header("UUID", uuid.toString())
-				.header("Class", DeviceContainer.instance().get(uuid).getClass().getSimpleName()).body(body);
+		return new ResponseBuilder<AnswerChangeRequest>(DeviceContainer.instance().get(uuid)).body(body).build();
 	}
 
 	/**

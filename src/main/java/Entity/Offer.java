@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.ChangeRequestLoadprofile;
-import Util.API;
+import Util.API2;
 import Util.Log;
 import Util.View;
 
@@ -204,7 +204,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * @return URL des Angebots als String
 	 */
 	public String getLocation() {
-		return new API().consumers(author).offers(uuid).toString();
+		return new API2<Void, Void>(Void.class).consumers(author).offers(uuid).toString();
 	}
 
 	/**

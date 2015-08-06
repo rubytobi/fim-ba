@@ -4,12 +4,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
-
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.OfferNotification;
@@ -19,11 +14,9 @@ import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
 import Util.Score;
 import Util.View;
-import Util.API;
 import Util.API2;
 import Util.DateTime;
 import Util.Log;
-import start.Application;
 
 public class Consumer implements Identifiable {
 	final class DeviationOfferComparator implements Comparator<Offer> {
@@ -132,25 +125,18 @@ public class Consumer implements Identifiable {
 	 *            Angebotsbenachrichtigung
 	 */
 	public void answerOffer(UUID respondedOfferUUID, OfferNotification offerNotification) {
-		Offer offer = getOfferFromUrl(offerNotification.getLocation());
+		Offer offer = getOfferFromUrl(offerNotification.getConsumer(), offerNotification.getOffer());
 		// check offer at its location if valid, date and if it is better
 
 		// confirm offer
-		API api = new API().consumers(offer.getAuthor()).offers(offer.getUUID()).confirm(offer.getAuthKey());
-		Log.d(this.uuid, "confirm offer at: " + api.toString());
+		API2<Void, Boolean> api2 = new API2<Void, Boolean>(Boolean.class);
+		api2.consumers(offer.getAuthor()).offers(offer.getUUID()).confirm(offer.getAuthKey());
+		api2.call(this, HttpMethod.GET, null);
 
-		ResponseEntity<Boolean> response = null;
-		try {
-			HttpEntity<Void> entity = new HttpEntity<Void>(Application.getRestHeader());
-			response = new RestTemplate().exchange(api.toString(), HttpMethod.GET, entity, Boolean.class);
-		} catch (Exception e) {
-			Log.e(this.uuid, e.getMessage());
-		}
-
-		Log.d(this.uuid, "contract immediate response: " + response.getBody());
+		Log.d(this.uuid, "contract immediate response: " + api2.getResponse());
 
 		// check response
-		if (response == null || response.getBody() != true) {
+		if (api2.getResponse() == null || api2.getResponse() != true) {
 			// Angebot wurde abgelehnt.
 			Log.d(this.uuid, "contract " + offer.getUUID() + " declined");
 			return;
@@ -186,14 +172,9 @@ public class Consumer implements Identifiable {
 				continue;
 			}
 
-			String url = new API().consumers(consumerUUID).offers(respondedOffer.getUUID()).replace(offer.getUUID())
-					.toString();
-			RestTemplate rest = new RestTemplate();
-			Log.d(uuid, url);
-			HttpHeaders headers = new HttpHeaders();
-			headers.add("author", uuid.toString());
-			HttpEntity<Void> entity = new HttpEntity<>(headers);
-			rest.exchange(url, HttpMethod.GET, entity, Void.class);
+			API2<Void, Void> api2_replace = new API2<Void, Void>(Void.class);
+			api2_replace.consumers(consumerUUID).offers(respondedOffer.getUUID()).replace(offer.getUUID());
+			api2_replace.call(this, HttpMethod.GET, null);
 		}
 
 		// Lastprofil muss beim Gerät bestätigt werden, Deltalastprofile nicht
@@ -246,18 +227,15 @@ public class Consumer implements Identifiable {
 	 *            neue Angebots-ID
 	 */
 	public void replaceOffer(UUID oldOffer, UUID newOffer) {
-		Log.d(uuid, new API().consumers(uuid).offers(oldOffer).replace(newOffer).toString());
-
 		if (getOfferIntern(oldOffer) == null)
 			return;
 
 		// das neue Angebot besorgen
-		String url = new API().consumers(getOfferIntern(oldOffer).getAuthor()).offers(newOffer).toString();
-		Offer offer = getOfferFromUrl(url);
+		Offer offer = getOfferFromUrl(getOfferIntern(oldOffer).getAuthor(), newOffer);
 
 		if (offer == null) {
 			// TODO what? darf nicht sein!
-			Log.e(uuid, url);
+			Log.e(uuid, "angebot konnte nicht ersetzt werden");
 			return;
 		}
 
@@ -305,16 +283,12 @@ public class Consumer implements Identifiable {
 				continue;
 			}
 
-			String url = new API().consumers(consumerUUID).offers(vX.getUUID()).replace(offer.getUUID()).toString();
-			Log.d(uuid, url);
-			RestTemplate rest = new RestTemplate();
-			HttpHeaders header = new HttpHeaders();
-			header.add("author", this.uuid.toString());
-			HttpEntity<Void> entity = new HttpEntity<Void>(header);
-			rest.exchange(url, HttpMethod.GET, entity, Void.class);
+			API2<Void, Void> api2 = new API2<Void, Void>(Void.class);
+			api2.consumers(consumerUUID).offers(vX.getUUID()).replace(offer.getUUID());
+			api2.call(this, HttpMethod.GET, null);
 		}
 
-		OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+		OfferNotification notification = new OfferNotification(offer.getAuthor(), offer.getUUID());
 		sendOfferNotificationToAllConsumers(notification);
 
 		Log.d(uuid, "-- END confirmOfferByConsumer --");
@@ -339,19 +313,9 @@ public class Consumer implements Identifiable {
 		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
 			if (lp.isDelta()) {
 				// Schicke Bestätigung zu Loadprofile an Device
-				String date = DateTime.ToString(offer.getAggLoadprofile().getDate());
-
-				RestTemplate rest = new RestTemplate();
-				HttpEntity<String> entity = new HttpEntity<String>(date, Application.getRestHeader());
-
-				String url = new API().devices(device).confirmLoadprofile().toString();
-
-				try {
-					rest.exchange(url, HttpMethod.POST, entity, Void.class);
-				} catch (Exception e) {
-					Log.d(this.uuid, url);
-					Log.e(this.uuid, e.getMessage());
-				}
+				API2<Void, Void> api2 = new API2<Void, Void>(Void.class);
+				api2.devices(device).confirmLoadprofile().toString();
+				api2.call(this, HttpMethod.POST, null);
 			}
 
 			// TODO Speichere Lastprofil in Historie ab
@@ -366,20 +330,14 @@ public class Consumer implements Identifiable {
 	 * @return Consumers
 	 */
 	private Consumer[] getAllConsumers() {
-		RestTemplate rest = new RestTemplate();
+		API2<Void, Consumer[]> api2 = new API2<Void, Consumer[]>(Consumer[].class);
+		api2.consumers();
+		api2.call(this, HttpMethod.GET, null);
 
-		String url = new API().consumers().toString();
-		ResponseEntity<Consumer[]> consumers = null;
-		try {
-			consumers = rest.exchange(url, HttpMethod.GET, null, Consumer[].class);
-		} catch (Exception e) {
-			Log.e(this.uuid, url);
-		}
-
-		Consumer[] list = new Consumer[consumers.getBody().length - 1];
+		Consumer[] list = new Consumer[api2.getResponse().length - 1];
 
 		int i = 0;
-		for (Consumer c : consumers.getBody()) {
+		for (Consumer c : api2.getResponse()) {
 			if (!c.getUUID().equals(uuid)) {
 				list[i] = c;
 				i++;
@@ -409,19 +367,12 @@ public class Consumer implements Identifiable {
 		return numSlots;
 	}
 
-	private Offer getOfferFromUrl(String url) {
-		RestTemplate rest = new RestTemplate();
-		HttpEntity<Void> entityVoid = new HttpEntity<Void>(Application.getRestHeader());
+	private Offer getOfferFromUrl(UUID consumer, UUID offer) {
+		API2<Void, Offer> api2 = new API2<Void, Offer>(Offer.class);
+		api2.consumers(consumer).offers(offer);
+		api2.call(this, HttpMethod.GET, null);
 
-		Offer offer = null;
-		try {
-			ResponseEntity<Offer> responseOffer = rest.exchange(url, HttpMethod.GET, entityVoid, Offer.class);
-			offer = responseOffer.getBody();
-		} catch (Exception e) {
-			Log.e(this.uuid, e.getMessage());
-		}
-
-		return offer;
+		return api2.getResponse();
 	}
 
 	public UUID getUUID() {
@@ -474,7 +425,7 @@ public class Consumer implements Identifiable {
 				int maximum = offerList.length - 1;
 				int i = minimum + (int) (Math.random() * maximum);
 
-				OfferNotification notification = new OfferNotification(offerList[i].getLocation(),
+				OfferNotification notification = new OfferNotification(offerList[i].getAuthor(),
 						offerList[i].getUUID());
 				sendOfferNotificationToAllConsumers(notification);
 				return;
@@ -490,7 +441,7 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
-		Offer receivedOffer = getOfferFromUrl(notification.getLocation());
+		Offer receivedOffer = getOfferFromUrl(notification.getConsumer(), notification.getOffer());
 
 		// Angebot nicht mehr vorhanden
 		if (receivedOffer == null) {
@@ -573,7 +524,7 @@ public class Consumer implements Identifiable {
 		allOfferMerges.put(newOffer.getUUID(), bestScore.getOwn());
 
 		// neue notification erstellen
-		OfferNotification newNotification = new OfferNotification(newOffer.getLocation(), newOffer.getUUID());
+		OfferNotification newNotification = new OfferNotification(newOffer.getAuthor(), newOffer.getUUID());
 
 		// notification versenden
 		API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
@@ -719,8 +670,7 @@ public class Consumer implements Identifiable {
 			Offer deltaOffer = new Offer(uuid, deltaLoadprofile);
 			allOffers.put(deltaOffer.getUUID(), deltaOffer);
 
-			OfferNotification notification = new OfferNotification(
-					new API().consumers(uuid).offers(deltaOffer.getUUID()).toString(), null);
+			OfferNotification notification = new OfferNotification(uuid, deltaOffer.getUUID());
 
 			API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
 
@@ -812,7 +762,7 @@ public class Consumer implements Identifiable {
 		Offer offer = new Offer(uuid, loadprofile);
 		addOffer(offer);
 
-		OfferNotification notification = new OfferNotification(offer.getLocation(), offer.getUUID());
+		OfferNotification notification = new OfferNotification(offer.getAuthor(), offer.getUUID());
 
 		sendOfferNotificationToAllConsumers(notification);
 	}

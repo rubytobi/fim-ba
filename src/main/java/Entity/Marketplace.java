@@ -18,7 +18,7 @@ import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
 import Util.MatchedOffers;
-import Util.API;
+import Util.API2;
 import Util.DateTime;
 import Util.Log;
 import Util.PossibleMatch;
@@ -332,19 +332,9 @@ public class Marketplace implements Identifiable {
 		Set<UUID> set = offer.getAllLoadprofiles().keySet();
 
 		for (UUID consumer : set) {
-			// Sende confirmOffer an consumer
-			RestTemplate rest = new RestTemplate();
-			HttpEntity<AnswerToOfferFromMarketplace> entity = new HttpEntity<AnswerToOfferFromMarketplace>(answerOffer,
-					Application.getRestHeader());
-
-			String url = new API().consumers(consumer).offers(offer.getUUID()).confirmByMarketplace().toString();
-
-			Log.d(uuid, url);
-			try {
-				rest.exchange(url, HttpMethod.POST, entity, Void.class);
-			} catch (Exception e) {
-				Log.d(uuid, e.getMessage());
-			}
+			API2<AnswerToOfferFromMarketplace, Void> api2 = new API2<AnswerToOfferFromMarketplace, Void>(Void.class);
+			api2.consumers(consumer).offers(offer.getUUID()).confirmByMarketplace();
+			api2.call(this, HttpMethod.POST, answerOffer);
 		}
 	}
 

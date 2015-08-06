@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.web.client.RestTemplate;
@@ -15,6 +16,7 @@ import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequest;
 import Util.API;
+import Util.API2;
 import Util.DateTime;
 import Util.SimulationBHKW;
 
@@ -639,17 +641,9 @@ public class BHKW implements Device {
 	 *            Lastprofil, das an den Consumer gesendet werden soll
 	 */
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
-		RestTemplate rest = new RestTemplate();
-
-		String url = new API().consumers(consumerUUID).loadprofiles().toString();
-		try {
-			RequestEntity<Loadprofile> request = RequestEntity.post(new URI(url)).accept(MediaType.APPLICATION_JSON)
-					.body(loadprofile);
-			rest.exchange(request, Boolean.class);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		API2<Loadprofile, Void> api2 = new API2<Loadprofile, Void>(Void.class);
+		api2.consumers(consumerUUID).loadprofiles();
+		api2.call(this, HttpMethod.POST, loadprofile);
 	}
 
 	/**

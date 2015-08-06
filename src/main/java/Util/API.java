@@ -6,6 +6,10 @@ import java.util.UUID;
 
 public class API {
 	private String uri = "http://localhost:8080";
+	
+	private API(){
+		
+	}
 
 	public API consumers() {
 		uri += "/consumers";
