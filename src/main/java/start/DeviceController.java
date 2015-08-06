@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonView;
 import Container.DeviceContainer;
 import Entity.Fridge;
-import Entity.Marketplace;
 import Packet.AnswerChangeRequest;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
@@ -118,5 +117,15 @@ public class DeviceController {
 	@RequestMapping(value = "/devices/{uuid}/confirm/{time}", method = RequestMethod.GET)
 	public void receiveChangeRequest(@RequestBody GregorianCalendar time, @PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).confirmLoadprofile(time);
+	}
+
+	@RequestMapping(value = "/devices/{uuid}/changeRequest/confirm", method = RequestMethod.GET)
+	public void receiveChangeRequestConfirmation(@PathVariable UUID uuid) {
+		DeviceContainer.instance().get(uuid).receiveAnswerChangeRequest(true);
+	}
+
+	@RequestMapping(value = "/devices/{uuid}/changeRequest/decline", method = RequestMethod.GET)
+	public void receiveChangeRequest(@PathVariable UUID uuid) {
+		DeviceContainer.instance().get(uuid).receiveAnswerChangeRequest(false);
 	}
 }

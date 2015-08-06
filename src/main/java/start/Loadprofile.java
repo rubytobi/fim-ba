@@ -169,8 +169,8 @@ public class Loadprofile {
 	 *         Lastprofils enthaelt
 	 */
 	public String toString() {
-		return "{\"values\":" + Arrays.toString(values) + ",\"date\":\"" + DateTime.ToString(date) + "\",\"minPrice\":"
-				+ minPrice + ",\"isDelta\":" + isDelta + "}";
+		return "Loadprofile [values=" + Arrays.toString(values) + ",date=" + DateTime.ToString(date) + ",minPrice="
+				+ minPrice + ",isDelta=" + isDelta + "]";
 	}
 
 	/**

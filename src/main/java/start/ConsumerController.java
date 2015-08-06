@@ -2,7 +2,6 @@ package start;
 
 import java.util.UUID;
 
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,7 +14,6 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Container.ConsumerContainer;
 import Entity.Consumer;
-import Entity.Marketplace;
 import Entity.Offer;
 import Packet.OfferNotification;
 import Packet.AnswerToOfferFromMarketplace;
@@ -179,6 +177,15 @@ public class ConsumerController {
 
 		return ResponseEntity.ok().header("UUID", ConsumerContainer.instance().get(uuid).getUUID().toString())
 				.header("Class", ConsumerContainer.instance().get(uuid).getClass().getSimpleName()).body(body);
+	}
+
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/decline", method = RequestMethod.GET)
+	public ResponseEntity<Void> receiveChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
+			@RequestHeader(value = "UUID") UUID identity) {
+		ConsumerContainer.instance().get(uuid).receiveChangeRequestDecline(uuidOffer, identity);
+
+		return ResponseEntity.ok().header("UUID", ConsumerContainer.instance().get(uuid).getUUID().toString())
+				.header("Class", ConsumerContainer.instance().get(uuid).getClass().getSimpleName()).body(null);
 	}
 
 	/**

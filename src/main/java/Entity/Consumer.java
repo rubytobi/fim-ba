@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -561,7 +560,7 @@ public class Consumer implements Identifiable {
 					bestScore);
 
 			if (contributions == null) {
-				Log.d(uuid, "nicht konnte erreicht werden");
+				Log.d(uuid, "nichts konnte erreicht werden");
 				return;
 			} else {
 				newOffer = new Offer(new Offer(bestScore.getOwn(), receivedOffer), contributions);
@@ -594,7 +593,7 @@ public class Consumer implements Identifiable {
 
 		// berechnen der abweichung
 		HashMap<UUID, ChangeRequestLoadprofile> contributions = new HashMap<UUID, ChangeRequestLoadprofile>();
-		ChangeRequestLoadprofile aim = new ChangeRequestLoadprofile(receivedOffer.getUUID(), bestScore.getDelta());
+		ChangeRequestLoadprofile aim = new ChangeRequestLoadprofile(ownOffer.getUUID(), bestScore.getDelta());
 
 		for (UUID c : ownOffer.getAllLoadprofiles().keySet()) {
 			Log.d(c, "Ziel CR: " + aim.toString());
@@ -616,6 +615,7 @@ public class Consumer implements Identifiable {
 
 			if (aim.equals(api2.getResponse())) {
 				Log.d(uuid, "device ermöglicht genau das angefragte. gesamt cr konnte ermöglicht werden");
+				break;
 				// anfrage wurde bestätigt
 				// gesamt cr konnte reserviert werden
 			}
@@ -628,7 +628,6 @@ public class Consumer implements Identifiable {
 
 		if (contributions.size() > 0) {
 			Log.d(uuid, "eine verbesserung konnte erreicht werden");
-			return null;
 		}
 
 		// eigenes angebot um erhaltene CRs erweitern
@@ -636,9 +635,10 @@ public class Consumer implements Identifiable {
 
 		for (UUID c : contributions.keySet()) {
 			if (contributionOffer == null) {
-				contributionOffer = contributions.get(c).toLoadprofile().toOffer(c);
+				contributionOffer = contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c);
 			} else {
-				contributionOffer = new Offer(contributionOffer, contributions.get(c).toLoadprofile().toOffer(c));
+				contributionOffer = new Offer(contributionOffer,
+						contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c));
 			}
 		}
 
@@ -673,8 +673,7 @@ public class Consumer implements Identifiable {
 	}
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
-		Log.d(this.uuid,
-				uuid + " [consumer] received deltaloadprofile [" + deltaLoadprofile.toString() + "] from device");
+		Log.d(this.uuid, uuid + "received deltaloadprofile [" + deltaLoadprofile.toString() + "]");
 		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
 		GregorianCalendar timeCurrent = DateTime.now();
 		double[] valuesNew = deltaLoadprofile.getValues();
@@ -726,38 +725,18 @@ public class Consumer implements Identifiable {
 			OfferNotification notification = new OfferNotification(
 					new API().consumers(uuid).offers(deltaOffer.getUUID()).toString(), null);
 
-			RestTemplate rest = new RestTemplate();
-
-			HttpEntity<OfferNotification> entity = new HttpEntity<OfferNotification>(notification,
-					Application.getRestHeader());
-
-			String url;
+			API2<OfferNotification, Void> api2 = new API2<OfferNotification, Void>(Void.class);
 
 			for (Consumer c : getAllConsumers()) {
-				url = "http://localhost:8080/consumers/" + c.getUUID() + "/offers";
-				Log.d(this.uuid, "send offer: " + url);
-
-				try {
-					rest.exchange(url, HttpMethod.POST, entity, String.class);
-				} catch (Exception e) {
-					Log.e(this.uuid, e.getMessage());
-				}
+				api2.consumers(c.getUUID()).offers();
+				api2.call(this, HttpMethod.POST, notification);
+				api2.clear();
 			}
 		}
 		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
 		else {
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
 		}
-	}
-
-	private boolean isRemainingChangeZero(double[] values) {
-		for (int i = 0; i < 4; i++) {
-			if (values[i] != 0) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 
 	public ChangeRequestLoadprofile receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
@@ -768,63 +747,52 @@ public class Consumer implements Identifiable {
 			return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
 		}
 
-		// liste der zugesagten änderungen
-		HashMap<UUID, Double[]> contributions = new HashMap<UUID, Double[]>();
-
-		// summe der verbleibenden änderung
-		double[] remainingChange = cr.getChange().clone();
-		// angefragte änderung
-		double[] request = cr.getChange().clone();
-
 		// Frage eigenes Device nach Änderung
 		// ( und passe noch benötigte Änderung an )
 		API2<ChangeRequestSchedule, AnswerChangeRequest> api2 = new API2<ChangeRequestSchedule, AnswerChangeRequest>(
 				AnswerChangeRequest.class);
 		api2.devices(device);
-		api2.call(this, HttpMethod.DELETE, new ChangeRequestSchedule(DateTime.currentTimeSlot(), request));
+		api2.call(this, HttpMethod.DELETE, new ChangeRequestSchedule(DateTime.currentTimeSlot(), cr.getChange()));
 
 		AnswerChangeRequest answer = api2.getResponse();
 
-		Log.d(uuid, "request [" + Arrays.toString(request) + "], response ["
+		Log.d(uuid, "request [" + Arrays.toString(cr.getChange()) + "], response ["
 				+ Arrays.toString(answer.getPossibleChanges()) + "]");
 
-		// verbleibenden change aktualisiseren
-		for (int i = 0; i < 4; i++) {
-			remainingChange[i] -= answer.getPossibleChanges()[i];
-		}
-
-		contributions.put(uuid, ArrayUtils.toObject(answer.getPossibleChanges()));
-
-		if (isRemainingChangeZero(remainingChange)) {
-			return new ChangeRequestLoadprofile(cr.getOffer(), answer.getPossibleChanges());
-		}
-
-		ChangeRequestLoadprofile possibleChange = new ChangeRequestLoadprofile(cr.getOffer(), remainingChange);
+		return new ChangeRequestLoadprofile(cr.getOffer(), answer.getPossibleChanges());
+		// }
+		//
+		// ChangeRequestLoadprofile possibleChange = new
+		// ChangeRequestLoadprofile(cr.getOffer(), remainingChange);
 
 		// TODO Autor für übergebenes Angebot?
 		// Wenn ja: Frage alle anderen beteiligten Consumer der Reihe nach nach
 		// Änderung für deren Lastprofil, passe Angebot jeweils gleich an und
 		// benachrichtige Marketplace am Ende
 		// Wenn nein: Versende Antwort als cr an Autor
-		if (!affectedOffer.isAuthor(uuid)) {
-			// kann nichts weiteres tun, muss absagen
-			return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
-		}
-
+		// if (!affectedOffer.isAuthor(uuid)) {
+		// // kann nichts weiteres tun, muss absagen
+		// return new ChangeRequestLoadprofile(cr.getOffer(), new double[] {
+		// 0.0, 0.0, 0.0, 0.0 });
+		// }
+		//
 		// Frage alle beteiligten Consumer nach Änderung für deren
 		// Lastprofil
-		for (UUID consumer : affectedOffer.getAllLoadprofiles().keySet()) {
-			API2<ChangeRequestLoadprofile, Boolean> api = new API2<ChangeRequestLoadprofile, Boolean>(Boolean.class);
-			api.consumers(consumer);
-			// TODO Sende cr an consumer und passe cr nach Antwort an
-		}
+		// for (UUID consumer : affectedOffer.getAllLoadprofiles().keySet()) {
+		// API2<ChangeRequestLoadprofile, Boolean> api = new
+		// API2<ChangeRequestLoadprofile, Boolean>(Boolean.class);
+		// api.consumers(consumer);
+		// TODO Sende cr an consumer und passe cr nach Antwort an
+		// }
 
 		// Antworte Marketplace mit vorgenommener Änderung
-		API2<ChangeRequestLoadprofile, Void> api = new API2<ChangeRequestLoadprofile, Void>(Void.class);
-		api.marketplace().offers(cr.getOffer()).receiveAnswerChangeRequestLoadprofile();
-		api.call(this, HttpMethod.POST, possibleChange);
-
-		return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
+		// API2<ChangeRequestLoadprofile, Void> api = new
+		// API2<ChangeRequestLoadprofile, Void>(Void.class);
+		// api.marketplace().offers(cr.getOffer()).receiveAnswerChangeRequestLoadprofile();
+		// api.call(this, HttpMethod.POST, possibleChange);
+		//
+		// return new ChangeRequestLoadprofile(cr.getOffer(), new double[] {
+		// 0.0, 0.0, 0.0, 0.0 });
 	}
 
 	/**
@@ -838,7 +806,7 @@ public class Consumer implements Identifiable {
 	 */
 	public void receiveLoadprofile(Loadprofile loadprofile) {
 		if (loadprofile.isDelta()) {
-			// skip delta loadprofiles
+			receiveDeltaLoadprofile(loadprofile);
 			return;
 		}
 
@@ -876,5 +844,16 @@ public class Consumer implements Identifiable {
 
 	public void setDevice(UUID uuid) {
 		device = uuid;
+	}
+
+	public void receiveChangeRequestDecline(UUID uuidOffer, UUID author) {
+		if (!allOffers.containsKey(uuidOffer) || !allOffers.get(uuidOffer).isAuthor(author)) {
+			Log.e(uuid, "receiveChangeRequestDecline abbrechen");
+			return;
+		}
+
+		API2<Void, Void> api2 = new API2<Void, Void>(Void.class);
+		api2.devices(device).changeRequest().decline();
+		api2.call(this, HttpMethod.GET, null);
 	}
 }

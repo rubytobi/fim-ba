@@ -576,7 +576,12 @@ public class Fridge implements Device {
 				if (currentMinute == 0 && slot == 0) {
 					newSchedule[1][currentMinute] = newSchedule[1][currentMinute] - other + localChange;
 				} else if (currentMinute == 0 && slot != 0) {
-					newSchedule[1][currentMinute] = scheduleCurrentChangeRequest[1][slot * 15 - 1] + localChange;
+					try {
+						newSchedule[1][currentMinute] = scheduleCurrentChangeRequest[1][slot * 15 - 1] + localChange;
+					} catch (NullPointerException e) {
+						Log.e(uuid, "da läuft was falsch...");
+					}
+
 				} else {
 					newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + localChange;
 				}
@@ -592,8 +597,12 @@ public class Fridge implements Device {
 		}
 
 		for (int i = 0; i < 15; i++) {
-			scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
-			scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
+			try {
+				scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
+				scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
+			} catch (NullPointerException e) {
+				Log.e(uuid, "da läuft was falsch...");
+			}
 		}
 
 		return newSchedule;
@@ -737,7 +746,7 @@ public class Fridge implements Device {
 	 *            soll
 	 * @return Array mit den Werten des Lastprofils
 	 */
-	public double[] createValuesLoadprofile(double[] schedule) {
+	private double[] createValuesLoadprofile(double[] schedule) {
 		double[] valuesLoadprofile = new double[numSlots];
 		double summeMin = 0;
 		int n = 0;
@@ -762,15 +771,6 @@ public class Fridge implements Device {
 	}
 
 	/**
-	 * Liefert die bereits festen Fahrplaene des Kuehlschranks
-	 * 
-	 * @return Alle festen Fahrplaene als TreeMap, mit dem
-	 */
-	public TreeMap<String, double[]> getSchedulesFixed() {
-		return schedulesFixed;
-	}
-
-	/**
 	 * Liefert den aktuellen Status des Kuehlschranks
 	 * 
 	 * @return Aktueller Status des Kuehlschranks
@@ -780,22 +780,13 @@ public class Fridge implements Device {
 	}
 
 	/**
-	 * Liefert die bereits festen Lastprofile des Kuhelschranks
-	 * 
-	 * @return TreeMap mit allen festen Lastprofilen
-	 */
-	public TreeMap<String, double[]> getLoadprofilesFixed() {
-		return loadprofilesFixed;
-	}
-
-	/**
 	 * Liefert den Fahrplan, der zur gewuenschten Zeit startet
 	 * 
 	 * @param start
 	 *            Zeit, zu der der Fahrplan starten soll
 	 * @return Fahrplan, der zur gewuenschten Zeit startet
 	 */
-	public double[][] getSchedule(GregorianCalendar start) {
+	private double[][] getSchedule(GregorianCalendar start) {
 		double[][] schedule = new double[2][15 * numSlots];
 		/*
 		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
@@ -848,6 +839,7 @@ public class Fridge implements Device {
 		// TODO Auto-generated method stub
 	}
 
+	@Override
 	public void receiveAnswerChangeRequest(boolean acceptChange) {
 		if (acceptChange) {
 			scheduleMinutes = scheduleCurrentChangeRequest;
@@ -907,7 +899,7 @@ public class Fridge implements Device {
 	 * @param start
 	 *            Zeitpunkt, zu dem schedule startet
 	 */
-	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
+	private void saveSchedule(double[][] schedule, GregorianCalendar start) {
 		int size = 15 * numSlots;
 
 		for (int i = 0; i < size; i++) {

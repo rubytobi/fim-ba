@@ -48,6 +48,6 @@ public class OfferNotification {
 	 *         enthaelt
 	 */
 	public String toString() {
-		return "[location=" + location + ",referenceOffer=" + offerUUID.toString() + "]";
+		return "OfferNotification [location=" + location + ",referenceOffer=" + offerUUID + "]";
 	}
 }

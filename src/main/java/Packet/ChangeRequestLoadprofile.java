@@ -1,12 +1,16 @@
 package Packet;
 
+import java.util.Arrays;
+import java.util.GregorianCalendar;
 import java.util.UUID;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import Util.DateTime;
 import start.Loadprofile;
 
+/**
+ * Paket, mit welchem der Consumer seine Partner-Consumers um eine Anpassung des
+ * Lastprofils bittet
+ *
+ */
 public class ChangeRequestLoadprofile {
 	UUID offer;
 	double[] change;
@@ -15,6 +19,15 @@ public class ChangeRequestLoadprofile {
 		// dummy
 	}
 
+	/**
+	 * Anlegen einer Anfrage für eine Änderung. Übergeben werden die Angebots-ID
+	 * des betroffenen Angebots und die gewünschte Änderung
+	 * 
+	 * @param offer
+	 *            Angebots-ID
+	 * @param change
+	 *            Änderung
+	 */
 	public ChangeRequestLoadprofile(UUID offer, double[] change) {
 		this.offer = offer;
 		this.change = change;
@@ -38,7 +51,11 @@ public class ChangeRequestLoadprofile {
 		return true;
 	}
 
-	public Loadprofile toLoadprofile() {
-		return new Loadprofile(change, DateTime.currentTimeSlot(), 0.0);
+	public Loadprofile toLoadprofile(GregorianCalendar date) {
+		return new Loadprofile(change, date, 0.0);
+	}
+
+	public String toString() {
+		return "ChangeRequestLoadprofile [offer=" + offer + ",change=" + Arrays.toString(change) + "]";
 	}
 }

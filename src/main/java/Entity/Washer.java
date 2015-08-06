@@ -333,4 +333,10 @@ public class Washer implements Device {
 	public void confirmLoadprofile(GregorianCalendar time) {
 		// TODO
 	}
+
+	@Override
+	public void receiveAnswerChangeRequest(boolean acceptChange) {
+		// TODO Auto-generated method stub
+
+	}
 }

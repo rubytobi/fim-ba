@@ -78,4 +78,7 @@ public interface Device extends Identifiable {
 	 *            Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
 	 */
 	public void confirmLoadprofile(GregorianCalendar time);
+	
+	public void receiveAnswerChangeRequest(boolean acceptChange);
+
 }
