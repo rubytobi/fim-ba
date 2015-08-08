@@ -9,14 +9,13 @@ public class FridgeCreation {
 	double riseWarming;
 	double consCooling;
 	double currTemp;
-	double priceCooling;
 
 	public FridgeCreation() {
 		// dummy constructor
 	}
 
 	public FridgeCreation(double maxTemp1, double maxTemp2, double minTemp1, double minTemp2, double fallCooling,
-			double riseWarming, double consCooling, double currTemp, double priceCooling) {
+			double riseWarming, double consCooling, double currTemp) {
 		this.maxTemp1 = maxTemp1;
 		this.minTemp1 = minTemp1;
 		this.maxTemp2 = maxTemp2;
@@ -25,7 +24,6 @@ public class FridgeCreation {
 		this.riseWarming = riseWarming;
 		this.consCooling = consCooling;
 		this.currTemp = currTemp;
-		this.priceCooling = priceCooling;
 	}
 
 	public double getMaxTemp1() {
@@ -58,9 +56,5 @@ public class FridgeCreation {
 
 	public double getCurrTemp() {
 		return currTemp;
-	}
-	
-	public double getPriceCooling() {
-		return priceCooling;
 	}
 }

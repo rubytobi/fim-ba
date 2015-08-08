@@ -19,7 +19,8 @@ import Util.View;
  *
  */
 public class Fridge implements Device {
-	// Fahrplan, den der Consumer gerade aushandelt
+	// Fahrplan, den der Consumer gerade aushandelt mit Verbrauch (0) und
+	// Temperatur (1)
 	@JsonView(View.Detail.class)
 	private double[][] scheduleMinutes = new double[2][15 * numSlots];
 
@@ -54,10 +55,10 @@ public class Fridge implements Device {
 	@JsonView(View.Detail.class)
 	private double fallCooling, riseWarming;
 
-	// conCooling: Verbrauch zum Kühlen pro Minute in Wh
+	// consCooling: Verbrauch zum Kühlen pro Minute in kWh
 	// priceCooling: Kosten für eine Minute kühlen
 	@JsonView(View.Detail.class)
-	private double consCooling, priceCooling;
+	private double consCooling;
 
 	@JsonView(View.Summary.class)
 	private DeviceStatus status;
@@ -102,7 +103,7 @@ public class Fridge implements Device {
 	 *            aktuelle Temperatur des Kuehlschranks
 	 */
 	public Fridge(double maxTemp1, double maxTemp2, double minTemp1, double minTemp2, double fallCooling,
-			double riseWarming, double consCooling, double currTemp, double priceCooling) {
+			double riseWarming, double consCooling, double currTemp) {
 		this();
 		// Prüfe Angaben auf Korrektheit
 		boolean correct = maxTemp1 <= maxTemp2;
@@ -122,7 +123,6 @@ public class Fridge implements Device {
 		this.riseWarming = riseWarming;
 		this.consCooling = consCooling;
 		this.currTemp = currTemp;
-		this.priceCooling = priceCooling;
 		this.currCooling = false;
 		this.waitForAnswerCR = false;
 		this.waitToChargeDeltaLoadprofile = false;
@@ -463,17 +463,68 @@ public class Fridge implements Device {
 
 		}
 
-		int sumMinutesCooling = 0;
-		double[] newChangesKWH = new double[numSlots];
-		for (int i = 0; i < numSlots; i++) {
-			sumMinutesCooling += changesMinute[i];
-			newChangesKWH[i] = changesMinute[i] * consCooling;
+		// Berechne, in wie vielen Minuten der Plan vor und nach den Änderungen
+		// in dem Bereich zwischen maxTemp1 und maxTemp2 oder zwischen minTemp2
+		// und minTemp1 war.
+		// War die Temperatur in einer Minute bei maxTemp2 bzw. minTemp2, so
+		// wird die volle Minute berechnet, war die Temperatur bei maxTemp1 bzw.
+		// minTemp2, so wird die Minute gar nicht berechnet. In dem Bereich
+		// dazwischen wird die Minute anteilig berechnet, je nachdem wie hoch
+		// die Temperatur genau war.
+		double before = 0;
+		double after = 0;
+		double spanTooHigh = maxTemp2 - maxTemp1;
+		double spanTooLow = minTemp1 - minTemp2;
+		for (int i = 0; i < numSlots * 15; i++) {
+			double currentTempBefore = scheduleMinutes[1][i];
+			double currentTempAfter = scheduleCurrentChangeRequest[1][i];
+			if (currentTempBefore < minTemp1) {
+				currentTempBefore -= minTemp2;
+				before += 1 - currentTempBefore / spanTooLow;
+			} else if (currentTempBefore > maxTemp1) {
+				currentTempBefore -= maxTemp1;
+				before += currentTempBefore / spanTooHigh;
+			}
+			if (currentTempAfter < minTemp1) {
+				currentTempAfter -= minTemp2;
+				after += 1 - currentTempAfter / spanTooLow;
+			} else if (currentTempAfter > maxTemp1) {
+				currentTempAfter -= maxTemp1;
+				after += currentTempAfter / spanTooHigh;
+			}
 		}
 
-		double priceChange = sumMinutesCooling * priceCooling;
+		// Berechne, um wie viele (anteilige) Minuten der Bereich zwischen
+		// minTemp1 und maxTemp1 durch die Änderungen mehr verlassen wurde
+		double worsening;
+		if (after > before) {
+			worsening = before - after;
+		} else {
+			worsening = 0;
+		}
 
-		// Gibt mögliche Änderungen und deren Preis zurück
-		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), newChangesKWH, priceChange);
+		// Berechne den Faktor für den Preis.
+		// Hierbei wird berechnet, wie viel der Kühlschrank für die Anzahl an
+		// worsening Minuten beim Kühlen verbrauchen würde
+		double factorForPrice = worsening * consCooling;
+
+		// Berechnet wie viele kWh nun pro Viertelstunde mehr oder weniger
+		// verbraucht wird und summiert die Werte auf.
+		double sumKWHAdditionalCooling = 0;
+		double[] newChangesKWH = new double[numSlots];
+		for (int i = 0; i < numSlots; i++) {
+			newChangesKWH[i] = changesMinute[i] * consCooling;
+			sumKWHAdditionalCooling += newChangesKWH[i];
+		}
+
+		// Jede kWh, die zusätzlich gekühlt werden muss, wird zum Faktor für den
+		// Preis hinzugerechnet
+		if (sumKWHAdditionalCooling > 0) {
+			factorForPrice += sumKWHAdditionalCooling;
+		}
+
+		// Gibt mögliche Änderungen und den Faktor für deren Preis zurück
+		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), newChangesKWH, factorForPrice);
 		return answer;
 	}
 
@@ -574,7 +625,7 @@ public class Fridge implements Device {
 					newSchedule[1][currentMinute] = newSchedule[1][currentMinute] - other + localChange;
 				} else if (currentMinute == 0 && slot != 0) {
 					try {
-						newSchedule[1][currentMinute] = scheduleCurrentChangeRequest[1][slot * 15 - 1] + localChange;
+						newSchedule[1][currentMinute] = newSchedule[1][currentMinute] + localChange;
 					} catch (NullPointerException e) {
 						Log.e(uuid, "da läuft was falsch...");
 					}
@@ -591,6 +642,10 @@ public class Fridge implements Device {
 			if (currentMinute == minuteLimit) {
 				beforeLimit = false;
 			}
+		}
+
+		if (scheduleCurrentChangeRequest == null) {
+			scheduleCurrentChangeRequest = new double[2][numSlots * 15];
 		}
 
 		for (int i = 0; i < 15; i++) {
@@ -731,6 +786,28 @@ public class Fridge implements Device {
 		}
 
 		scheduleMinutes = roundSchedule(scheduleMinutes);
+	}
+
+	/**
+	 * Berechnet wie viel Prozent des aktuellen eex-Preises für das Lastprofil
+	 * zu scheduleMinutes maximal gezahlt werden soll. Das Ergebnis ist gleich
+	 * 0% , wenn die aktuelle Temperatur <= minTemp1 und gleich 100 %, wenn die
+	 * aktuelle Temperatur >= maxTemp1.
+	 * 
+	 * @return Wert, der angibt, wie viel Prozent des aktuellen eex-Preises für
+	 *         das Lastprofil zu scheduleMinutes maximal gezahlt werden soll
+	 */
+	private double chargePriceScheduleMinutes() {
+		double startTemp = scheduleMinutes[1][0];
+		if (startTemp <= minTemp1) {
+			return 0;
+		} else if (startTemp >= maxTemp1) {
+			return 1;
+		} else {
+			double span = maxTemp1 - minTemp1;
+			startTemp = startTemp - minTemp1;
+			return Math.round(100.00 * (startTemp / span)) / 100.00;
+		}
 	}
 
 	/**
@@ -946,8 +1023,9 @@ public class Fridge implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
+		double price = chargePriceScheduleMinutes();
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0, false);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, price, false);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 
