@@ -21,18 +21,24 @@ public class Loadprofile {
 	// Zeitpunkt, ab wann das Lastprofil gelten soll
 	private GregorianCalendar date;
 
-	// Preis, den der Consumer mindestens einnehmen bzw. maximal zahlen will
+	// Preis, den das Device für das Lastprofil vorschlägt
+	@JsonProperty("priceSugg")
+	private double priceSugg;
+
+	// Maximaler Preis, den das Device für dieses Lastprofil zulässt
+	@JsonProperty("maxPrice")
+	private double maxPrice;
+
+	// Minimaler Preis, den das Device für dieses Lastprofil zulässt
 	@JsonProperty("minPrice")
 	private double minPrice;
 
-	// Gibt, an, ob das Lastprofil ein Delta-Lastprofil ist
-	@JsonProperty("isDelta")
-	private boolean isDelta;
+	// Gibt, an, ob das Lastprofil Preise festsetzt
+	@JsonProperty("hasPrices")
+	private boolean hasPrices;
 
-	// Setzt minPrice auf 0
 	private Loadprofile() {
-		minPrice = 0.0;
-		isDelta = false;
+		hasPrices = false;
 		uuid = UUID.randomUUID();
 	}
 
@@ -47,13 +53,13 @@ public class Loadprofile {
 	 *            Preis pro kWh, den der Consumer für dieses Lastprofil
 	 *            mindestens einnehmen bzw. maximal zahlen
 	 */
-	public Loadprofile(double[] values, GregorianCalendar date, double minPrice) {
-		this();
-
-		this.values = values;
-		this.date = date;
-		this.minPrice = minPrice;
-	}
+	/*
+	 * public Loadprofile(double[] values, GregorianCalendar date, double
+	 * priceSugg, double maxPrice, double minPrice) { this();
+	 * 
+	 * this.values = values; this.date = date; this.priceSugg = priceSugg;
+	 * this.maxPrice = maxPrice; this.minPrice = minPrice; }
+	 */
 
 	/**
 	 * Erstellt neues Lastprofil aus uebergebenen Werten
@@ -62,16 +68,42 @@ public class Loadprofile {
 	 *            Werte fuer das neue Lastprofil
 	 * @param date
 	 *            Startzeitpunkt des neuen Lastprofils
+	 * @param priceSugg
+	 *            Preis pro kWh, den das Device für dieses Lastprofil vorschlägt
 	 * @param minPrice
-	 *            Preis pro kWh, den der Consumer für dieses Lastprofil
-	 *            mindestens einnehmen bzw. maximal zahlen
+	 *            Minimaler Preis pro kWh, den das Device zulässt
+	 * @param maxPrice
+	 *            Maximaler Preis pro kWh, den das Device zulässt
 	 * @param isDelta
 	 *            Gibt an, ob das Lastprofil ein Deltalastprofil ist
 	 */
-	public Loadprofile(double[] values, GregorianCalendar date, double minPrice, boolean isDelta) {
-		this(values, date, minPrice);
+	public Loadprofile(double[] values, GregorianCalendar date, double priceSugg, double minPrice, double maxPrice) {
+		this.values = values;
+		this.date = date;
+		if (minPrice <= priceSugg && priceSugg <= maxPrice) {
+			this.priceSugg = priceSugg;
+			this.maxPrice = maxPrice;
+			this.minPrice = minPrice;
+			hasPrices = true;
+		}
+		else {
+			hasPrices = false;
+		}
+		
+	}
 
-		this.isDelta = isDelta;
+	/**
+	 * Erstellt ein Deltalastprofil aus den übergebenen Werten. Die Preise
+	 * werden bei einem Deltalastprofil nicht gesetzt (priceSugg, minPrice,
+	 * maxPrice)
+	 * 
+	 * @param values Werte des Lastprofils
+	 * @param date Startzeit des Lastprofils
+	 */
+	public Loadprofile(double[] values, GregorianCalendar date) {
+		this.values = values;
+		this.date = date;
+		this.hasPrices = false;
 	}
 
 	/**
@@ -100,8 +132,7 @@ public class Loadprofile {
 			values[i] = lp1.getValues()[i] + lp2.getValues()[i];
 		}
 
-		// TODO: annahme: nehme stets den billigeren preis
-		this.minPrice = Math.min(lp1.getMinPrice(), lp2.getMinPrice());
+		hasPrices = false;
 	}
 
 	/**
@@ -112,24 +143,44 @@ public class Loadprofile {
 	 * @param startLoadprofile
 	 * @param d
 	 */
-	public Loadprofile(UUID uuid, double[] changesLoadprofile, GregorianCalendar startLoadprofile, double d) {
-		this(changesLoadprofile, startLoadprofile, d);
+	public Loadprofile(UUID uuid, double[] changesLoadprofile, GregorianCalendar startLoadprofile, double d,
+			double priceSugg, double minPrice, double maxPrice) {
+		this(changesLoadprofile, startLoadprofile, priceSugg, minPrice, maxPrice);
 		this.uuid = uuid;
 	}
 
 	public Loadprofile(ChangeRequestSchedule cr) {
-		this(cr.getChangesLoadprofile(), cr.getStartLoadprofile(), 0.0);
+		this(cr.getChangesLoadprofile(), cr.getStartLoadprofile());
 		this.uuid = cr.getUUID();
 	}
 
 	/**
-	 * Liefert den Preis des Lastprofils
+	 * Liefert den vorgeschlagenen Preis des Lastprofils
 	 * 
-	 * @return Preis pro kWh, den der Consumer fuer dieses Lastprofil mindestens
-	 *         einnehmen bzw. maximal zahlen will
+	 * @return Preis pro kWh, den das Device fuer dieses Lastprofil vorschlägt
 	 */
-	public double getMinPrice() {
-		return minPrice;
+	public double getPriceSugg() {
+		return priceSugg;
+	}
+
+	/**
+	 * Liefert den maximalen Preis des Lastprofils
+	 * 
+	 * @return Maximaler Preis pro kWh, den das Device für dieses Lastprofil
+	 *         maximal akzeptieren will
+	 */
+	public double getMaxPrice() {
+		return maxPrice;
+	}
+
+	/**
+	 * Liefert den minimalen Preis des Lastprofils
+	 * 
+	 * @return Minimaler Preis pro kWh, den das Device für dieses Lastprofil
+	 *         minimal akzeptieren will
+	 */
+	public double getMinPrice1() {
+		return maxPrice;
 	}
 
 	/**
@@ -157,8 +208,8 @@ public class Loadprofile {
 	 *            Preis pro kWh, den der COnsumer fuer dieses Lastprofil
 	 *            mindestens einnehmen bzw. maximal zahlen will
 	 */
-	public void setMinPrice(double newPrice) {
-		minPrice = newPrice;
+	public void setPriceSugg(double newPrice) {
+		priceSugg = newPrice;
 	}
 
 	/**
@@ -168,8 +219,8 @@ public class Loadprofile {
 	 *         Lastprofils enthaelt
 	 */
 	public String toString() {
-		return "Loadprofile [values=" + Arrays.toString(values) + ",date=" + DateTime.ToString(date) + ",minPrice="
-				+ minPrice + ",isDelta=" + isDelta + "]";
+		return "Loadprofile [values=" + Arrays.toString(values) + ",date=" + DateTime.ToString(date) + ",priceSugg="
+				+ priceSugg + ",minPrice=" + minPrice + ",maxPrice=" + maxPrice + ",hasPrices=" + hasPrices + "]";
 	}
 
 	/**
@@ -210,8 +261,8 @@ public class Loadprofile {
 	}
 
 	@JsonIgnore
-	public boolean isDelta() {
-		return isDelta;
+	public boolean hasPrices() {
+		return hasPrices;
 	}
 
 	public UUID getUUID() {

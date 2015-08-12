@@ -31,8 +31,8 @@ public class PossibleMatch implements Comparable<PossibleMatch>{
 	 * @return Finanzieller Output.
 	 */
 	private double chargeOutcomeMatch() {
-		double price1 = offer1.getPrice();
-		double price2 = offer2.getPrice();
+		double price1 = offer1.getPriceSugg();
+		double price2 = offer2.getPriceSugg();
 		double[] loadprofile1 = offer1.getAggLoadprofile().getValues();
 		double sumOffer1 = 0;
 		double[] loadprofile2 = offer2.getAggLoadprofile().getValues();

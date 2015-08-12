@@ -53,7 +53,7 @@ public class ChangeRequestLoadprofile {
 	}
 
 	public Loadprofile toLoadprofile(GregorianCalendar date) {
-		return new Loadprofile(change, date, 0.0);
+		return new Loadprofile(change, date);
 	}
 
 	public String toString() {

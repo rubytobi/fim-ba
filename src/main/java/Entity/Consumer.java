@@ -183,7 +183,7 @@ public class Consumer implements Identifiable {
 			return;
 		}
 		for (Loadprofile lp : allLoadprofiles.get(uuid).values()) {
-			if (!lp.isDelta()) {
+			if (!lp.hasPrices()) {
 				// TODO
 			} else {
 				// TODO
@@ -311,7 +311,7 @@ public class Consumer implements Identifiable {
 		Offer offer = getOfferIntern(answerOffer.getUuid());
 
 		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
-			if (lp.isDelta()) {
+			if (lp.hasPrices()) {
 				// Schicke Bestätigung zu Loadprofile an Device
 				API<Void, Void> api2 = new API<Void, Void>(Void.class);
 				api2.devices(device).confirmLoadprofile().toString();
@@ -477,7 +477,7 @@ public class Consumer implements Identifiable {
 			api2.call(this, HttpMethod.GET, null);
 
 			double[] prediction = api2.getResponse();
-			Loadprofile lp = new Loadprofile(prediction, DateTime.currentTimeSlot(), 0.0);
+			Loadprofile lp = new Loadprofile(prediction, DateTime.currentTimeSlot());
 			Offer marketplace = new Offer(api2.getSenderUUID(), lp);
 
 			for (Offer own : offerWithPrivileges) {
@@ -655,15 +655,14 @@ public class Consumer implements Identifiable {
 		if (valuesOld != null) {
 			for (int i = 0; i < numSlots; i++) {
 				valuesNew[i] = valuesOld[i] + valuesNew[i];
-				sum = sum + valuesNew[i];
+				sum = sum + Math.abs(valuesNew[i]);
 			}
 		}
 
 		// Versende Deltalastprofile mit Summe>5 oder aus der aktuellen Stunde
 		// sofort
 		if (currentHour || sum >= 5) {
-			// TODO Preisbestimmung muss angepasst werden
-			deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile, 0.0);
+			deltaLoadprofile = new Loadprofile(valuesNew, timeLoadprofile);
 
 			// Erstelle Angebot aus deltaLoadprofile, speichere es in
 			// deltaOffers und verschicke es
@@ -752,7 +751,7 @@ public class Consumer implements Identifiable {
 	 *            Lastprofil des Gerätes
 	 */
 	public void receiveLoadprofile(Loadprofile loadprofile) {
-		if (loadprofile.isDelta()) {
+		if (loadprofile.hasPrices()) {
 			receiveDeltaLoadprofile(loadprofile);
 			return;
 		}

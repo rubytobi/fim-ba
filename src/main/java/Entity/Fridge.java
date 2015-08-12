@@ -71,6 +71,8 @@ public class Fridge implements Device {
 
 	@JsonView(View.Detail.class)
 	private SimulationFridge simulationFridge;
+	
+	private double priceEex = 20;
 
 	private Fridge() {
 		status = DeviceStatus.CREATED;
@@ -644,10 +646,6 @@ public class Fridge implements Device {
 			}
 		}
 
-		if (scheduleCurrentChangeRequest == null) {
-			scheduleCurrentChangeRequest = new double[2][numSlots * 15];
-		}
-
 		for (int i = 0; i < 15; i++) {
 			try {
 				scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
@@ -939,7 +937,7 @@ public class Fridge implements Device {
 			}
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed, 0.0, true);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils
@@ -949,7 +947,7 @@ public class Fridge implements Device {
 			}
 			waitToChargeDeltaLoadprofile = false;
 		}
-		scheduleCurrentChangeRequest = null;
+		scheduleCurrentChangeRequest = new double[2][15];
 		waitForAnswerCR = false;
 	}
 
@@ -1023,9 +1021,19 @@ public class Fridge implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
-		double price = chargePriceScheduleMinutes();
+		double priceSugg = chargePriceScheduleMinutes();
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, price, false);
+		// TODO Lege minPrice, maxPrice fest
+		double minPrice, maxPrice;
+		if (priceEex < 0) {
+			maxPrice = 0;
+			minPrice = priceEex;
+		} else {
+			maxPrice = priceEex;
+			minPrice = 0;
+		}
+
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice, maxPrice);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 
@@ -1110,7 +1118,7 @@ public class Fridge implements Device {
 			}
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, 0.0, true);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils

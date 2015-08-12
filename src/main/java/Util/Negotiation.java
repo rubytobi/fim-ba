@@ -32,14 +32,14 @@ public class Negotiation {
 		this.round2 = 0;
 		this.sumLoadprofile1 = sumLoadprofile1;
 		this.sumLoadprofile2 = sumLoadprofile2;
-		this.currentPrice1 = offer1.getPrice();
-		this.currentPrice2 = offer2.getPrice();
+		this.currentPrice1 = offer1.getPriceSugg();
+		this.currentPrice2 = offer2.getPriceSugg();
 		this.priceToAchieve1 = priceToAchieve1;
 		this.priceToAchieve2 = priceToAchieve2;
 		this.finished1 = false;
 		this.finished2 = false;
 		this.closed = false;
-		this.currentSum = sumLoadprofile1 * offer1.getPrice() + sumLoadprofile2 * offer2.getPrice();
+		this.currentSum = sumLoadprofile1 * offer1.getPriceSugg() + sumLoadprofile2 * offer2.getPriceSugg();
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -212,7 +212,7 @@ public class Negotiation {
 			// Ermittle Gesamtpreis für beide Angebote
 			double price1 = sumLoadprofile1 * currentPrice1;
 			double price2 = sumLoadprofile2 * currentPrice2;
-			System.out.println("Einzelpreis: " + offer1.getPrice() + ", " + offer2.getPrice());
+			System.out.println("Einzelpreis: " + offer1.getPriceSugg() + ", " + offer2.getPriceSugg());
 			System.out.println("Gesamtpreis: " + price1 + ", " + price2);
 			// Ermittle Mittelwert von Betrag des Gesamtpreises beider Angebote
 			double price = (Math.abs(price1) + Math.abs(price2)) / 2;

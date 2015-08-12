@@ -239,7 +239,7 @@ public class Marketplace implements Identifiable {
 			// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
 			if (sumUntilCurrentSlot != 0) {
 				volumeDemand += currentOffer.getSumAggLoadprofile();
-				sumPricesDemand += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
+				sumPricesDemand += currentOffer.getSumAggLoadprofile() * currentOffer.getPriceSugg();
 			} else {
 				toRemoveFromDemands.add(currentOffer);
 			}
@@ -265,7 +265,7 @@ public class Marketplace implements Identifiable {
 			// Andernfalls nicht, da es noch Zeit hat einen Partner zu finden.
 			if (sumUntilCurrentSlot != 0) {
 				volumeSupply += currentOffer.getSumAggLoadprofile();
-				sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPrice();
+				sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPriceSugg();
 			} else {
 				toRemoveFromSupplies.add(currentOffer);
 			}
@@ -731,7 +731,7 @@ public class Marketplace implements Identifiable {
 				// ob diese aenderung zur Verbesserung beitraegt
 				if (sumPossibleChange > 0 && sumPossibleChangeDeviation < sumCurrentDeviation) {
 					// Bestaetige das Angebot zum uebergebenen Preis
-					confirmOffer(currentOffer, currentOffer.getPrice());
+					confirmOffer(currentOffer, currentOffer.getPriceSugg());
 
 					// Aktualisiere die Gesamtabweichung aller bestaetigter
 					// Angebote
@@ -849,14 +849,14 @@ public class Marketplace implements Identifiable {
 
 		// Pruefe, ob Preise schon zusammenpassen bzw. Anpassung von Marktplatz
 		// moeglich ist, da es nur zu Verbesserungen fuer die Consumer fuehrt
-		boolean pricesFit = (sumOffer1 * offer1.getPrice() + sumOffer2 * offer2.getPrice()) >= 0;
+		boolean pricesFit = (sumOffer1 * offer1.getPriceSugg() + sumOffer2 * offer2.getPriceSugg()) >= 0;
 
 		// Berechne neue Preise, falls Preise schon so passen, dass
 		// Anpassung vom Marktplatz moeglich ist, da es nur zu Verbesserungen
 		// fuer die Consumer fuehrt
 		if (pricesFit) {
-			price1 = sumOffer1 * offer1.getPrice();
-			price2 = sumOffer2 * offer2.getPrice();
+			price1 = sumOffer1 * offer1.getPriceSugg();
+			price2 = sumOffer2 * offer2.getPriceSugg();
 
 			if (!(Math.abs(price1) == Math.abs(price2))) {
 				if (Math.abs(price1) > Math.abs(price2) && price1 > 0
@@ -888,13 +888,13 @@ public class Marketplace implements Identifiable {
 		if (!pricesFit) {
 			// Lege zu erreichende Preise fuer beide Angebote fest
 			if (sumOffer1 + sumOffer2 == 0) {
-				price1 = (offer1.getPrice() + offer2.getPrice()) / 2;
+				price1 = (offer1.getPriceSugg() + offer2.getPriceSugg()) / 2;
 				price2 = price1;
 			} else {
 				// Ermittle Gesamtpreis fuer beide Angebote
-				price1 = sumOffer1 * offer1.getPrice();
-				price2 = sumOffer2 * offer2.getPrice();
-				System.out.println("Einzelpreis: " + offer1.getPrice() + ", " + offer2.getPrice());
+				price1 = sumOffer1 * offer1.getPriceSugg();
+				price2 = sumOffer2 * offer2.getPriceSugg();
+				System.out.println("Einzelpreis: " + offer1.getPriceSugg() + ", " + offer2.getPriceSugg());
 				System.out.println("Gesamtpreis: " + price1 + ", " + price2);
 				// Ermittle Mittelwert von Betrag des Gesamtpreises beider
 				// Angebote
@@ -1111,7 +1111,7 @@ public class Marketplace implements Identifiable {
 
 		for (String date : set) {
 			Offer offer = demand.get(date).get(0);
-			confirmOffer(offer, offer.getAggLoadprofile().getMinPrice());
+			confirmOffer(offer, offer.getAggLoadprofile().getPriceSugg());
 			break;
 		}
 	}
@@ -1150,7 +1150,7 @@ public class Marketplace implements Identifiable {
 				ArrayList<Offer> offersAtDate = demand.get(date);
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1]
+					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "][" + values[1]
 							+ "][" + values[2] + "][" + values[3] + "]");
 				}
 			}
@@ -1166,7 +1166,7 @@ public class Marketplace implements Identifiable {
 				ArrayList<Offer> offersAtDate = supply.get(date);
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPrice() + " Values: [" + values[0] + "][" + values[1]
+					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "][" + values[1]
 							+ "][" + values[2] + "][" + values[3] + "]");
 				}
 			}
@@ -1252,7 +1252,7 @@ public class Marketplace implements Identifiable {
 
 		if (!supply.containsKey(dateString) || supply.get(dateString) == null) {
 			return new Offer[] {
-					new Offer(uuid, new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot(), 0.0)) };
+					new Offer(uuid, new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot())) };
 		}
 
 		count = Math.min(count, supply.get(dateString).size());

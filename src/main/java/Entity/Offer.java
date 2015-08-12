@@ -42,7 +42,12 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * Preis, zu dem das aggregierte Lastprofil aktuell an der Börse ist
 	 */
 	@JsonView(View.Summary.class)
-	private double aggPrice;
+	private double priceSugg;
+	
+	/**
+	 * Minimaler und maximaler Preis, der für das Offer festgesetzt werden kann
+	 */
+	private double minPrice, maxPrice;
 
 	/**
 	 * Consumer, von dem man das Angebot erhalten hat
@@ -81,11 +86,14 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		allLoadprofiles.put(author, loadprofiles);
 
 		this.author = author;
-		this.aggPrice = loadprofile.getMinPrice();
+		this.priceSugg = loadprofile.getPriceSugg();
+		this.minPrice = loadprofile.getMinPrice1();
+		this.maxPrice = loadprofile.getMaxPrice();
 
 		status = OfferStatus.VALID;
 	}
-
+	
+	// TODO 
 	public Offer(Offer withPrivileges, HashMap<UUID, ChangeRequestLoadprofile> contributions) {
 		this();
 
@@ -124,7 +132,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate(), 0.0));
 		}
 
-		aggPrice = aggLoadprofile.getMinPrice();
+		priceSugg = aggLoadprofile.getPriceSugg();
+		// TODO Änderungen minPrice, maxPrice?
 		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
@@ -170,12 +179,21 @@ public class Offer implements Comparable<Offer>, Cloneable {
 					Log.d(uuid,
 							"new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
 					Loadprofile value = o.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
+					
+					if (value.getMinPrice1() < this.minPrice) {
+						this.minPrice = value.getMinPrice1();
+					}
+					if (value.getMaxPrice() > this.maxPrice) {
+						this.maxPrice = value.getMaxPrice();
+					}
+										
 					this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
 				}
 			}
 		}
-
-		aggPrice = getAggLoadprofile().getMinPrice();
+		
+		// TODO priceSugg festlegen
+		//priceSugg = ...;
 		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
@@ -253,8 +271,24 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 * @return Aktueller Preis des Angebots
 	 */
-	public double getPrice() {
-		return aggPrice;
+	public double getPriceSugg() {
+		return priceSugg;
+	}
+	
+	/**
+	 * Liefert den von den Devices festgelegten minimalen Preis des Angebots
+	 * @return Minimaler Preis des Angebots
+	 */
+	public double getMinPrice() {
+		return minPrice;
+	}
+	
+	/**
+	 * Liefert den von den Devices festgelegten maximalen Preis des Angebots
+	 * @return Maximaler Preis des Angebots
+	 */
+	public double getMaxPrice() {
+		return maxPrice;
 	}
 
 	/**
