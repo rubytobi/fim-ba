@@ -191,7 +191,7 @@ public class Loadprofile {
 	}
 
 	/**
-	 * Berechnet die Abweichung des Lastprofils von einem anderen Lastprofil
+	 * Berechnet die absolute Abweichung des Lastprofils von einem anderen Lastprofil
 	 * 
 	 * @param otherProfile
 	 *            Anderes Lastprofil, von welchem die Abweichung berechnet
@@ -220,5 +220,10 @@ public class Loadprofile {
 
 	public Offer toOffer(UUID author) {
 		return new Offer(author, this);
+	}
+
+	public static int compare(Object loadprofile, Object loadprofile2) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

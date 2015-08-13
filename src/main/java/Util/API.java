@@ -86,6 +86,11 @@ public class API<Request, Response> {
 		return this;
 	}
 
+	public API<Request, Response> demand() {
+		uri += "/demands";
+		return this;
+	}
+
 	public API<Request, Response> demand(UUID uuid) {
 		uri += "/demands/" + uuid;
 		return this;

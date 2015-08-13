@@ -764,7 +764,14 @@ public class Consumer implements Identifiable {
 
 		OfferNotification notification = new OfferNotification(offer.getAuthor(), offer.getUUID());
 
+		sendOfferToMarketplace(offer);
 		sendOfferNotificationToAllConsumers(notification);
+	}
+
+	private void sendOfferToMarketplace(Offer offer) {
+		API<Offer, Void> api2 = new API<>(Void.class);
+		api2.marketplace().demand();
+		api2.call(this, HttpMethod.POST, offer);
 	}
 
 	private void sendOfferNotificationToAllConsumers(OfferNotification notification) {

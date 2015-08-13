@@ -2,7 +2,7 @@ package Util;
 
 import Entity.Offer;
 
-public class Score implements Comparable<Score>, Cloneable {
+public class Score implements Cloneable {
 	private Offer marketplace;
 	private Offer own;
 	private Double score = null;
@@ -12,7 +12,7 @@ public class Score implements Comparable<Score>, Cloneable {
 	private Offer changeRequest;
 	private Offer merge = null;
 
-	public Score(Offer marketplace, Offer own, Offer received, Offer changeRequest) {
+	protected Score(Offer marketplace, Offer own, Offer received, Offer changeRequest) {
 		this.marketplace = marketplace;
 		this.own = own;
 		this.received = received;
@@ -49,11 +49,6 @@ public class Score implements Comparable<Score>, Cloneable {
 		}
 
 		return score;
-	}
-
-	@Override
-	public int compareTo(Score o) {
-		return Double.compare(getScore(), o.getScore());
 	}
 
 	public Offer getOwn() {
@@ -103,5 +98,13 @@ public class Score implements Comparable<Score>, Cloneable {
 
 		hasReceived = true;
 		this.received = receivedOffer;
+	}
+
+	public double getLoadprofileDeviation() {
+		return marketplace.getAggLoadprofile().chargeDeviationOtherProfile(getMerge().getAggLoadprofile());
+	}
+
+	public double getPriceDeviation() {
+		return Math.abs(marketplace.getPrice() - getMerge().getPrice());
 	}
 }
