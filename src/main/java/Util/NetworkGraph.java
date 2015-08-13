@@ -98,7 +98,7 @@ public class NetworkGraph {
 				for (Loadprofile l : o.getAllLoadprofiles().get(c).values()) {
 					Node loadprofile = graph.addNode(l.toString());
 
-					if (l.isDelta()) {
+					if (l.hasPrices()) {
 						loadprofile.addAttribute("ui.style", deltaLoadprofileStyle);
 					} else {
 						loadprofile.addAttribute("ui.style", loadprofileStyle);

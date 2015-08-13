@@ -14,22 +14,22 @@ public class BATest {
 
 	@Test
 	public void testScoreCalculation() {
-		Loadprofile lA = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot(), 0.0);
+		Loadprofile lA = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
 		Offer oA = new Offer(UUID.randomUUID(), lA);
 
-		Loadprofile lB = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot(), 0.0);
+		Loadprofile lB = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
 		Offer oB = new Offer(UUID.randomUUID(), lB);
 
 		Score scoreOne = new Score(oA, oB, null, null);
 		assertEquals("score shall be 0", 0.0, scoreOne.getScore(), 0.0);
 
-		Loadprofile lC = new Loadprofile(new double[] { 1.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot(), 0.0);
+		Loadprofile lC = new Loadprofile(new double[] { 1.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
 		Offer oC = new Offer(UUID.randomUUID(), lC);
 
 		Score scoreTwo = new Score(oA, oC, null, null);
 		assertEquals("score shall be 1", 1.0, scoreTwo.getScore(), 0.0);
 
-		Loadprofile lD = new Loadprofile(new double[] { 1.0, -1.0, 5.0, 0.0 }, DateTime.currentTimeSlot(), 0.0);
+		Loadprofile lD = new Loadprofile(new double[] { 1.0, -1.0, 5.0, 0.0 }, DateTime.currentTimeSlot());
 		Offer oD = new Offer(UUID.randomUUID(), lD);
 
 		Score scoreThree = new Score(oA, oD, null, null);

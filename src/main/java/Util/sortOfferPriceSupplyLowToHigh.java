@@ -8,8 +8,8 @@ import Entity.Offer;
 public class sortOfferPriceSupplyLowToHigh implements Comparator<Offer> {
 	@Override
 	public int compare(Offer offer1, Offer offer2) {
-		double price1 = offer1.getPrice();
-		double price2 = offer2.getPrice();
+		double price1 = offer1.getPriceSugg();
+		double price2 = offer2.getPriceSugg();
 		if (price1<price2) {
 			return -1;
 		}

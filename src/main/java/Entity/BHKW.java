@@ -569,7 +569,7 @@ public class BHKW implements Device {
 
 			if (sumDeltaValues != 0) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed, 0.0, true);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 			}
 			waitToChargeDeltaLoadprofile = false;
@@ -622,7 +622,7 @@ public class BHKW implements Device {
 				}
 
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start, 0.0, true);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 			}
 		}
@@ -672,8 +672,11 @@ public class BHKW implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
+		
+		// TODO Lege minPrice, maxPrice fest.
+		double priceSugg = 0, minPrice = 0, maxPrice = 0;
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, 0.0, false);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice, maxPrice);
 		// sendLoadprofileToConsumer(loadprofile);
 	}
 
