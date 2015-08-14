@@ -17,6 +17,7 @@ import Util.View;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
+import Event.OffersPriceborderException;
 
 public class Consumer implements Identifiable {
 	final class DeviationOfferComparator implements Comparator<Offer> {
@@ -511,8 +512,15 @@ public class Consumer implements Identifiable {
 				Log.d(uuid, "nichts konnte erreicht werden");
 				return;
 			} else {
-				newOffer = new Offer(new Offer(bestScore.getOwn(), receivedOffer), contributions);
-				allOfferContributions.put(newOffer.getUUID(), contributions);
+				try {
+					newOffer = new Offer(new Offer(bestScore.getOwn(), receivedOffer), contributions);
+					allOfferContributions.put(newOffer.getUUID(), contributions);
+				}
+				catch (OffersPriceborderException e) {
+					Log.e(uuid, e.getMessage());
+					// TODO Was passiert, wenn Exception eintritt?
+				}
+			
 			}
 		} else {
 			// neues Angebot erstellen
@@ -585,8 +593,14 @@ public class Consumer implements Identifiable {
 			if (contributionOffer == null) {
 				contributionOffer = contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c);
 			} else {
-				contributionOffer = new Offer(contributionOffer,
-						contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c));
+				try {
+					contributionOffer = new Offer(contributionOffer,
+							contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c));
+				}
+				catch (OffersPriceborderException e) {
+					Log.e(uuid,  e.getMessage());
+					// TODO Was passiert, wenn Exception eintritt?
+				}
 			}
 		}
 

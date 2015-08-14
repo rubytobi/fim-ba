@@ -17,14 +17,16 @@ public class Negotiation {
 	private Offer offer1, offer2;
 	private int round1, round2;
 	private boolean finished1, finished2, closed;
+	private boolean demand1, demand2;
 	private double currentPrice1, currentPrice2;
-	private double priceToAchieve1, priceToAchieve2;
-	private double sumLoadprofile1, sumLoadprofile2, currentSum;
+	private double sumLoadprofile1, sumLoadprofile2;
+	private double minCurrentSum, maxCurrentSum;
+	private double acceptedMin1, acceptedMax1;
+	private double acceptedMin2, acceptedMax2;
 	private UUID uuid;
 	private int maxRounds = 3;
 
-	public Negotiation(Offer offer1, Offer offer2, double priceToAchieve1, double priceToAchieve2,
-			double sumLoadprofile1, double sumLoadprofile2) {
+	public Negotiation(Offer offer1, Offer offer2, double sumLoadprofile1, double sumLoadprofile2) {
 		this.offer1 = offer1;
 		this.offer2 = offer2;
 		this.uuid = UUID.randomUUID();
@@ -34,12 +36,17 @@ public class Negotiation {
 		this.sumLoadprofile2 = sumLoadprofile2;
 		this.currentPrice1 = offer1.getPriceSugg();
 		this.currentPrice2 = offer2.getPriceSugg();
-		this.priceToAchieve1 = priceToAchieve1;
-		this.priceToAchieve2 = priceToAchieve2;
 		this.finished1 = false;
 		this.finished2 = false;
 		this.closed = false;
-		this.currentSum = sumLoadprofile1 * offer1.getPriceSugg() + sumLoadprofile2 * offer2.getPriceSugg();
+		this.acceptedMin1 = currentPrice1;
+		this.acceptedMax1 = currentPrice1;
+		this.acceptedMin2 = currentPrice2;
+		this.acceptedMax2 = currentPrice2;
+		this.demand1 = sumLoadprofile1 < 0;
+		this.demand2 = sumLoadprofile2 < 0;
+		this.minCurrentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
+		this.maxCurrentSum = minCurrentSum;
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -54,13 +61,11 @@ public class Negotiation {
 	 * Gibt eine Beschreibung der Verhandlung auf der Console aus.
 	 */
 	public void negotiationToString() {
-		System.out.println("Negotiation " + uuid + " CurrentSum: " + currentSum + " Confirmed: " + closed);
+		System.out.println("Negotiation " + uuid + " Confirmed: " + closed);
 		System.out.println("Offer1: " + offer1.getUUID() + " Runde: " + round1 + " Summe LP: " + sumLoadprofile1
-				+ " aktueller Preis: " + currentPrice1 + " zu erreichender Preis: " + priceToAchieve1 + " Finished: "
-				+ finished1);
+				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished1);
 		System.out.println("Offer2: " + offer2.getUUID() + " Runde: " + round2 + " Summe LP: " + sumLoadprofile2
-				+ " aktueller Preis: " + currentPrice1 + " zu erreichender Preis: " + priceToAchieve2 + " Finished: "
-				+ finished2);
+				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished2);
 	}
 
 	/**
@@ -104,7 +109,7 @@ public class Negotiation {
 
 		} else {
 			currentOffer = offer2;
-			priceRequest = currentPrice2;
+			priceRequest = currentPrice1;
 			round2++;
 		}
 		System.out.println("An: " + currentOffer.getAuthor() + " Preis: " + priceRequest);
@@ -171,66 +176,67 @@ public class Negotiation {
 			return;
 		}
 		UUID offer;
+
+		// Berechne, ob sich durch die Anpassung des Preises das akzeptierte
+		// Minimum bzw. das aktzeptierte Maximum der Angebotspreise und mit
+		// ihnen die mögliche Maximale/Minimale Summe der Angebote geändert hat
 		boolean answerFromOffer1 = consumer.equals(offer2.getAuthor());
 		if (answerFromOffer1) {
 			currentPrice1 = newPrice;
+			if (currentPrice1 > acceptedMax1) {
+				acceptedMax1 = currentPrice1;
+				if (demand1) {
+					minCurrentSum = sumLoadprofile1 * acceptedMax1;
+				} else {
+					maxCurrentSum = sumLoadprofile1 * acceptedMax1;
+				}
+			}
+			if (currentPrice1 < acceptedMin1) {
+				acceptedMin1 = currentPrice1;
+				if (demand1) {
+					maxCurrentSum = sumLoadprofile1 * acceptedMin1;
+				} else {
+					minCurrentSum = sumLoadprofile1 * acceptedMin1;
+				}
+			}
 			offer = offer1.getUUID();
 		} else {
 			currentPrice2 = newPrice;
+			if (currentPrice2 > acceptedMax2) {
+				acceptedMax2 = currentPrice2;
+				if (demand2) {
+					minCurrentSum = sumLoadprofile2 * acceptedMax2;
+				} else {
+					maxCurrentSum = sumLoadprofile2 * acceptedMax2;
+				}
+			}
+			if (currentPrice2 < acceptedMin2) {
+				acceptedMin2 = currentPrice2;
+				if (demand2) {
+					maxCurrentSum = sumLoadprofile2 * acceptedMin2;
+				} else {
+					minCurrentSum = sumLoadprofile2 * acceptedMin2;
+				}
+			}
 			offer = offer2.getUUID();
 		}
 
-		currentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
-
-		if (currentSum >= 0) {
+		// Wenn min den akzeptierten Preisgrenzen eine Einigung möglich ist,
+		// berechne die extakten Preise und beende die Verhandlung
+		if (minCurrentSum <= 0 && maxCurrentSum >= 0) {
 			// Berechne extakte Preise
-			chargeExactPrices();
-
-			// Teile Marktplatz mit, dass Verhandlung erfolgreich beendet wurde
-			informMarketplace(true);
-		} else {
-			if (answerFromOffer1 && round1 >= maxRounds || (!answerFromOffer1) && round2 >= maxRounds) {
-				finishNegotiationOffer(consumer);
-			} else {
-				chargeNewPricesToAchieve();
-				sendPriceRequest(offer);
+			if (chargeExactPrices()) {
+				// Teile Marktplatz mit, dass Verhandlung erfolgreich beendet
+				// wurde
+				informMarketplace(true);
+				return;
 			}
 		}
-	}
 
-	/**
-	 * Berechnet, welche Preise nun von beiden Seiten idealerweise erreicht
-	 * werden sollen und legt das Ergebnis in den Variablen priceToAchieve1 bzw.
-	 * priceToAchieve2 ab.
-	 */
-	private void chargeNewPricesToAchieve() {
-		// Lege zu erreichende Preise für beide Angebote fest
-		if (sumLoadprofile1 + sumLoadprofile2 == 0) {
-			priceToAchieve1 = (currentPrice1 + currentPrice2) / 2;
-			priceToAchieve2 = priceToAchieve1;
+		if (answerFromOffer1 && round1 >= maxRounds || (!answerFromOffer1) && round2 >= maxRounds) {
+			finishNegotiationOffer(consumer);
 		} else {
-			// Ermittle Gesamtpreis für beide Angebote
-			double price1 = sumLoadprofile1 * currentPrice1;
-			double price2 = sumLoadprofile2 * currentPrice2;
-			System.out.println("Einzelpreis: " + offer1.getPriceSugg() + ", " + offer2.getPriceSugg());
-			System.out.println("Gesamtpreis: " + price1 + ", " + price2);
-			// Ermittle Mittelwert von Betrag des Gesamtpreises beider Angebote
-			double price = (Math.abs(price1) + Math.abs(price2)) / 2;
-			// Weise den Gesamtpreisen den jeweiligen Mittelwert zu
-			if (sumLoadprofile1 > 0) {
-				price1 = price;
-			} else {
-				price1 = -price;
-			}
-			if (sumLoadprofile2 > 0) {
-				price2 = price;
-			} else {
-				price2 = -price;
-			}
-			System.out.println("Mittelwert: " + price1 + ", " + price2);
-			// Berechne Preise pro kWh für Angebote
-			priceToAchieve1 = price1 / sumLoadprofile1;
-			priceToAchieve2 = price2 / sumLoadprofile2;
+			sendPriceRequest(offer);
 		}
 	}
 
@@ -240,7 +246,7 @@ public class Negotiation {
 	 * 
 	 * @return Array mit neuen Preisen für Offer1 (0) und Offer2 (1)
 	 */
-	private void chargeExactPrices() {
+	private boolean chargeExactPrices() {
 		System.out.println("***chargeExactPrices***");
 		// Berechne neue, extakte Preise
 		double newPrice1 = sumLoadprofile1 * currentPrice1;
@@ -256,9 +262,17 @@ public class Negotiation {
 				newPrice1 = Math.abs(newPrice1 / sumLoadprofile1);
 			}
 		}
-		currentPrice1 = newPrice1;
-		currentPrice2 = newPrice2;
-		System.out.println(currentPrice1 * sumLoadprofile1 + currentPrice2 * sumLoadprofile2);
+
+		// Prüfe, ob Ergebnis auch wirklich im angegebenen Preisrahmen
+		if (newPrice1 > acceptedMax1 || newPrice1 < acceptedMin1 || newPrice2 > acceptedMax2
+				|| newPrice2 < acceptedMin2) {
+			System.out.println("Da ist jetzt was falsch");
+			return false;
+		} else {
+			currentPrice1 = newPrice1;
+			currentPrice2 = newPrice2;
+			return true;
+		}
 	}
 
 	/**
@@ -274,8 +288,6 @@ public class Negotiation {
 		closed = true;
 
 		// Entferne Verhandlung vom Container
-		// TODO Sinnvoll? Wenn Consumer noch auf ausstehende ChangeRequest
-		// antwortet? Aber wann sonst?
 		NegotiationContainer container = NegotiationContainer.instance();
 		container.delete(uuid);
 

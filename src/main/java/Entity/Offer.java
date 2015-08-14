@@ -10,6 +10,7 @@ import Packet.ChangeRequestLoadprofile;
 import Util.API;
 import Util.Log;
 import Util.View;
+import Event.OffersPriceborderException;
 
 /**
  * Klasse fuer Angebote
@@ -43,7 +44,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 */
 	@JsonView(View.Summary.class)
 	private double priceSugg;
-	
+
 	/**
 	 * Minimaler und maximaler Preis, der für das Offer festgesetzt werden kann
 	 */
@@ -92,8 +93,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 
 		status = OfferStatus.VALID;
 	}
-	
-	// TODO 
+
+	// TODO
 	public Offer(Offer withPrivileges, HashMap<UUID, ChangeRequestLoadprofile> contributions) {
 		this();
 
@@ -129,7 +130,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		}
 
 		for (UUID consumer : contributions.keySet()) {
-			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate(), 0.0));
+			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate()));
 		}
 
 		priceSugg = aggLoadprofile.getPriceSugg();
@@ -147,8 +148,20 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * @param withoutPrivileges
 	 *            Offer zweites Angbeot
 	 */
-	public Offer(Offer withPrivileges, Offer withoutPrivileges) {
+	public Offer(Offer withPrivileges, Offer withoutPrivileges) throws OffersPriceborderException {
 		this();
+
+		double minWithPrivileges = withPrivileges.getMinPrice();
+		double maxWithPrivileges = withPrivileges.getMaxPrice();
+		double minWithoutPrivileges = withoutPrivileges.getMinPrice();
+		double maxWithoutPrivileges = withoutPrivileges.getMaxPrice();
+
+		this.minPrice = Math.min(minWithPrivileges, minWithoutPrivileges);
+		this.maxPrice = Math.max(maxWithPrivileges, maxWithoutPrivileges);
+		if (minPrice > maxPrice) {
+			// Werfe Exception, dass Angebot nicht erstellt werden kann
+			throw new OffersPriceborderException();
+		}
 
 		Log.d(uuid, "Offer(withPrivileges=" + withPrivileges.toString() + ",withoutPrivileges="
 				+ withoutPrivileges.toString() + ")");
@@ -179,21 +192,41 @@ public class Offer implements Comparable<Offer>, Cloneable {
 					Log.d(uuid,
 							"new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
 					Loadprofile value = o.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
-					
-					if (value.getMinPrice1() < this.minPrice) {
-						this.minPrice = value.getMinPrice1();
-					}
-					if (value.getMaxPrice() > this.maxPrice) {
-						this.maxPrice = value.getMaxPrice();
-					}
-										
+
 					this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
 				}
 			}
 		}
+
+		// Berechne neue gewichtete priceSugg
+		double priceSuggWithPrivileges = withPrivileges.getPriceSugg();
+		double[] valuesWithPrivileges = withPrivileges.getAggLoadprofile().getValues();
+		double sumAggLoadprofileWithPrivileges = 0;
+		double priceSuggWithoutPrivileges = withoutPrivileges.getPriceSugg();
+		double[] valuesWithoutPrivileges = withoutPrivileges.getAggLoadprofile().getValues();
+		double sumAggLoadprofileWithoutPrivileges = 0;
+		double newPriceSugg;
+
+		for (int i = 0; i < numSlots; i++) {
+			sumAggLoadprofileWithPrivileges += Math.abs(valuesWithPrivileges[i]);
+			sumAggLoadprofileWithoutPrivileges += Math.abs(valuesWithoutPrivileges[i]);
+		}
+		double weight = sumAggLoadprofileWithPrivileges / sumAggLoadprofileWithoutPrivileges;
+
+		double weightWithPrivileges = 1 / (weight + 1) * weight;
+		double weightWithoutPrivileges = 1 - weightWithPrivileges;
+
+		newPriceSugg = Math.round(100.00 * (weightWithPrivileges * priceSuggWithPrivileges
+				+ weightWithoutPrivileges * priceSuggWithoutPrivileges)) / 100.00;
 		
-		// TODO priceSugg festlegen
-		//priceSugg = ...;
+		if (newPriceSugg < this.minPrice) {
+			newPriceSugg = this.minPrice;
+		}
+		else if (newPriceSugg > this.maxPrice) {
+			newPriceSugg = this.maxPrice;
+		}
+		this.priceSugg = newPriceSugg;
+
 		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
@@ -274,17 +307,19 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public double getPriceSugg() {
 		return priceSugg;
 	}
-	
+
 	/**
 	 * Liefert den von den Devices festgelegten minimalen Preis des Angebots
+	 * 
 	 * @return Minimaler Preis des Angebots
 	 */
 	public double getMinPrice() {
 		return minPrice;
 	}
-	
+
 	/**
 	 * Liefert den von den Devices festgelegten maximalen Preis des Angebots
+	 * 
 	 * @return Maximaler Preis des Angebots
 	 */
 	public double getMaxPrice() {

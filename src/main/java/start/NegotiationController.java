@@ -8,10 +8,16 @@ import java.util.UUID;
 
 import Packet.AnswerToPriceChangeRequest;
 import Container.NegotiationContainer;
+import Util.Negotiation;
 
 public class NegotiationController {
 	@RequestMapping(value = "/negotiation/{uuid}/answerToPriceChangeRequest", method = RequestMethod.POST)
 	public void postDemand(@PathVariable UUID uuid, @RequestBody AnswerToPriceChangeRequest answer) {
-		NegotiationContainer.instance().get(uuid).receiveAnswer(answer);
+		Negotiation negotiation = NegotiationContainer.instance().get(uuid);
+		// Sende Antwort nur, wenn Negotiation noch existiert und noch nicht
+		// geschlossen wurde
+		if (negotiation != null) {
+			negotiation.receiveAnswer(answer);
+		}
 	}
 }

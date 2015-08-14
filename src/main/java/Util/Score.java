@@ -1,6 +1,7 @@
 package Util;
 
 import Entity.Offer;
+import Event.OffersPriceborderException;
 
 public class Score implements Comparable<Score>, Cloneable {
 	private Offer marketplace;
@@ -32,11 +33,21 @@ public class Score implements Comparable<Score>, Cloneable {
 			merge = own;
 
 			if (hasReceived) {
-				merge = new Offer(merge, received);
+				try {
+					merge = new Offer(merge, received);
+				}
+				catch (OffersPriceborderException e) {
+					// TODO Was passiert, wenn Exception eintritt?
+				}
 			}
 
 			if (hasChangeRequest) {
-				merge = new Offer(merge, changeRequest);
+				try {
+					merge = new Offer(merge, changeRequest);
+				}
+				catch (OffersPriceborderException e) {
+					// TODO Was passiert, wenn Exception eintritt?
+				}
 			}
 		}
 

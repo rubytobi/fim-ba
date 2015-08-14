@@ -89,6 +89,12 @@ public class Marketplace implements Identifiable {
 	private Map<String, double[]> prediction = new TreeMap<String, double[]>();
 
 	/**
+	 * Einheitspreis mit Strafe, zu welchem der jeweilige Slot bestätigt wurde.
+	 * Enthält Preis für Demand (0) und für Supply (1)
+	 */
+	private Map<String, double[]> unitPricesWithPenalty = new TreeMap<String, double[]>();
+
+	/**
 	 * Map, die die Summe der Abweichungen aller zusammengefuehrter Angebote
 	 * nach Zeitslot beinhaltet
 	 */
@@ -280,14 +286,15 @@ public class Marketplace implements Identifiable {
 		double middle = (Math.abs(sumPricesDemand) + Math.abs(sumPricesSupply)) / 2;
 		System.out.println("\nMittelpreis: " + middle);
 
-		// Berechne Strafe
+		// Berechne Strafe und schlage sie auf den berechneten Preis auf
 		double penalty = middle * 0.1;
 		System.out.println("Strafe: " + penalty);
 		double priceDemand = Math.abs((middle + penalty) / volumeDemand);
 		double priceSupply = (middle - penalty) / volumeSupply;
-		System.out.println("priceDemand: " + priceDemand);
-		System.out.println("priceSupply: " + priceSupply);
-		System.out.println("Gesamt: " + (priceDemand * volumeDemand + priceSupply * volumeSupply));
+
+		// Speichere die Einheitspreise mit Strafe für den jeweiligen Slot
+		double[] prices = { priceDemand, priceSupply };
+		unitPricesWithPenalty.put(DateTime.ToString(date), prices);
 
 		// Bestaetige alle Angebote des Zeitrausm mit den errechneten Preisen
 		for (Offer demand : allDemandsAtDate) {
@@ -372,18 +379,65 @@ public class Marketplace implements Identifiable {
 			confirmOffer(offers[0], newPrice1);
 			confirmOffer(offers[1], newPrice2);
 		} else {
-			// Setze Kombination der beiden Angebote auf die Black List
-			PossibleMatch possibleMatch = new PossibleMatch(offers[0], offers[1]);
-			ArrayList<PossibleMatch> possibleMatches = blackListPossibleMatches.get(date);
-			if (possibleMatches == null) {
-				possibleMatches = new ArrayList<PossibleMatch>();
-			}
-			possibleMatches.add(possibleMatch);
-			blackListPossibleMatches.put(date, possibleMatches);
+			// Wenn der Slot der Angebote schon vollständig gematched wurde,
+			// werden die Angebote zum Einheitspreis zusammengefuehrt
+			if (offers[0].getDate().before(nextSlot)) {
+				// Hole die Einheitspreise zur Startzeit der Angebote
+				double[] unitPrices = unitPricesWithPenalty.get(DateTime.ToString(offers[0].getDate()));
 
-			// Setze beide Angebote wieder neu auf den Marktplatz
-			putOffer(offers[0]);
-			putOffer(offers[1]);
+				// Prüfe, ob Einheitspreis für diese Zeit vorliegt
+				if (unitPrices != null) {
+					// Berechne, ob die Angebote jeweils Supply oder Demand sind
+					double[] values0 = offers[0].getAggLoadprofile().getValues();
+					double[] values1 = offers[1].getAggLoadprofile().getValues();
+					double sumValues0 = 0;
+					double sumValues1 = 0;
+					for (int i = 0; i < numSlots; i++) {
+						sumValues0 += values0[i];
+						sumValues1 += values1[i];
+					}
+
+					// Lege den Einheitspreis der Angebote fest, je nachdem, ob
+					// sie
+					// Supply oder Demand sind
+					double price0, price1;
+					if (sumValues0 < 0) {
+						price0 = unitPrices[0];
+					} else {
+						price0 = unitPrices[1];
+					}
+					if (sumValues1 < 0) {
+						price1 = unitPrices[0];
+					} else {
+						price1 = unitPrices[1];
+					}
+
+					// Bestätige Angebote zum geltenden Einheitspreis
+					confirmOffer(offers[0], price0);
+					confirmOffer(offers[1], price1);
+				}
+				// Wenn kein Einheitspreis vorliegt, berechne neuen
+				// Einheitspreis für diese beiden Angebote
+				else {
+					confirmAllRemainingOffersWithOnePrice(offers[0].getDate(), 4);
+				}
+			}
+			// Wurde der Slot noch nicht gematched, so kommen die Angebote
+			// wieder auf den Marktplatz
+			else {
+				// Setze Kombination der beiden Angebote auf die Black List
+				PossibleMatch possibleMatch = new PossibleMatch(offers[0], offers[1]);
+				ArrayList<PossibleMatch> possibleMatchesBlackList = blackListPossibleMatches.get(date);
+				if (possibleMatchesBlackList == null) {
+					possibleMatchesBlackList = new ArrayList<PossibleMatch>();
+				}
+				possibleMatchesBlackList.add(possibleMatch);
+				blackListPossibleMatches.put(date, possibleMatchesBlackList);
+
+				// Setze beide Angebote wieder neu auf den Marktplatz
+				putOffer(offers[0]);
+				putOffer(offers[1]);
+			}
 		}
 		negotiatingOffers.remove(negotiation);
 	}
@@ -416,6 +470,8 @@ public class Marketplace implements Identifiable {
 
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
+		double minPriceOffer = offer.getMinPrice();
+		double maxPriceOffer = offer.getMaxPrice();
 
 		// Hole alle aktuellen Werte fuer Vorhersage
 		double[] predictionCurrent = prediction.get(DateTime.ToString(offer.getDate()));
@@ -464,6 +520,14 @@ public class Marketplace implements Identifiable {
 				if (blackListPossibleMatchesOfDateOffer.contains(possibleMatch)) {
 					continue;
 				}
+			}
+
+			// Pruefe, ob die Preisgrenzen der Angebote vereinbar sind
+			// Wenn nein, ueberspringe dieses Angebot
+			double minPriceCompare = compareOffer.getMinPrice();
+			double maxPriceCompare = compareOffer.getMaxPrice();
+			if (maxPriceCompare < minPriceOffer || maxPriceOffer < minPriceCompare) {
+				continue;
 			}
 
 			double[] valuesCompareOffer = compareOffer.getAggLoadprofile().getValues();
@@ -799,9 +863,11 @@ public class Marketplace implements Identifiable {
 				volumePrediction += Math.abs(predictionCurrent[i]);
 			}
 			if (sumDeviationNew < sumDeviationOld || sumDeviationNew < volumePrediction) {
-				offersJustMatched.add(offers[0]);
-				offersJustMatched.add(offers[1]);
-				matchFittingOffers(offers[0], offers[1]);
+				boolean matched = matchFittingOffers(offers[0], offers[1]);
+				if (matched) {
+					offersJustMatched.add(offers[0]);
+					offersJustMatched.add(offers[1]);
+				}
 			}
 		}
 	}
@@ -818,60 +884,32 @@ public class Marketplace implements Identifiable {
 	 * @param offer2
 	 *            Zweites Angebot, das zusammengefuehrt werden soll
 	 */
-	private void matchFittingOffers(Offer offer1, Offer offer2) {
-		System.out.println("Match Fitting Offers");
-		if (!offer1.getDate().equals(offer2.getDate())) {
-			return;
+	private boolean matchFittingOffers(Offer offer1, Offer offer2) {
+		// Prüfe, dass Zusammenführen der Angebote auch möglich, da sie die
+		// gleiche Startzeit haben und sich die Preisgrenzen überschneiden
+		if (!offer1.getDate().equals(offer2.getDate()) || offer1.getMaxPrice() < offer2.getMinPrice()
+				|| offer2.getMaxPrice() < offer1.getMinPrice()) {
+			return false;
 		}
 
 		double[] valuesOffer1 = offer1.getAggLoadprofile().getValues();
 		double[] valuesOffer2 = offer2.getAggLoadprofile().getValues();
 		double sumOffer1 = 0;
 		double sumOffer2 = 0;
-		boolean offer1Supply = true;
-		boolean offer2Supply = true;
 
 		for (int i = 0; i < 4; i++) {
 			sumOffer1 += valuesOffer1[i];
 			sumOffer2 += valuesOffer2[i];
 		}
-		System.out.println("Summen: " + sumOffer1 + ", " + sumOffer2);
-
-		// Pruefe, ob die beiden Angebote demand oder supply sind
-		if (sumOffer1 < 0) {
-			offer1Supply = false;
-		}
-		if (sumOffer2 < 0) {
-			offer2Supply = false;
-		}
-
-		double price1, price2;
 
 		// Pruefe, ob Preise schon zusammenpassen bzw. Anpassung von Marktplatz
 		// moeglich ist, da es nur zu Verbesserungen fuer die Consumer fuehrt
-		boolean pricesFit = (sumOffer1 * offer1.getPriceSugg() + sumOffer2 * offer2.getPriceSugg()) >= 0;
+		boolean pricesFit = (sumOffer1 * offer1.getPriceSugg() + sumOffer2 * offer2.getPriceSugg()) == 0;
 
-		// Berechne neue Preise, falls Preise schon so passen, dass
-		// Anpassung vom Marktplatz moeglich ist, da es nur zu Verbesserungen
-		// fuer die Consumer fuehrt
+		// Bestätige bestehende Preise, da Preise bereits zusammenpassen
 		if (pricesFit) {
-			price1 = sumOffer1 * offer1.getPriceSugg();
-			price2 = sumOffer2 * offer2.getPriceSugg();
-
-			if (!(Math.abs(price1) == Math.abs(price2))) {
-				if (Math.abs(price1) > Math.abs(price2) && price1 > 0
-						|| Math.abs(price1) < Math.abs(price2) && price1 < 0) {
-					price1 = Math.abs(price2 / sumOffer1);
-					price2 = Math.abs(price2 / sumOffer2);
-				} else {
-					price2 = Math.abs(price1 / sumOffer2);
-					price1 = Math.abs(price1 / sumOffer1);
-				}
-			}
-
 			// Lege zusammengefuehrte Angebote und Preise in der Historie ab
-			MatchedOffers matched = new MatchedOffers(price1, price2, offer1, offer2);
-			System.out.println(matched.matchedOffersToString());
+			MatchedOffers matched = new MatchedOffers(offer1.getPriceSugg(), offer2.getPriceSugg(), offer1, offer2);
 			ArrayList<MatchedOffers> array = matchedOffers.get(DateTime.ToString(offer1.getDate()));
 			if (array == null) {
 				array = new ArrayList<MatchedOffers>();
@@ -880,54 +918,24 @@ public class Marketplace implements Identifiable {
 			matchedOffers.put(DateTime.ToString(offer1.getDate()), array);
 
 			// Schicke Bestaetigung beider Angebote an Consumer
-			confirmOffer(offer1, price1);
-			confirmOffer(offer2, price2);
+			confirmOffer(offer1, offer1.getPriceSugg());
+			confirmOffer(offer2, offer2.getPriceSugg());
 		}
 
-		// Berechne Mittelwert, falls Preise nicht passen
+		// Erstelle Angebot, falls Preise nicht passen, aber Preisfindung
+		// generell möglich ist
 		if (!pricesFit) {
-			// Lege zu erreichende Preise fuer beide Angebote fest
-			if (sumOffer1 + sumOffer2 == 0) {
-				price1 = (offer1.getPriceSugg() + offer2.getPriceSugg()) / 2;
-				price2 = price1;
-			} else {
-				// Ermittle Gesamtpreis fuer beide Angebote
-				price1 = sumOffer1 * offer1.getPriceSugg();
-				price2 = sumOffer2 * offer2.getPriceSugg();
-				System.out.println("Einzelpreis: " + offer1.getPriceSugg() + ", " + offer2.getPriceSugg());
-				System.out.println("Gesamtpreis: " + price1 + ", " + price2);
-				// Ermittle Mittelwert von Betrag des Gesamtpreises beider
-				// Angebote
-				double price = (Math.abs(price1) + Math.abs(price2)) / 2;
-				// Weise den Gesamtpreisen den jeweiligen Mittelwert zu
-				if (offer1Supply) {
-					price1 = price;
-				} else {
-					price1 = -price;
-				}
-				if (offer2Supply) {
-					price2 = price;
-				} else {
-					price2 = -price;
-				}
-				System.out.println("Mittelwert: " + price1 + ", " + price2);
-
-				// Berechne Preise pro kWh fuer Angebote
-				price1 = price1 / sumOffer1;
-				price2 = price2 / sumOffer2;
-				System.out.println("Zu erreichende Preise: " + price1 + ", " + price2);
-			}
-
 			// Entferne Angebote von Marktplatz
 			removeOffer(offer1.getUUID(), false);
 			removeOffer(offer2.getUUID(), false);
 
 			// Erstelle neue Verhandlung und speichere Verhandlung unter
 			// negotiatingOffers ab
-			Negotiation negotiation = new Negotiation(offer1, offer2, price1, price2, sumOffer1, sumOffer2);
+			Negotiation negotiation = new Negotiation(offer1, offer2, sumOffer1, sumOffer2);
 			negotiation.negotiationToString();
 			negotiatingOffers.put(negotiation.getUUID(), negotiation);
 		}
+		return true;
 	}
 
 	/**
@@ -950,6 +958,8 @@ public class Marketplace implements Identifiable {
 			return;
 		}
 
+		// Berechne Summe des Lastprofils und addiere sie zu der Summe aller
+		// Lastprofile
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
 		double[] sumAllOffers = sumLoadprofilesAllOffers.get(date);
@@ -1150,8 +1160,8 @@ public class Marketplace implements Identifiable {
 				ArrayList<Offer> offersAtDate = demand.get(date);
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "][" + values[1]
-							+ "][" + values[2] + "][" + values[3] + "]");
+					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "]["
+							+ values[1] + "][" + values[2] + "][" + values[3] + "]");
 				}
 			}
 		}
@@ -1166,8 +1176,8 @@ public class Marketplace implements Identifiable {
 				ArrayList<Offer> offersAtDate = supply.get(date);
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "][" + values[1]
-							+ "][" + values[2] + "][" + values[3] + "]");
+					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "]["
+							+ values[1] + "][" + values[2] + "][" + values[3] + "]");
 				}
 			}
 		}
