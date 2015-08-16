@@ -43,7 +43,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 */
 	@JsonView(View.Summary.class)
 	private double priceSugg;
-	
+
 	/**
 	 * Minimaler und maximaler Preis, der für das Offer festgesetzt werden kann
 	 */
@@ -87,13 +87,13 @@ public class Offer implements Comparable<Offer>, Cloneable {
 
 		this.author = author;
 		this.priceSugg = loadprofile.getPriceSugg();
-		this.minPrice = loadprofile.getMinPrice1();
+		this.minPrice = loadprofile.getMinPrice();
 		this.maxPrice = loadprofile.getMaxPrice();
 
 		status = OfferStatus.VALID;
 	}
-	
-	// TODO 
+
+	// TODO
 	public Offer(Offer withPrivileges, HashMap<UUID, ChangeRequestLoadprofile> contributions) {
 		this();
 
@@ -129,7 +129,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		}
 
 		for (UUID consumer : contributions.keySet()) {
-			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate(), 0.0));
+			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate(), getPriceSugg(),
+					getMinPrice(), getMaxPrice()));
 		}
 
 		priceSugg = aggLoadprofile.getPriceSugg();
@@ -179,21 +180,21 @@ public class Offer implements Comparable<Offer>, Cloneable {
 					Log.d(uuid,
 							"new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
 					Loadprofile value = o.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
-					
-					if (value.getMinPrice1() < this.minPrice) {
-						this.minPrice = value.getMinPrice1();
+
+					if (value.getMinPrice() < this.minPrice) {
+						this.minPrice = value.getMinPrice();
 					}
 					if (value.getMaxPrice() > this.maxPrice) {
 						this.maxPrice = value.getMaxPrice();
 					}
-										
+
 					this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
 				}
 			}
 		}
-		
+
 		// TODO priceSugg festlegen
-		//priceSugg = ...;
+		// priceSugg = ...;
 		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
@@ -212,6 +213,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 * @return Anzahl der Lastprofile des Angebots
 	 */
+	@JsonIgnore
 	public int getCount() {
 		return allLoadprofiles.size();
 	}
@@ -221,6 +223,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 * @return URL des Angebots als String
 	 */
+	@JsonIgnore
 	public String getLocation() {
 		return new API<Void, Void>(Void.class).consumers(author).offers(uuid).toString();
 	}
@@ -274,17 +277,19 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public double getPriceSugg() {
 		return priceSugg;
 	}
-	
+
 	/**
 	 * Liefert den von den Devices festgelegten minimalen Preis des Angebots
+	 * 
 	 * @return Minimaler Preis des Angebots
 	 */
 	public double getMinPrice() {
 		return minPrice;
 	}
-	
+
 	/**
 	 * Liefert den von den Devices festgelegten maximalen Preis des Angebots
+	 * 
 	 * @return Maximaler Preis des Angebots
 	 */
 	public double getMaxPrice() {
@@ -322,6 +327,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		return sumAggLoadprofile;
 	}
 
+	@JsonIgnore
 	public boolean isValid() {
 		return status == OfferStatus.VALID;
 	}
@@ -331,6 +337,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 * @return Startzeitpunkt des Angebots als GregorianCalendar
 	 */
+	@JsonIgnore
 	public GregorianCalendar getDate() {
 		return getAggLoadprofile().getDate();
 	}

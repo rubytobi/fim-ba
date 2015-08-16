@@ -1150,8 +1150,8 @@ public class Marketplace implements Identifiable {
 				ArrayList<Offer> offersAtDate = demand.get(date);
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "][" + values[1]
-							+ "][" + values[2] + "][" + values[3] + "]");
+					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "]["
+							+ values[1] + "][" + values[2] + "][" + values[3] + "]");
 				}
 			}
 		}
@@ -1166,8 +1166,8 @@ public class Marketplace implements Identifiable {
 				ArrayList<Offer> offersAtDate = supply.get(date);
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "][" + values[1]
-							+ "][" + values[2] + "][" + values[3] + "]");
+					System.out.println("	Price: " + offer.getPriceSugg() + " Values: [" + values[0] + "]["
+							+ values[1] + "][" + values[2] + "][" + values[3] + "]");
 				}
 			}
 		}
@@ -1242,7 +1242,7 @@ public class Marketplace implements Identifiable {
 		return new ResponseBuilder<double[]>(this).body(prediction.get(dateString)).build();
 	}
 
-	public Offer[] getSupplies(int count) {
+	public ResponseEntity<Offer[]> getSupplies(int count) {
 		if (count < 0) {
 			// abfangen falscher negativer werte
 			count = 0;
@@ -1251,8 +1251,10 @@ public class Marketplace implements Identifiable {
 		String dateString = DateTime.ToString(DateTime.currentTimeSlot());
 
 		if (!supply.containsKey(dateString) || supply.get(dateString) == null) {
-			return new Offer[] {
-					new Offer(uuid, new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot())) };
+			return new ResponseBuilder<Offer[]>(this)
+					.body(new Offer[] {
+							new Offer(uuid, new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot())) })
+					.build();
 		}
 
 		count = Math.min(count, supply.get(dateString).size());
@@ -1263,7 +1265,7 @@ public class Marketplace implements Identifiable {
 			list[i] = supply.get(dateString).get(i);
 		}
 
-		return list;
+		return new ResponseBuilder<Offer[]>(this).body(list).build();
 	}
 
 	public UUID getUUID() {

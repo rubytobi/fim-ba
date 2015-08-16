@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import Entity.Marketplace;
 import Entity.Offer;
 import Packet.EndOfNegotiation;
+import Util.ResponseBuilder;
 import Packet.ChangeRequestLoadprofile;
 
 @RestController
@@ -36,13 +37,14 @@ public class MarketplaceController {
 	}
 
 	@RequestMapping(value = "/marketplace/supplies/{count}", method = RequestMethod.GET)
-	public Offer[] getSupplies(@PathVariable int count) {
+	public ResponseEntity<Offer[]> getSupplies(@PathVariable int count) {
 		return Marketplace.instance().getSupplies(count);
 	}
 
 	@RequestMapping(value = "/marketplace/demands", method = RequestMethod.POST)
-	public void postDemand(@RequestBody Offer offer) {
+	public ResponseEntity<Void> postDemand(@RequestBody Offer offer) {
 		Marketplace.instance().putOffer(offer);
+		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
 
 	@RequestMapping(value = "/marketplace/demands/{uuid}", method = RequestMethod.GET)
@@ -51,8 +53,9 @@ public class MarketplaceController {
 	}
 
 	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)
-	public void getOffer(@RequestBody UUID uuid) {
+	public ResponseEntity<Void> removeOffer(@RequestBody UUID uuid) {
 		Marketplace.instance().removeOffer(uuid, false);
+		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
 
 	@RequestMapping(value = "/marketplace/ping", method = RequestMethod.POST)
@@ -61,12 +64,14 @@ public class MarketplaceController {
 	}
 
 	@RequestMapping(value = "/marketplace/endOfNegotiation", method = RequestMethod.POST)
-	public void endOfNegotiation(@RequestBody EndOfNegotiation end) {
+	public ResponseEntity<Void> endOfNegotiation(@RequestBody EndOfNegotiation end) {
 		Marketplace.instance().endOfNegotiation(end);
+		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
 
 	@RequestMapping(value = "/marketplace/offer/{uuid}/receiveAnswerChangeRequestLoadprofile", method = RequestMethod.GET)
-	public void receiveAnswerChangeRequestLoadprofile(@RequestBody ChangeRequestLoadprofile cr) {
+	public ResponseEntity<Void> receiveAnswerChangeRequestLoadprofile(@RequestBody ChangeRequestLoadprofile cr) {
 		Marketplace.instance().receiveAnswerChangeRequestLoadprofile(cr);
+		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
 }

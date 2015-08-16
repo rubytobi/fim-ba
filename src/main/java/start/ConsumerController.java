@@ -15,8 +15,10 @@ import com.fasterxml.jackson.annotation.JsonView;
 import Container.ConsumerContainer;
 import Entity.Consumer;
 import Entity.Loadprofile;
+import Entity.Marketplace;
 import Entity.Offer;
 import Packet.OfferNotification;
+import Util.ResponseBuilder;
 import Util.View;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
@@ -31,8 +33,9 @@ public class ConsumerController {
 	 */
 	@JsonView(View.Summary.class)
 	@RequestMapping(value = "/consumers", method = RequestMethod.GET)
-	public Consumer[] getAllConsumers() {
-		return ConsumerContainer.instance().getAll();
+	public ResponseEntity<Consumer[]> getAllConsumers() {
+		return new ResponseBuilder<Consumer[]>(Marketplace.instance()).body(ConsumerContainer.instance().getAll())
+				.build();
 	}
 
 	/**
@@ -80,7 +83,7 @@ public class ConsumerController {
 	 * @return Offer[]
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.GET)
-	public Offer[] getAllOffers(@PathVariable UUID uuid) {
+	public ResponseEntity<Offer[]> getAllOffers(@PathVariable UUID uuid) {
 		return ConsumerContainer.instance().get(uuid).getAllOffers();
 	}
 
@@ -94,7 +97,7 @@ public class ConsumerController {
 	 * @return Offer
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}", method = RequestMethod.GET)
-	public Offer getOffer(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
+	public ResponseEntity<Offer> getOffer(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
 		return ConsumerContainer.instance().get(uuid).getOffer(uuidOffer);
 	}
 
@@ -118,9 +121,11 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
-	public void receiveLoadprofileByDevice(@RequestHeader(value = "UUID", required = true) String identity,
-			@RequestBody Loadprofile loadprofile, @PathVariable UUID uuid) {
+	public ResponseEntity<Void> receiveLoadprofileByDevice(
+			@RequestHeader(value = "UUID", required = true) String identity, @RequestBody Loadprofile loadprofile,
+			@PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveLoadprofile(loadprofile);
+		return new ResponseBuilder<Void>(ConsumerContainer.instance().get(uuid)).build();
 	}
 
 	/**
@@ -133,8 +138,10 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
-	public void receiveOfferNotification(@RequestBody OfferNotification offerNotification, @PathVariable UUID uuid) {
+	public ResponseEntity<Void> receiveOfferNotification(@RequestBody OfferNotification offerNotification,
+			@PathVariable UUID uuid) {
 		ConsumerContainer.instance().get(uuid).receiveOfferNotification(offerNotification);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
 
 	/**
@@ -144,11 +151,14 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 * @param answerOffer
 	 *            Angebots-Antwort
+	 * @return
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
-	public void confirmOfferByMarketplace(@PathVariable UUID uuid,
+	public ResponseEntity<Void> confirmOfferByMarketplace(@PathVariable UUID uuid,
 			@RequestBody AnswerToOfferFromMarketplace answerOffer) {
 		ConsumerContainer.instance().get(uuid).confirmOfferByMarketplace(answerOffer);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
+
 	}
 
 	/**
@@ -158,10 +168,14 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 * @param cr
 	 *            Aenderungsaufforderung
+	 * @return
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/receiveChangeRequestLoadprofile", method = RequestMethod.POST)
-	public void receiveChangeRequestLoadprofile(@PathVariable UUID uuid, @RequestBody ChangeRequestLoadprofile cr) {
+	public ResponseEntity<Void> receiveChangeRequestLoadprofile(@PathVariable UUID uuid,
+			@RequestBody ChangeRequestLoadprofile cr) {
 		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
+
 	}
 
 	/**
@@ -175,19 +189,15 @@ public class ConsumerController {
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest", method = RequestMethod.POST)
 	public ResponseEntity<ChangeRequestLoadprofile> receiveChangeRequest(@PathVariable UUID uuid,
 			@RequestBody ChangeRequestLoadprofile cr) {
-		ChangeRequestLoadprofile body = ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
-
-		return ResponseEntity.ok().header("UUID", ConsumerContainer.instance().get(uuid).getUUID().toString())
-				.header("Class", ConsumerContainer.instance().get(uuid).getClass().getSimpleName()).body(body);
+		return ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/decline", method = RequestMethod.GET)
 	public ResponseEntity<Void> receiveChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
 			@RequestHeader(value = "UUID") UUID identity) {
 		ConsumerContainer.instance().get(uuid).receiveChangeRequestDecline(uuidOffer, identity);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 
-		return ResponseEntity.ok().header("UUID", ConsumerContainer.instance().get(uuid).getUUID().toString())
-				.header("Class", ConsumerContainer.instance().get(uuid).getClass().getSimpleName()).body(null);
 	}
 
 	/**
@@ -199,11 +209,13 @@ public class ConsumerController {
 	 *            Verhandlungs-ID
 	 * @param answerOffer
 	 *            Angebots-Antwort
+	 * @return
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/negotiation/{uuidNegotiation/priceChangeRequest", method = RequestMethod.POST)
-	public void priceChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidNegotiation,
+	public ResponseEntity<Void> priceChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidNegotiation,
 			@RequestBody AnswerToOfferFromMarketplace answerOffer) {
 		ConsumerContainer.instance().get(uuid).priceChangeRequest(answerOffer, uuidNegotiation);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
 
 	/**

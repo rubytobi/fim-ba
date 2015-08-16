@@ -12,7 +12,7 @@ public class Score implements Cloneable {
 	private Offer changeRequest;
 	private Offer merge = null;
 
-	protected Score(Offer marketplace, Offer own, Offer received, Offer changeRequest) {
+	public Score(Offer marketplace, Offer own, Offer received, Offer changeRequest) {
 		this.marketplace = marketplace;
 		this.own = own;
 		this.received = received;
@@ -105,6 +105,6 @@ public class Score implements Cloneable {
 	}
 
 	public double getPriceDeviation() {
-		return Math.abs(marketplace.getPrice() - getMerge().getPrice());
+		return Math.abs(marketplace.getPriceSugg() - getMerge().getPriceSugg());
 	}
 }

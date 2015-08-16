@@ -39,10 +39,14 @@ public class ResponseBuilder<T> {
 		}
 
 		headers.set("UUID", who.getUUID().toString());
-		headers.set("UUID", who.getClass().getSimpleName());
+		headers.set("Class", who.getClass().getSimpleName());
 
 		Log.d(who.getUUID(), "response [headers=" + headers + ", body=" + body + "]");
 		return new ResponseEntity<T>(body, headers, HttpStatus.OK);
+	}
+
+	public static ResponseEntity<Void> returnVoid(Identifiable i) {
+		return new ResponseBuilder<Void>(i).build();
 	}
 
 }

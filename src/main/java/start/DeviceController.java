@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonView;
+
+import Container.ConsumerContainer;
 import Container.DeviceContainer;
 import Entity.Device;
 import Entity.Fridge;
@@ -112,19 +114,26 @@ public class DeviceController {
 	 *            Zeit des Lastprofils
 	 * @param uuid
 	 *            Device-ID
+	 * @return
 	 */
 	@RequestMapping(value = "/devices/{uuid}/confirm/{time}", method = RequestMethod.GET)
-	public void receiveChangeRequest(@RequestBody GregorianCalendar time, @PathVariable UUID uuid) {
+	public ResponseEntity<Void> receiveChangeRequest(@RequestBody GregorianCalendar time, @PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).confirmLoadprofile(time);
+		return ResponseBuilder.returnVoid(DeviceContainer.instance().get(uuid));
+
 	}
 
 	@RequestMapping(value = "/devices/{uuid}/changeRequest/confirm", method = RequestMethod.GET)
-	public void receiveChangeRequestConfirmation(@PathVariable UUID uuid) {
+	public ResponseEntity<Void> receiveChangeRequestConfirmation(@PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).receiveAnswerChangeRequest(true);
+		return ResponseBuilder.returnVoid(DeviceContainer.instance().get(uuid));
+
 	}
 
 	@RequestMapping(value = "/devices/{uuid}/changeRequest/decline", method = RequestMethod.GET)
-	public void receiveChangeRequest(@PathVariable UUID uuid) {
+	public ResponseEntity<Void> receiveChangeRequest(@PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).receiveAnswerChangeRequest(false);
+		return ResponseBuilder.returnVoid(DeviceContainer.instance().get(uuid));
+
 	}
 }
