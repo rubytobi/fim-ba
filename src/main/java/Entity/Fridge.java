@@ -71,7 +71,7 @@ public class Fridge implements Device {
 
 	@JsonView(View.Detail.class)
 	private SimulationFridge simulationFridge;
-	
+
 	private double priceEex = 20;
 
 	private Fridge() {
@@ -310,19 +310,15 @@ public class Fridge implements Device {
 
 		double[][] newSchedule = new double[2][numSlots * 15];
 
-		for (int i = 0; i < numSlots; i++) {
-			change = changesMinute[i];
-			minutePossibleChange[0][i] = (int) minSlots[0][i];
+		for (int slot = 0; slot < numSlots; slot++) {
+			change = changesMinute[slot];
+			minutePossibleChange[0][slot] = (int) minSlots[0][slot];
 			if (change != 0) {
 				if (change < 0) {
-					minSlots[1][i] += change * (fallCooling - riseWarming);
-					// System.out.println("Neues Min Slot " + i);
-
-					// System.out.println("Neues Minimum: " + minSlots[1][i]);
-
-					if (minSlots[1][i] < minTemp2) {
-						double currentMin = minSlots[1][i];
-						int currentMinute = (int) minSlots[0][i];
+					minSlots[1][slot] += change * (fallCooling - riseWarming);
+					if (minSlots[1][slot] < minTemp2) {
+						double currentMin = minSlots[1][slot];
+						int currentMinute = (int) minSlots[0][slot];
 
 						// Berechne, wie viele Änderungsmöglichkeiten vor und
 						// nach dem Extremum vorliegen
@@ -355,32 +351,32 @@ public class Fridge implements Device {
 							double less = change - possibleChange;
 
 							// Passe alle nachfolgenden Minima an
-							for (int j = i + 1; j < numSlots; j++) {
+							for (int j = slot + 1; j < numSlots; j++) {
 								minSlots[1][j] = less * (riseWarming - fallCooling);
 							}
 
-							changesMinute[i] = (int) possibleChange;
+							changesMinute[slot] = (int) possibleChange;
 						}
-						minutePossibleChange[0][i] = (int) minSlots[0][i] + 1;
-						minutePossibleChange[1][i] = (int) amountRest;
+						minutePossibleChange[0][slot] = (int) minSlots[0][slot] + 1;
+						minutePossibleChange[1][slot] = (int) amountRest;
 					}
 
 					else {
-						minutePossibleChange[0][i] = i * 15;
-						minutePossibleChange[1][i] = change;
+						minutePossibleChange[0][slot] = slot * 15;
+						minutePossibleChange[1][slot] = change;
 					}
 
 				} else {
-					maxSlots[1][i] += change * (riseWarming - fallCooling);
-					if (maxSlots[1][i] > maxTemp2) {
-						double currentMax = maxSlots[1][i];
-						int currentMinute = (int) maxSlots[0][i];
+					maxSlots[1][slot] += change * (riseWarming - fallCooling);
+					if (maxSlots[1][slot] > maxTemp2) {
+						double currentMax = maxSlots[1][slot];
+						int currentMinute = (int) maxSlots[0][slot];
 
 						// Berechne, wie viele Änderungsmöglichkeiten vor und
 						// nach dem Extremum vorliegen
 						int amountBefore = 0;
 						int amountAfter = 0;
-						for (int j = i * 15; j < (i + 1) * 15; j++) {
+						for (int j = slot * 15; j < (slot + 1) * 15; j++) {
 							if (scheduleMinutes[0][j] == consCooling) {
 								if (j < currentMinute) {
 									amountBefore++;
@@ -406,25 +402,25 @@ public class Fridge implements Device {
 							double more = change - possibleChange;
 
 							// Passe alle nachfolgenden Maxima an
-							for (int j = i + 1; j < numSlots; j++) {
+							for (int j = slot + 1; j < numSlots; j++) {
 								maxSlots[1][j] = more * (fallCooling - riseWarming);
 							}
 
-							changesMinute[i] = (int) possibleChange;
+							changesMinute[slot] = (int) possibleChange;
 						}
 
-						minutePossibleChange[0][i] = (int) maxSlots[0][i] + 1;
-						minutePossibleChange[1][i] = (int) amountRest;
+						minutePossibleChange[0][slot] = (int) maxSlots[0][slot] + 1;
+						minutePossibleChange[1][slot] = (int) amountRest;
 					}
 
 					else {
-						minutePossibleChange[0][i] = i * 15;
-						minutePossibleChange[1][i] = change;
+						minutePossibleChange[0][slot] = slot * 15;
+						minutePossibleChange[1][slot] = change;
 					}
 				}
 			}
 
-			double[][] changed = chargeChangedSchedule(changesMinute, minutePossibleChange, i, false);
+			double[][] changed = chargeChangedSchedule(changesMinute, minutePossibleChange, slot, false);
 
 			// Prüfe, dass Werte auch nach Minimum/ Maximum zu keiner Zeit
 			// unter-/ überschritten werden
@@ -438,26 +434,26 @@ public class Fridge implements Device {
 			double adaptChange = 0;
 			int[] secondChange = { 0, 0, 0, 0 };
 			int[][] secondMinutePossibleChange = minutePossibleChange.clone();
-			for (int n = minutePossibleChange[0][i] - i * 15; n < 15; n++) {
+			for (int n = minutePossibleChange[0][slot] - slot * 15; n < 15; n++) {
 				if (valuesToTest[1][n] + adaptChange < minTemp2) {
 					changesNecessary = true;
-					changesMinute[i]++;
-					secondChange[i]++;
+					changesMinute[slot]++;
+					secondChange[slot]++;
 					adaptChange += riseWarming - fallCooling;
 				} else if (valuesToTest[1][n] + adaptChange > maxTemp2) {
 					changesNecessary = true;
-					changesMinute[i]--;
-					secondChange[i]--;
+					changesMinute[slot]--;
+					secondChange[slot]--;
 					adaptChange += fallCooling - riseWarming;
 				}
 			}
 
 			if (changesNecessary) {
-				secondMinutePossibleChange[1][i] = secondChange[i];
-				changed = chargeChangedSchedule(secondChange, minutePossibleChange, i, true);
+				secondMinutePossibleChange[1][slot] = secondChange[slot];
+				changed = chargeChangedSchedule(secondChange, minutePossibleChange, slot, true);
 			}
 
-			int start = i * 15;
+			int start = slot * 15;
 			for (int k = 0; k < 15; k++) {
 				newSchedule[0][start] = changed[0][k];
 				newSchedule[1][start] = changed[1][k];
@@ -647,12 +643,8 @@ public class Fridge implements Device {
 		}
 
 		for (int i = 0; i < 15; i++) {
-			try {
-				scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
-				scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
-			} catch (NullPointerException e) {
-				Log.e(uuid, "da läuft was falsch...");
-			}
+			scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
+			scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
 		}
 
 		return newSchedule;
@@ -748,8 +740,6 @@ public class Fridge implements Device {
 		} else {
 			scheduleMinutes[0][startMinute] = 0.0;
 		}
-		System.out.println("Minute: " + startMinute + " Temperatur: " + scheduleMinutes[1][startMinute] + " Verbrauch: "
-				+ scheduleMinutes[0][startMinute]);
 
 		/*
 		 * Berechne alle weiteren Verbrauchs- und Temperatur- werte ab dem
@@ -769,8 +759,6 @@ public class Fridge implements Device {
 					currCooling = true;
 				}
 			}
-			System.out.println(
-					"Minute: " + i + " Temperatur: " + scheduleMinutes[1][i] + " Verbrauch: " + scheduleMinutes[0][i]);
 		}
 
 		/*
@@ -870,8 +858,6 @@ public class Fridge implements Device {
 				double temp = scheduleMinutes[1][i];
 				schedule[0][i] = cons;
 				schedule[1][i] = temp;
-				// System.out.println("Minute " + i + " Verbrauch: " +
-				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
 			}
 		}
 		/*
@@ -888,8 +874,6 @@ public class Fridge implements Device {
 					schedule[1][i] = schedulesFixed.get(DateTime.ToString(start))[1];
 				}
 				start.add(Calendar.MINUTE, 1);
-				// System.out.println("Minute " + i + " Verbrauch: " +
-				// deltaSchedule[0][i] + " Temperatur: " + deltaSchedule[1][i]);
 			}
 			start.add(Calendar.HOUR_OF_DAY, -1);
 		}
