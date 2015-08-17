@@ -72,11 +72,13 @@ public class Fridge implements Device {
 	@JsonView(View.Detail.class)
 	private SimulationFridge simulationFridge;
 
-	private double priceEex = 20;
+	private double priceEex;
 
 	private Fridge() {
 		status = DeviceStatus.CREATED;
 		uuid = UUID.randomUUID();
+		Marketplace mp = Marketplace.instance();
+		this.priceEex = mp.getEEXPrice();
 	}
 
 	/**
@@ -782,14 +784,16 @@ public class Fridge implements Device {
 	 */
 	private double chargePriceScheduleMinutes() {
 		double startTemp = scheduleMinutes[1][0];
+		double maxPrice = Math.max(0, priceEex);
+		double minPrice = Math.min(0, priceEex);
 		if (startTemp <= minTemp1) {
-			return 0;
+			return minPrice;
 		} else if (startTemp >= maxTemp1) {
-			return 1;
+			return maxPrice;
 		} else {
 			double span = maxTemp1 - minTemp1;
 			startTemp = startTemp - minTemp1;
-			return Math.round(100.00 * (startTemp / span)) / 100.00;
+			return (Math.round(100.00 * (startTemp / span)) / 100.00) * maxPrice + minPrice;
 		}
 	}
 
@@ -822,7 +826,6 @@ public class Fridge implements Device {
 	public void confirmLoadprofile(GregorianCalendar time) {
 		if (DateTime.ToString(timeFixed).equals(DateTime.ToString(time))) {
 			saveSchedule(scheduleMinutes, timeFixed);
-			// TODO speichere Lastprofil?
 			sendNewLoadprofile();
 		}
 	}
@@ -928,7 +931,7 @@ public class Fridge implements Device {
 			}
 			waitToChargeDeltaLoadprofile = false;
 		}
-		scheduleCurrentChangeRequest = new double[2][15*numSlots];
+		scheduleCurrentChangeRequest = new double[2][15 * numSlots];
 
 		waitForAnswerCR = false;
 	}
@@ -1005,17 +1008,10 @@ public class Fridge implements Device {
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 		double priceSugg = chargePriceScheduleMinutes();
 
-		// TODO Lege minPrice, maxPrice fest
-		double minPrice, maxPrice;
-		if (priceEex < 0) {
-			maxPrice = 0;
-			minPrice = priceEex;
-		} else {
-			maxPrice = priceEex;
-			minPrice = 0;
-		}
+		// Lege maxPrice fest
+		double maxPrice = Math.max(0, priceEex);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice, maxPrice);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, Double.NEGATIVE_INFINITY, maxPrice);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 

@@ -43,26 +43,7 @@ public class Loadprofile {
 	}
 
 	/**
-	 * Erstellt neues Lastprofil aus uebergebenen Werten
-	 * 
-	 * @param values
-	 *            Werte fuer das neue Lastprofil
-	 * @param date
-	 *            Startzeitpunkt des neuen Lastprofils
-	 * @param minPrice
-	 *            Preis pro kWh, den der Consumer für dieses Lastprofil
-	 *            mindestens einnehmen bzw. maximal zahlen
-	 */
-	/*
-	 * public Loadprofile(double[] values, GregorianCalendar date, double
-	 * priceSugg, double maxPrice, double minPrice) { this();
-	 * 
-	 * this.values = values; this.date = date; this.priceSugg = priceSugg;
-	 * this.maxPrice = maxPrice; this.minPrice = minPrice; }
-	 */
-
-	/**
-	 * Erstellt neues Lastprofil aus uebergebenen Werten
+	 * Erstellt neues Lastprofil aus uebergebenen Werten mit Minimum und Maximum
 	 * 
 	 * @param values
 	 *            Werte fuer das neue Lastprofil
@@ -176,7 +157,7 @@ public class Loadprofile {
 	 *         minimal akzeptieren will
 	 */
 	public double getMinPrice() {
-		return maxPrice;
+		return minPrice;
 	}
 
 	/**

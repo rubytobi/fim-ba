@@ -44,7 +44,9 @@ public class BHKW implements Device {
 	 * Preis fuer 1l Brennstoff
 	 */
 	private double priceFuel;
-
+	
+	private double priceEex;
+	
 	/**
 	 * Fahrplan, der für die aktuelle ChangeRequest errechnet wurde
 	 */
@@ -98,6 +100,8 @@ public class BHKW implements Device {
 	private BHKW() {
 		status = DeviceStatus.CREATED;
 		uuid = UUID.randomUUID();
+		Marketplace mp = Marketplace.instance();
+		this.priceEex = mp.getEEXPrice();
 	}
 
 	/**
@@ -144,7 +148,6 @@ public class BHKW implements Device {
 		String dateCR = DateTime.ToString(cr.getStartLoadprofile());
 		String dateCurrent = DateTime.ToString(cr.getStartLoadprofile());
 		if (!dateCR.equals(dateCurrent)) {
-			// TODO Fehler
 			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
 			// timeFixed angefragt werden
 		}
@@ -694,11 +697,20 @@ public class BHKW implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
+		
+		// Berechne die entstehenden Selbstkosten
+		double sumLoadprofile = 0;
+		for (int i= 0; i<numSlots; i++) {
+			sumLoadprofile += valuesLoadprofile[i];
+		}
+		double netCosts = sumLoadprofile * consFuelPerKWh * priceFuel;
 
-		// TODO Lege minPrice, maxPrice fest.
-		double priceSugg = 0, minPrice = 0, maxPrice = 0;
+		// Lege minPrice und priceSugg fest.
+		
+		double priceSugg = Math.max(priceEex, netCosts);
+		double minPrice = Math.min(priceEex, netCosts);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice, maxPrice);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice, Double.POSITIVE_INFINITY);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 
