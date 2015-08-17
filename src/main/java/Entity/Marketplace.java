@@ -9,11 +9,8 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Set;
 
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
-
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.ChangeRequestLoadprofile;
@@ -25,7 +22,6 @@ import Util.PossibleMatch;
 import Util.ResponseBuilder;
 import Util.Negotiation;
 import Util.sortOfferPriceSupplyLowToHigh;
-import start.Application;
 import Util.sortOfferPriceDemandHighToLow;
 
 /**
@@ -382,8 +378,8 @@ public class Marketplace implements Identifiable {
 			blackListPossibleMatches.put(date, possibleMatches);
 
 			// Setze beide Angebote wieder neu auf den Marktplatz
-			putOffer(offers[0]);
-			putOffer(offers[1]);
+			addOffer(offers[0]);
+			addOffer(offers[1]);
 		}
 		negotiatingOffers.remove(negotiation);
 	}
@@ -534,7 +530,7 @@ public class Marketplace implements Identifiable {
 	 * @param uuid
 	 * @return
 	 */
-	public Offer getDemand(UUID uuid) {
+	public Offer getOffers(UUID uuid) {
 		// TODO Auto-generated method stub
 		Set<String> demands = demand.keySet();
 		for (String current : demands) {
@@ -688,19 +684,9 @@ public class Marketplace implements Identifiable {
 				UUID author = currentOffer.getAuthor();
 
 				// Versende Anfrage an Author
-				RestTemplate rest = new RestTemplate();
-				HttpEntity<ChangeRequestLoadprofile> entity = new HttpEntity<ChangeRequestLoadprofile>(cr,
-						Application.getRestHeader());
-
-				String url = "http://localhost:8080/consumers/" + author + "/offers/" + currentOffer.getUUID()
-						+ "/receiveChangeRequestLoadprofile";
-
-				Log.d(uuid, url);
-
-				try {
-					rest.exchange(url, HttpMethod.POST, entity, Void.class);
-				} catch (Exception e) {
-				}
+				API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
+				api.consumers(author).offers(currentOffer.getUUID()).receiveChangeRequestLoadprofile();
+				api.call(this, HttpMethod.POST, cr);
 
 				// Warte, bis eine Antwort vom Consumer eingetroffen ist
 				synchronized (currentAnswer) {
@@ -939,7 +925,7 @@ public class Marketplace implements Identifiable {
 	 * @param offer
 	 *            Neues Angebot, das am Markt teilnehmen will
 	 */
-	public void putOffer(Offer offer) {
+	public void addOffer(Offer offer) {
 		GregorianCalendar dateGreg = offer.getDate();
 		String date = DateTime.ToString(dateGreg);
 		GregorianCalendar currentDate = (GregorianCalendar) nextSlot.clone();
@@ -947,8 +933,11 @@ public class Marketplace implements Identifiable {
 
 		// Pruefe, dass Angebot nicht in Vergangenheit liegt
 		if (dateGreg.before(currentDate)) {
+			Log.d(uuid, "Loadprofile received and dismissed... " + offer.toString());
 			return;
 		}
+
+		Log.d(uuid, "Loadprofile received and continue: " + offer.toString());
 
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
@@ -1000,7 +989,7 @@ public class Marketplace implements Identifiable {
 	 *            Lastprofile
 	 */
 	public void removeOffer(UUID offer, boolean confirmed) {
-		Offer removeOffer = getDemand(offer);
+		Offer removeOffer = getOffers(offer);
 		if (removeOffer == null) {
 			removeOffer = getSupply(offer);
 		}
@@ -1242,7 +1231,7 @@ public class Marketplace implements Identifiable {
 		return new ResponseBuilder<double[]>(this).body(prediction.get(dateString)).build();
 	}
 
-	public ResponseEntity<Offer[]> getSupplies(int count) {
+	public ResponseEntity<Offer[]> getOffers(int count) {
 		if (count < 0) {
 			// abfangen falscher negativer werte
 			count = 0;

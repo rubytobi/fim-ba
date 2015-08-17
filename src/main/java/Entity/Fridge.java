@@ -643,12 +643,8 @@ public class Fridge implements Device {
 		}
 
 		for (int i = 0; i < 15; i++) {
-			try {
-				scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
-				scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
-			} catch (ArrayIndexOutOfBoundsException e) {
-				Log.d(uuid, "komisch :/");
-			}
+			scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
+			scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
 		}
 
 		return newSchedule;
@@ -943,7 +939,7 @@ public class Fridge implements Device {
 			}
 			waitToChargeDeltaLoadprofile = false;
 		}
-		scheduleCurrentChangeRequest = new double[2][15];
+		scheduleCurrentChangeRequest = new double[2][15 * numSlots];
 		waitForAnswerCR = false;
 	}
 

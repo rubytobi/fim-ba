@@ -67,12 +67,13 @@ public class ConsumerController {
 	 * 
 	 * @param consumerUUID
 	 *            der gewuenschte Consumer
-	 * @param fridgeUUID
+	 * @param deviceUUID
 	 *            das zu verbindende Gerät
 	 */
-	@RequestMapping(value = "/consumers/{consumerUUID}/link/{fridgeUUID}", method = RequestMethod.POST)
-	public void linkDeviceToCustomer(@PathVariable UUID consumerUUID, @PathVariable UUID fridgeUUID) {
-		ConsumerContainer.instance().get(consumerUUID).setDevice(fridgeUUID);
+	@RequestMapping(value = "/consumers/{consumerUUID}/link/{deviceUUID}", method = RequestMethod.POST)
+	public ResponseEntity<Void> linkDeviceToCustomer(@PathVariable UUID consumerUUID, @PathVariable UUID deviceUUID) {
+		ConsumerContainer.instance().get(consumerUUID).setDevice(deviceUUID);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(consumerUUID));
 	}
 
 	/**

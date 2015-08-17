@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonView;
 
-import Container.ConsumerContainer;
 import Container.DeviceContainer;
+import Entity.BHKW;
 import Entity.Device;
 import Entity.Fridge;
 import Packet.AnswerChangeRequest;
@@ -44,7 +44,7 @@ public class DeviceController {
 	 *            Initialisierungsdaten
 	 * @return Device-ID
 	 */
-	@RequestMapping(value = "/devices", method = RequestMethod.POST)
+	@RequestMapping(value = "/devices/fridge", method = RequestMethod.POST)
 	public @ResponseBody UUID addDevice(@RequestBody FridgeCreation params) {
 		Fridge fridge = new Fridge(params.getMaxTemp1(), params.getMaxTemp2(), params.getMinTemp1(),
 				params.getMinTemp2(), params.getFallCooling(), params.getRiseWarming(), params.getConsCooling(),
@@ -52,6 +52,22 @@ public class DeviceController {
 
 		DeviceContainer.instance().add(fridge);
 		return fridge.getUUID();
+	}
+
+	/**
+	 * Ein neues Geraet wird erstellt mit Daten aus FridgeCreation
+	 * 
+	 * @param params
+	 *            Initialisierungsdaten
+	 * @return Device-ID
+	 */
+	@RequestMapping(value = "/devices/bhkw", method = RequestMethod.POST)
+	public @ResponseBody UUID addDevice(@RequestBody BHKWCreation params) {
+		BHKW bhkw = new BHKW(params.getChpCoefficient(), params.getPriceFuel(), params.getConsFuelPerKWh(),
+				params.getSizeHeatReservoir(), params.getMaxLoad());
+
+		DeviceContainer.instance().add(bhkw);
+		return bhkw.getUUID();
 	}
 
 	/**
@@ -63,8 +79,9 @@ public class DeviceController {
 	 *            Consumer-ID
 	 */
 	@RequestMapping(value = "/devices/{deviceUUID}/link/{consumerUUID}", method = RequestMethod.POST)
-	public void linkDevice(@PathVariable UUID deviceUUID, @PathVariable UUID consumerUUID) {
+	public ResponseEntity<Void> linkDevice(@PathVariable UUID deviceUUID, @PathVariable UUID consumerUUID) {
 		DeviceContainer.instance().get(deviceUUID).setConsumer(consumerUUID);
+		return ResponseBuilder.returnVoid(DeviceContainer.instance().get(deviceUUID));
 	}
 
 	/**
@@ -88,6 +105,10 @@ public class DeviceController {
 	 */
 	@RequestMapping(value = "/devices/{uuid}/ping", method = RequestMethod.GET)
 	public void pingDevice(@PathVariable UUID uuid) {
+		if (DeviceContainer.instance().get(uuid) == null) {
+			DeviceContainer.instance().get(uuid);
+			return;
+		}
 		DeviceContainer.instance().get(uuid).ping();
 	}
 

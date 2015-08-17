@@ -5,7 +5,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.springframework.http.HttpMethod;
-import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 
 import com.fasterxml.jackson.annotation.JsonView;
@@ -358,7 +357,7 @@ public class Consumer implements Identifiable {
 
 	private Offer[] getMarketplaceSupplies(int i) {
 		API<Void, Offer[]> api2 = new API<Void, Offer[]>(Offer[].class);
-		api2.marketplace().supplies(i);
+		api2.marketplace().offers(i);
 		api2.call(this, HttpMethod.GET, null);
 
 		if (api2.getResponse() == null) {
@@ -776,7 +775,7 @@ public class Consumer implements Identifiable {
 
 	private void sendOfferToMarketplace(Offer offer) {
 		API<Offer, Void> api2 = new API<>(Void.class);
-		api2.marketplace().demand();
+		api2.marketplace().offers();
 		api2.call(this, HttpMethod.POST, offer);
 	}
 
