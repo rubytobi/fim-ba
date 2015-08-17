@@ -955,6 +955,8 @@ public class Marketplace implements Identifiable {
 
 		// Pruefe, dass Angebot nicht in Vergangenheit liegt
 		if (dateGreg.before(currentDate)) {
+			Log.e(uuid, "Angebot liegt in der Vergangenheit: " + date
+					+ " currentDate: " + DateTime.ToString(currentDate));
 			return;
 		}
 
