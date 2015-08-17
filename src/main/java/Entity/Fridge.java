@@ -645,6 +645,8 @@ public class Fridge implements Device {
 		for (int i = 0; i < 15; i++) {
 			scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
 			scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
+			System.out.println("scheduleCurrentChangeRequest: Minute " +(slot*15+i)+ ": " + scheduleCurrentChangeRequest[0][slot * 15 + i] + ", "
+					+ scheduleCurrentChangeRequest[1][slot * 15 + i]);
 		}
 
 		return newSchedule;

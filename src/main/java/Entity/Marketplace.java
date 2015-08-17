@@ -141,12 +141,12 @@ public class Marketplace implements Identifiable {
 	 * 
 	 */
 	public void BKV() {
+		/*
+		 * Prüfe alle Angebote des aktuellen Slots
+		 */
 		GregorianCalendar now = DateTime.now();
-		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= 55) {
-			matchNextSlot();
-		}
 
-		// Berechne den Startzeitpunkt der als letztes gemachten Stunde
+		// Berechne den Startzeitpunkt der als letztes gematchten Stunde
 		GregorianCalendar slotLastMatched = (GregorianCalendar) nextSlot.clone();
 		slotLastMatched.add(Calendar.HOUR_OF_DAY, -1);
 
@@ -159,10 +159,19 @@ public class Marketplace implements Identifiable {
 			slot = 0;
 		}
 
-		// Fuehre zuerst alle guten Angebote zusammen und bestaetige dann alle
-		// verbliebenen Angebote zu einem Einheitspreis
+		// Fuehre zuerst alle guten Angebote des aktuellen Slots zusammen und
+		// bestaetige dann alle verbliebenen Angebote zu einem Einheitspreis
 		matchAllGoodOffers(slotLastMatched);
 		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot);
+
+		/*
+		 * Matche den aktuellen Slot, wenn bereits 55 Minuten oder mehr
+		 * vergangen sind
+		 */
+		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= 55) {
+			matchNextSlot();
+		}
+
 	}
 
 	/**
@@ -950,13 +959,27 @@ public class Marketplace implements Identifiable {
 	public void putOffer(Offer offer) {
 		GregorianCalendar dateGreg = offer.getDate();
 		String date = DateTime.ToString(dateGreg);
-		GregorianCalendar currentDate = (GregorianCalendar) nextSlot.clone();
-		currentDate.add(Calendar.HOUR_OF_DAY, -1);
+
+		// currentDate gibt an, für welche Stunde noch Angebot entgegengenommen
+		// werden.
+		// Wenn die Minuten der aktuellen Stunde <= 45 sind, werden noch
+		// Angebote für die aktuelle Stunde angenommen, ansonsten erst wieder
+		// für die nächste Stunde und später
+		GregorianCalendar currentDate = DateTime.now();
+		if (currentDate.get(Calendar.MINUTE) > 45) {
+			currentDate.add(Calendar.HOUR_OF_DAY, +1);
+		}
+		currentDate.set(Calendar.MINUTE, 0);
+		currentDate.set(Calendar.SECOND, 0);
+		currentDate.set(Calendar.MILLISECOND, 0);
+
+		System.out.println("Füge neues Angebot hinzu mit Startzeit: " + date);
+		System.out.println("Angenommene Stunde: " + DateTime.ToString(currentDate));
 
 		// Pruefe, dass Angebot nicht in Vergangenheit liegt
 		if (dateGreg.before(currentDate)) {
-			Log.e(uuid, "Angebot liegt in der Vergangenheit: " + date
-					+ " currentDate: " + DateTime.ToString(currentDate));
+			Log.e(uuid,
+					"Angebot liegt in der Vergangenheit: " + date + " currentDate: " + DateTime.ToString(currentDate));
 			return;
 		}
 
