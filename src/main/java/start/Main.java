@@ -48,19 +48,19 @@ public class Main {
 		Offer offer = new Offer(uuid, loadprofile);
 
 		Marketplace mp = Marketplace.instance();
-		mp.putOffer(offer);
+		mp.addOffer(offer);
 
 		now.add(Calendar.HOUR_OF_DAY, +1);
 		Loadprofile loadprofile2 = new Loadprofile(values, now);
 		UUID uuid2 = UUID.randomUUID();
 		Offer offer2 = new Offer(uuid2, loadprofile2);
-		mp.putOffer(offer2);
+		mp.addOffer(offer2);
 
 		now.add(Calendar.HOUR_OF_DAY, +10);
 		Loadprofile loadprofile3 = new Loadprofile(values, now);
 		UUID uuid3 = UUID.randomUUID();
 		Offer offer3 = new Offer(uuid3, loadprofile3);
-		mp.putOffer(offer3);
+		mp.addOffer(offer3);
 
 	}
 }

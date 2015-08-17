@@ -7,6 +7,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 
 import Container.NegotiationContainer;
+import Entity.Identifiable;
+import Entity.Marketplace;
 import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.AnswerToPriceChangeRequest;
@@ -25,8 +27,16 @@ public class Negotiation {
 	private double acceptedMin2, acceptedMax2;
 	private UUID uuid;
 	private int maxRounds = 3;
+	private Identifiable marketplace;
+
+	private Negotiation() {
+		marketplace = Marketplace.instance();
+	}
+
 
 	public Negotiation(Offer offer1, Offer offer2, double sumLoadprofile1, double sumLoadprofile2) {
+		this();
+
 		this.offer1 = offer1;
 		this.offer2 = offer2;
 		this.uuid = UUID.randomUUID();
@@ -116,22 +126,9 @@ public class Negotiation {
 
 		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
-
-		RestTemplate rest = new RestTemplate();
-		HttpEntity<AnswerToOfferFromMarketplace> entity = new HttpEntity<AnswerToOfferFromMarketplace>(answerOffer,
-				Application.getRestHeader());
-
-		String url = "http://localhost:8080/consumers/" + currentOffer.getAuthor() + "/offers/" + offer
-				+ "/negotiation/" + uuid + "/priceChangeRequest";
-
-		Log.d(uuid, url);
-
-		try {
-			rest.exchange(url, HttpMethod.POST, entity, Void.class);
-		} catch (Exception e) {
-			Log.e(uuid, e.toString());
-		}
-
+		API<AnswerToOfferFromMarketplace, Void> api = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
+		api.consumers(currentOffer.getAuthor()).offers(offer).negotiation(uuid).priceChangeRequest();
+		api.call(marketplace, HttpMethod.POST, answerOffer);
 	}
 
 	/**
@@ -293,17 +290,8 @@ public class Negotiation {
 
 		// Informiere Marktplatz über Ende der Verhandlung
 		EndOfNegotiation end = new EndOfNegotiation(uuid, currentPrice1, currentPrice2, successful);
-
-		RestTemplate rest = new RestTemplate();
-		HttpEntity<EndOfNegotiation> entity = new HttpEntity<EndOfNegotiation>(end, Application.getRestHeader());
-
-		String url = "http://localhost:8080/marketplace/endOfNegotiation/";
-
-		Log.d(uuid, url);
-		try {
-			rest.exchange(url, HttpMethod.POST, entity, Void.class);
-		} catch (Exception e) {
-			Log.e(uuid, e.toString());
-		}
+		API<EndOfNegotiation, Void> api = new API<EndOfNegotiation, Void>(Void.class);
+		api.marketplace().endOfNegotiation();
+		api.call(marketplace, HttpMethod.POST, end);
 	}
 }

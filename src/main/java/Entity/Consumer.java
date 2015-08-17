@@ -5,6 +5,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.OfferNotification;
@@ -13,11 +15,13 @@ import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
 import Util.Score;
+import Util.Scorecard;
 import Util.View;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
 import Event.OffersPriceborderException;
+import Util.ResponseBuilder;
 
 public class Consumer implements Identifiable {
 	final class DeviationOfferComparator implements Comparator<Offer> {
@@ -110,8 +114,8 @@ public class Consumer implements Identifiable {
 		return this.allOffers.get(offer);
 	}
 
-	public Offer getOffer(UUID offer) {
-		return getOfferIntern(offer);
+	public ResponseEntity<Offer> getOffer(UUID offer) {
+		return new ResponseBuilder<Offer>(this).body(getOfferIntern(offer)).build();
 	}
 
 	/**
@@ -348,13 +352,13 @@ public class Consumer implements Identifiable {
 		return list;
 	}
 
-	public Offer[] getAllOffers() {
-		return allOffers.values().toArray(new Offer[allOffers.size()]);
+	public ResponseEntity<Offer[]> getAllOffers() {
+		return new ResponseBuilder<Offer[]>(this).body(allOffers.values().toArray(new Offer[allOffers.size()])).build();
 	}
 
 	private Offer[] getMarketplaceSupplies(int i) {
 		API<Void, Offer[]> api2 = new API<Void, Offer[]>(Offer[].class);
-		api2.marketplace().supplies(i);
+		api2.marketplace().offers(i);
 		api2.call(this, HttpMethod.GET, null);
 
 		if (api2.getResponse() == null) {
@@ -465,7 +469,7 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
-		TreeSet<Score> scorecard = new TreeSet<Score>();
+		Scorecard scorecard = new Scorecard();
 		for (Offer marketplace : getMarketplaceSupplies(maxMarketplaceOffersToCompare)) {
 			for (Offer own : offerWithPrivileges) {
 				scorecard.add(new Score(marketplace, own, null, null));
@@ -699,12 +703,13 @@ public class Consumer implements Identifiable {
 		}
 	}
 
-	public ChangeRequestLoadprofile receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+	public ResponseEntity<ChangeRequestLoadprofile> receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
 		Offer affectedOffer = allOffers.get(cr.getOffer());
 
 		if (affectedOffer == null) {
 			Log.d(uuid, "angebot nicht vorhanden");
-			return new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 });
+			return new ResponseBuilder<ChangeRequestLoadprofile>(this)
+					.body(new ChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 })).build();
 		}
 
 		// Frage eigenes Device nach Änderung
@@ -719,11 +724,12 @@ public class Consumer implements Identifiable {
 		Log.d(uuid, "request [" + Arrays.toString(cr.getChange()) + "], response ["
 				+ Arrays.toString(answer.getPossibleChanges()) + "]");
 
-		return new ChangeRequestLoadprofile(cr.getOffer(), answer.getPossibleChanges());
-		// }
-		//
-		// ChangeRequestLoadprofile possibleChange = new
-		// ChangeRequestLoadprofile(cr.getOffer(), remainingChange);
+		return new ResponseBuilder<ChangeRequestLoadprofile>(this)
+				.body(new ChangeRequestLoadprofile(cr.getOffer(), answer.getPossibleChanges())).build();
+				// }
+				//
+				// ChangeRequestLoadprofile possibleChange = new
+				// ChangeRequestLoadprofile(cr.getOffer(), remainingChange);
 
 		// TODO Autor für übergebenes Angebot?
 		// Wenn ja: Frage alle anderen beteiligten Consumer der Reihe nach nach
@@ -777,7 +783,14 @@ public class Consumer implements Identifiable {
 
 		OfferNotification notification = new OfferNotification(offer.getAuthor(), offer.getUUID());
 
+		sendOfferToMarketplace(offer);
 		sendOfferNotificationToAllConsumers(notification);
+	}
+
+	private void sendOfferToMarketplace(Offer offer) {
+		API<Offer, Void> api2 = new API<>(Void.class);
+		api2.marketplace().offers();
+		api2.call(this, HttpMethod.POST, offer);
 	}
 
 	private void sendOfferNotificationToAllConsumers(OfferNotification notification) {

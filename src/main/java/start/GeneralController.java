@@ -18,7 +18,7 @@ public class GeneralController {
 		HashMap<UUID, Offer> map = new HashMap<UUID, Offer>();
 
 		for (Consumer c : ConsumerContainer.instance().getAll()) {
-			for (Offer o : c.getAllOffers()) {
+			for (Offer o : c.getAllOffers().getBody()) {
 				map.put(o.getUUID(), o);
 			}
 		}

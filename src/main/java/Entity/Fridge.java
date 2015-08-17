@@ -622,11 +622,7 @@ public class Fridge implements Device {
 				if (currentMinute == 0 && slot == 0) {
 					newSchedule[1][currentMinute] = newSchedule[1][currentMinute] - other + localChange;
 				} else if (currentMinute == 0 && slot != 0) {
-					try {
-						newSchedule[1][currentMinute] = newSchedule[1][currentMinute] + localChange;
-					} catch (NullPointerException e) {
-						Log.e(uuid, "da läuft was falsch...");
-					}
+					newSchedule[1][currentMinute] = newSchedule[1][currentMinute] + localChange;
 
 				} else {
 					newSchedule[1][currentMinute] = newSchedule[1][currentMinute - 1] + localChange;
@@ -645,8 +641,7 @@ public class Fridge implements Device {
 		for (int i = 0; i < 15; i++) {
 			scheduleCurrentChangeRequest[0][slot * 15 + i] = Math.round(100.00 * newSchedule[0][i]) / 100.00;
 			scheduleCurrentChangeRequest[1][slot * 15 + i] = Math.round(100.00 * newSchedule[1][i]) / 100.00;
-			System.out.println("scheduleCurrentChangeRequest: Minute " +(slot*15+i)+ ": " + scheduleCurrentChangeRequest[0][slot * 15 + i] + ", "
-					+ scheduleCurrentChangeRequest[1][slot * 15 + i]);
+
 		}
 
 		return newSchedule;
@@ -934,6 +929,7 @@ public class Fridge implements Device {
 			waitToChargeDeltaLoadprofile = false;
 		}
 		scheduleCurrentChangeRequest = new double[2][15*numSlots];
+
 		waitForAnswerCR = false;
 	}
 

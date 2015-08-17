@@ -3,7 +3,7 @@ package Util;
 import Entity.Offer;
 import Event.OffersPriceborderException;
 
-public class Score implements Comparable<Score>, Cloneable {
+public class Score implements Cloneable {
 	private Offer marketplace;
 	private Offer own;
 	private Double score = null;
@@ -62,11 +62,6 @@ public class Score implements Comparable<Score>, Cloneable {
 		return score;
 	}
 
-	@Override
-	public int compareTo(Score o) {
-		return Double.compare(getScore(), o.getScore());
-	}
-
 	public Offer getOwn() {
 		return this.own;
 	}
@@ -114,5 +109,13 @@ public class Score implements Comparable<Score>, Cloneable {
 
 		hasReceived = true;
 		this.received = receivedOffer;
+	}
+
+	public double getLoadprofileDeviation() {
+		return marketplace.getAggLoadprofile().chargeDeviationOtherProfile(getMerge().getAggLoadprofile());
+	}
+
+	public double getPriceDeviation() {
+		return Math.abs(marketplace.getPriceSugg() - getMerge().getPriceSugg());
 	}
 }

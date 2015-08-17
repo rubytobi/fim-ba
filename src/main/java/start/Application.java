@@ -1,19 +1,14 @@
 package start;
 
 import java.text.DateFormat;
-import java.text.SimpleDateFormat; 
-import java.util.ArrayList;
-import java.util.List;
+import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.util.UUID;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -28,14 +23,24 @@ import Container.DeviceContainer;
 import Entity.Consumer;
 import Entity.Device;
 import Entity.Fridge;
+import Entity.Identifiable;
 import Packet.FridgeCreation;
+import Util.API;
 
 @SpringBootApplication
 @EnableScheduling
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
-	private static final int maxFridges = 5;
+	private static final int maxFridges = 10;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
+	private final static Identifiable root = new Identifiable() {
+		private final UUID root = UUID.fromString("00000000-0000-0000-0000-0000");
+
+		@Override
+		public UUID getUUID() {
+			return root;
+		}
+	};
 
 	public static void main(String[] args) {
 		System.setProperty("gs.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
@@ -62,46 +67,41 @@ public class Application {
 
 	@Scheduled(fixedRate = 100)
 	public static void init() {
-		if (DeviceContainer.instance().size() < maxFridges) {
-			RestTemplate rest = new RestTemplate();
-
-			String url;
-
-			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5);
-
-			HttpEntity<FridgeCreation> entityFridge = new HttpEntity<FridgeCreation>(fridgeCreation, getRestHeader());
-
-			url = BASE_URI + "/devices";
-			ResponseEntity<UUID> responseFridge = rest.exchange(BASE_URI + "/devices", HttpMethod.POST, entityFridge,
-					UUID.class);
-
-			HttpEntity<Void> entityConsumer = new HttpEntity<Void>(getRestHeader());
-
-			url = BASE_URI + "/consumers";
-			ResponseEntity<UUID> responseConsumer = rest.exchange(url, HttpMethod.POST, entityConsumer, UUID.class);
-
-			url = BASE_URI + "/consumers/" + responseConsumer.getBody() + "/link/" + responseFridge.getBody();
-			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
-
-			url = BASE_URI + "/devices/" + responseFridge.getBody() + "/link/" + responseConsumer.getBody();
-			rest.exchange(url, HttpMethod.POST, entityFridge, UUID.class);
+		if (DeviceContainer.instance().size() >= maxFridges) {
+			return;
 		}
+
+		UUID uuid = null;
+
+		if ((DeviceContainer.instance().size() + "").endsWith("0")) {
+			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
+			BHKWCreation bhkwCreation = new BHKWCreation(1, 5, 1, 100, 5);
+			api.devices().bhkw();
+			api.call(root, HttpMethod.POST, bhkwCreation);
+
+			uuid = api.getResponse();
+		} else {
+			API<FridgeCreation, UUID> api = new API<FridgeCreation, UUID>(UUID.class);
+			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5);
+			api.devices().fridge();
+			api.call(root, HttpMethod.POST, fridgeCreation);
+
+			uuid = api.getResponse();
+		}
+
+		API<Void, UUID> api2 = new API<Void, UUID>(UUID.class);
+		api2.consumers();
+		api2.call(root, HttpMethod.POST, null);
+
+		API<Void, Void> api3 = new API<Void, Void>(Void.class);
+		api3.consumers(api2.getResponse()).link(uuid);
+		api3.call(root, HttpMethod.POST, null);
+		api3.clear();
+		api3.devices(uuid).link(api2.getResponse());
+		api3.call(root, HttpMethod.POST, null);
 	}
 
-	public static HttpHeaders getRestHeader() {
-		// Prepare acceptable media type
-		List<MediaType> acceptableMediaTypes = new ArrayList<MediaType>();
-		acceptableMediaTypes.add(MediaType.APPLICATION_JSON);
-
-		// Prepare header
-		HttpHeaders headers = new HttpHeaders();
-		headers.setAccept(acceptableMediaTypes);
-		// Pass the new person and header
-
-		return headers;
-	}
-
-	@Scheduled(fixedRate = 1000)
+	@Scheduled(initialDelay = 5000, fixedRate = 1000)
 	public static void pingAllDevices() {
 		RestTemplate rest = new RestTemplate();
 

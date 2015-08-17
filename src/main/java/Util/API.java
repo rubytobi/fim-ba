@@ -57,8 +57,8 @@ public class API<Request, Response> {
 		return this;
 	}
 
-	public API<Request, Response> link() {
-		uri += "/link";
+	public API<Request, Response> link(UUID uuid) {
+		uri += "/link/" + uuid;
 		return this;
 	}
 
@@ -83,11 +83,6 @@ public class API<Request, Response> {
 
 	public API<Request, Response> marketplace() {
 		uri += "/marketplace";
-		return this;
-	}
-
-	public API<Request, Response> demand(UUID uuid) {
-		uri += "/demands/" + uuid;
 		return this;
 	}
 
@@ -199,8 +194,8 @@ public class API<Request, Response> {
 		response = null;
 	}
 
-	public API<Request, Response> supplies(int i) {
-		uri += "/supplies/" + i;
+	public API<Request, Response> offers(int i) {
+		uri += "/offers?count=" + i;
 		return this;
 	}
 
@@ -213,4 +208,33 @@ public class API<Request, Response> {
 		return responseUUID;
 	}
 
+	public API<Request, Response> receiveChangeRequestLoadprofile() {
+		uri += "/receiveChangeRequestLoadprofile";
+		return this;
+	}
+
+	public API<Request, Response> negotiation(UUID uuid) {
+		uri += "/negotiation/" + uuid;
+		return this;
+	}
+
+	public API<Request, Response> priceChangeRequest() {
+		uri += "/priceChangeRequest";
+		return this;
+	}
+
+	public API<Request, Response> endOfNegotiation() {
+		uri += "/endOfNegotiation";
+		return this;
+	}
+
+	public API<Request, Response> fridge() {
+		uri += "/fridge";
+		return this;
+	}
+
+	public API<Request, Response> bhkw() {
+		uri += "/bhkw";
+		return this;
+	}
 }

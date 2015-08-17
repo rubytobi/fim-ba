@@ -78,6 +78,8 @@ public class Loadprofile {
 	 *            Gibt an, ob das Lastprofil ein Deltalastprofil ist
 	 */
 	public Loadprofile(double[] values, GregorianCalendar date, double priceSugg, double minPrice, double maxPrice) {
+		this();
+
 		this.values = values;
 		this.date = date;
 		if (minPrice <= priceSugg && priceSugg <= maxPrice) {
@@ -85,11 +87,9 @@ public class Loadprofile {
 			this.maxPrice = maxPrice;
 			this.minPrice = minPrice;
 			hasPrices = true;
-		}
-		else {
+		} else {
 			hasPrices = false;
 		}
-		
 	}
 
 	/**
@@ -97,10 +97,14 @@ public class Loadprofile {
 	 * werden bei einem Deltalastprofil nicht gesetzt (priceSugg, minPrice,
 	 * maxPrice)
 	 * 
-	 * @param values Werte des Lastprofils
-	 * @param date Startzeit des Lastprofils
+	 * @param values
+	 *            Werte des Lastprofils
+	 * @param date
+	 *            Startzeit des Lastprofils
 	 */
 	public Loadprofile(double[] values, GregorianCalendar date) {
+		this();
+
 		this.values = values;
 		this.date = date;
 		this.hasPrices = false;
@@ -132,21 +136,13 @@ public class Loadprofile {
 			values[i] = lp1.getValues()[i] + lp2.getValues()[i];
 		}
 
-		hasPrices = false;
-	}
+		this.maxPrice = Math.min(lp1.getMaxPrice(), lp2.getMaxPrice());
+		this.minPrice = Math.max(lp1.getMinPrice(), lp2.getMinPrice());
 
-	/**
-	 * Erzeugt ein Lastprofil mit einer fixen UUID
-	 * 
-	 * @param uuid
-	 * @param changesLoadprofile
-	 * @param startLoadprofile
-	 * @param d
-	 */
-	public Loadprofile(UUID uuid, double[] changesLoadprofile, GregorianCalendar startLoadprofile, double d,
-			double priceSugg, double minPrice, double maxPrice) {
-		this(changesLoadprofile, startLoadprofile, priceSugg, minPrice, maxPrice);
-		this.uuid = uuid;
+		this.priceSugg = (lp1.getPriceSugg() * lp1.getLoad() + lp2.getPriceSugg() * lp2.getLoad())
+				/ (lp1.getLoad() + lp2.getLoad());
+
+		hasPrices = false;
 	}
 
 	public Loadprofile(ChangeRequestSchedule cr) {
@@ -179,7 +175,7 @@ public class Loadprofile {
 	 * @return Minimaler Preis pro kWh, den das Device für dieses Lastprofil
 	 *         minimal akzeptieren will
 	 */
-	public double getMinPrice1() {
+	public double getMinPrice() {
 		return maxPrice;
 	}
 
@@ -190,6 +186,17 @@ public class Loadprofile {
 	 */
 	public double[] getValues() {
 		return values;
+	}
+
+	@JsonIgnore
+	public double getLoad() {
+		double load = 0;
+
+		for (double d : values) {
+			load += d;
+		}
+
+		return load;
 	}
 
 	/**
@@ -242,7 +249,8 @@ public class Loadprofile {
 	}
 
 	/**
-	 * Berechnet die Abweichung des Lastprofils von einem anderen Lastprofil
+	 * Berechnet die absolute Abweichung des Lastprofils von einem anderen
+	 * Lastprofil
 	 * 
 	 * @param otherProfile
 	 *            Anderes Lastprofil, von welchem die Abweichung berechnet
@@ -271,5 +279,10 @@ public class Loadprofile {
 
 	public Offer toOffer(UUID author) {
 		return new Offer(author, this);
+	}
+
+	public static int compare(Object loadprofile, Object loadprofile2) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }
