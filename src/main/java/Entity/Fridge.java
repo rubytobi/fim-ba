@@ -933,7 +933,7 @@ public class Fridge implements Device {
 			}
 			waitToChargeDeltaLoadprofile = false;
 		}
-		scheduleCurrentChangeRequest = new double[2][15];
+		scheduleCurrentChangeRequest = new double[2][15*numSlots];
 		waitForAnswerCR = false;
 	}
 
