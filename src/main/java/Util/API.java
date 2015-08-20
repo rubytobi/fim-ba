@@ -1,6 +1,7 @@
 package Util;
 
 import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.UUID;
 
@@ -235,6 +236,11 @@ public class API<Request, Response> {
 
 	public API<Request, Response> bhkw() {
 		uri += "/bhkw";
+		return this;
+	}
+
+	public API<Request, Response> search() {
+		uri += "/search";
 		return this;
 	}
 }

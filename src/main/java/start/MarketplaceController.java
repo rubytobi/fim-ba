@@ -8,12 +8,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import Entity.Marketplace;
 import Entity.Offer;
+import Entity.SearchParams;
 import Packet.EndOfNegotiation;
+import Util.DateTime;
 import Util.ResponseBuilder;
 import Packet.ChangeRequestLoadprofile;
 
@@ -36,9 +37,12 @@ public class MarketplaceController {
 		return Marketplace.instance().getPrediction();
 	}
 
-	@RequestMapping(value = "/marketplace/offers", method = RequestMethod.GET, params = { "count" })
-	public ResponseEntity<Offer[]> getOffers(@RequestParam("count") int count) {
-		return Marketplace.instance().getOffers(count);
+	@RequestMapping(value = "/marketplace/search", method = RequestMethod.GET)
+	public ResponseEntity<Offer[]> searchOffers(@RequestBody(required = false) SearchParams params) {
+		if (params == null) {
+			params = new SearchParams(DateTime.currentTimeSlot(), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
+		}
+		return Marketplace.instance().search(params);
 	}
 
 	@RequestMapping(value = "/marketplace/offers", method = RequestMethod.POST)

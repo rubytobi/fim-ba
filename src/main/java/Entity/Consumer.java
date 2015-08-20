@@ -60,11 +60,6 @@ public class Consumer implements Identifiable {
 	private UUID device = null;
 
 	/**
-	 * Maximale Anzahl der zu vergleichenden Martplatz-Angebote
-	 */
-	private int maxMarketplaceOffersToCompare;
-
-	/**
 	 * Queue an Benachrichtigungen über Angebote in Reinfolge der Ankunft
 	 */
 	private ConcurrentLinkedQueue<Object[]> notificationQueue = new ConcurrentLinkedQueue<Object[]>();
@@ -90,18 +85,6 @@ public class Consumer implements Identifiable {
 	 */
 	public Consumer() {
 		uuid = UUID.randomUUID();
-		this.maxMarketplaceOffersToCompare = 5;
-	}
-
-	/**
-	 * Anlage eines neuen Consumers. ID wird standardmäßig gesetzt
-	 * 
-	 * @param maxMarketplaceOffersToCompare
-	 *            Maximale Anzahl an zu vergleichenden Angeboten
-	 */
-	public Consumer(int maxMarketplaceOffersToCompare) {
-		this();
-		this.maxMarketplaceOffersToCompare = maxMarketplaceOffersToCompare;
 	}
 
 	private void addOffer(Offer offer) {
@@ -356,10 +339,10 @@ public class Consumer implements Identifiable {
 		return new ResponseBuilder<Offer[]>(this).body(allOffers.values().toArray(new Offer[allOffers.size()])).build();
 	}
 
-	private Offer[] getMarketplaceSupplies(int i) {
-		API<Void, Offer[]> api2 = new API<Void, Offer[]>(Offer[].class);
-		api2.marketplace().offers(i);
-		api2.call(this, HttpMethod.GET, null);
+	private Offer[] getMarketplaceSupplies(SearchParams params) {
+		API<SearchParams, Offer[]> api2 = new API<SearchParams, Offer[]>(Offer[].class);
+		api2.marketplace().search();
+		api2.call(this, HttpMethod.GET, params);
 
 		if (api2.getResponse() == null) {
 			return new Offer[] {};
@@ -470,7 +453,8 @@ public class Consumer implements Identifiable {
 		}
 
 		Scorecard scorecard = new Scorecard();
-		for (Offer marketplace : getMarketplaceSupplies(maxMarketplaceOffersToCompare)) {
+		for (Offer marketplace : getMarketplaceSupplies(
+				new SearchParams(receivedOffer.getDate(), receivedOffer.getMinPrice(), receivedOffer.getMaxPrice()))) {
 			for (Offer own : offerWithPrivileges) {
 				scorecard.add(new Score(marketplace, own, null, null));
 			}
@@ -519,12 +503,11 @@ public class Consumer implements Identifiable {
 				try {
 					newOffer = new Offer(new Offer(bestScore.getOwn(), receivedOffer), contributions);
 					allOfferContributions.put(newOffer.getUUID(), contributions);
-				}
-				catch (OffersPriceborderException e) {
+				} catch (OffersPriceborderException e) {
 					Log.e(uuid, e.getMessage());
 					// TODO Was passiert, wenn Exception eintritt?
 				}
-			
+
 			}
 		} else {
 			// neues Angebot erstellen
@@ -600,9 +583,8 @@ public class Consumer implements Identifiable {
 				try {
 					contributionOffer = new Offer(contributionOffer,
 							contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c));
-				}
-				catch (OffersPriceborderException e) {
-					Log.e(uuid,  e.getMessage());
+				} catch (OffersPriceborderException e) {
+					Log.e(uuid, e.getMessage());
 					// TODO Was passiert, wenn Exception eintritt?
 				}
 			}

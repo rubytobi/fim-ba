@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.ArrayList;
 import java.util.GregorianCalendar;
+import java.util.HashMap;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Set;
@@ -40,7 +41,7 @@ public class Marketplace implements Identifiable {
 	 * Maps, die alle noch nicht zusammengefuehrten Angebote des Marktplatzes
 	 * beinhaltet
 	 */
-	private Map<String, ArrayList<Offer>> demand = new TreeMap<String, ArrayList<Offer>>();
+	private HashMap<String, ArrayList<Offer>> demand = new HashMap<String, ArrayList<Offer>>();
 	/**
 	 * Aktueller eexPreis
 	 */
@@ -51,7 +52,7 @@ public class Marketplace implements Identifiable {
 	/**
 	 * Map, die nach Startzeit alle moeglichen Angebotskombinationen enthaelt
 	 */
-	private Map<String, ArrayList<PossibleMatch>> listPossibleMatches = new TreeMap<String, ArrayList<PossibleMatch>>();
+	private HashMap<String, ArrayList<PossibleMatch>> listPossibleMatches = new HashMap<String, ArrayList<PossibleMatch>>();
 
 	/**
 	 * Aktuell geduldete Abweichung. (5% von erwartetem Gesamtvolumen: 100)
@@ -61,13 +62,13 @@ public class Marketplace implements Identifiable {
 	/**
 	 * Map, die alle bisher zusammengefuehrten Angebote nach Zeitslot beinhaltet
 	 */
-	private Map<String, ArrayList<MatchedOffers>> matchedOffers = new TreeMap<String, ArrayList<MatchedOffers>>();
+	private HashMap<String, ArrayList<MatchedOffers>> matchedOffers = new HashMap<String, ArrayList<MatchedOffers>>();
 
 	/**
 	 * Map, die alle Angebote beinhaltet, ueber deren Preis gerade mit den
 	 * Consumern verhandelt wird
 	 */
-	private Map<UUID, Negotiation> negotiatingOffers = new TreeMap<UUID, Negotiation>();
+	private HashMap<UUID, Negotiation> negotiatingOffers = new HashMap<UUID, Negotiation>();
 
 	/**
 	 * Startzeit des naechsten Slots, der geplant werden muss
@@ -82,28 +83,28 @@ public class Marketplace implements Identifiable {
 	/**
 	 * Map, die die Prognose fuer den jeweiligen Zeitslot beinhaltet
 	 */
-	private Map<String, double[]> prediction = new TreeMap<String, double[]>();
+	private HashMap<String, double[]> prediction = new HashMap<String, double[]>();
 
 	/**
 	 * Einheitspreis mit Strafe, zu welchem der jeweilige Slot bestätigt wurde.
 	 * Enthält Preis für Demand (0) und für Supply (1)
 	 */
-	private Map<String, double[]> unitPricesWithPenalty = new TreeMap<String, double[]>();
+	private HashMap<String, double[]> unitPricesWithPenalty = new HashMap<String, double[]>();
 
 	/**
 	 * Map, die die Summe der Abweichungen aller zusammengefuehrter Angebote
 	 * nach Zeitslot beinhaltet
 	 */
-	private Map<String, double[]> sumLoadprofilesConfirmedOffers = new TreeMap<String, double[]>();
+	private HashMap<String, double[]> sumLoadprofilesConfirmedOffers = new HashMap<String, double[]>();
 
 	/**
 	 * Map, die die Summe der Abweichungen aller auf dem Marktplatz
 	 * verfuegbaren, aller gerade verhandelten und aller vom Marktplatz
 	 * zusammengefuehrten Angebote nach Zeitslot beinhaltet
 	 */
-	private Map<String, double[]> sumLoadprofilesAllOffers = new TreeMap<String, double[]>();
+	private HashMap<String, double[]> sumLoadprofilesAllOffers = new HashMap<String, double[]>();
 
-	private Map<String, ArrayList<Offer>> supply = new TreeMap<String, ArrayList<Offer>>();
+	private HashMap<String, ArrayList<Offer>> supply = new HashMap<String, ArrayList<Offer>>();
 
 	private UUID uuid = UUID.randomUUID();
 
@@ -577,28 +578,6 @@ public class Marketplace implements Identifiable {
 	}
 
 	/**
-	 * Gibt die Angebote von Erzeugern fuer das uebergebene Datum zurueck, die
-	 * am wenigsten fuer den erzeugten Strom verlangen.
-	 * 
-	 * @param date
-	 *            Datum fuer welches die Angebote sein sollen
-	 * @param number
-	 *            Anzahl an Angeboten, die angefragt wird
-	 * @return Liste aller guenstigsten Angebote
-	 */
-	public ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date, int number) {
-		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
-		if (allSuppliesAtDate.size() < number) {
-			number = allSuppliesAtDate.size();
-		}
-		ArrayList<Offer> cheapest = new ArrayList<Offer>();
-		for (int i = 0; i < number; i++) {
-			cheapest.add(allSuppliesAtDate.get(i));
-		}
-		return cheapest;
-	}
-
-	/**
 	 * 
 	 * @param uuid
 	 * @return
@@ -624,28 +603,6 @@ public class Marketplace implements Identifiable {
 	 */
 	public static double getEEXPrice() {
 		return Marketplace.eexPrice;
-	}
-
-	/**
-	 * Gibt die Angebote von Verbrauchern fuer das uebergebene Datum zurueck,
-	 * die bereit sind am meisten zu zahlen.
-	 * 
-	 * @param date
-	 *            Datum, fuer welches die Angebote sein sollen
-	 * @param number
-	 *            Anzahl an Angeboten, die angefragt wird
-	 * @return Liste aller teuersten Angebote
-	 */
-	public ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar date, int number) {
-		ArrayList<Offer> allDemandsAtDate = demand.get(date);
-		if (allDemandsAtDate.size() < number) {
-			number = allDemandsAtDate.size();
-		}
-		ArrayList<Offer> mostExpensive = new ArrayList<Offer>();
-		for (int i = 0; i < number; i++) {
-			mostExpensive.add(allDemandsAtDate.get(i));
-		}
-		return mostExpensive;
 	}
 
 	public ArrayList<Negotiation> getNegotiations() {
@@ -1293,4 +1250,81 @@ public class Marketplace implements Identifiable {
 	public UUID getUUID() {
 		return uuid;
 	}
+
+	/**
+	 * Gibt die Angebote von Verbrauchern fuer das uebergebene Datum zurueck,
+	 * die bereit sind am meisten zu zahlen.
+	 * 
+	 * @param date
+	 *            Datum, fuer welches die Angebote sein sollen
+	 * @param number
+	 *            Anzahl an Angeboten, die angefragt wird
+	 * @return Liste aller teuersten Angebote
+	 */
+	private ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar date, int number) {
+		ArrayList<Offer> allDemandsAtDate = demand.get(date);
+		if (allDemandsAtDate.size() < number) {
+			number = allDemandsAtDate.size();
+		}
+		ArrayList<Offer> mostExpensive = new ArrayList<Offer>();
+		for (int i = 0; i < number; i++) {
+			mostExpensive.add(allDemandsAtDate.get(i));
+		}
+		return mostExpensive;
+	}
+
+	public ResponseEntity<Offer[]> search(SearchParams params) {
+		String date = DateTime.ToString(params.getDate());
+
+		ArrayList<Offer> result = new ArrayList<Offer>();
+
+		for (Offer o : demand.getOrDefault(date, new ArrayList<Offer>())) {
+			if (o.getMinPrice() <= params.getMinPrice()) {
+				continue;
+			}
+
+			if (o.getMaxPrice() >= params.getMaxPrice()) {
+				continue;
+			}
+
+			result.add(o);
+		}
+
+		for (Offer o : supply.getOrDefault(date, new ArrayList<Offer>())) {
+			if (o.getMinPrice() <= params.getMinPrice()) {
+				continue;
+			}
+
+			if (o.getMaxPrice() >= params.getMaxPrice()) {
+				continue;
+			}
+
+			result.add(o);
+		}
+
+		return new ResponseBuilder<Offer[]>(this).body(result.toArray(new Offer[result.size()])).build();
+	}
+
+	/**
+	 * Gibt die Angebote von Erzeugern fuer das uebergebene Datum zurueck, die
+	 * am wenigsten fuer den erzeugten Strom verlangen.
+	 * 
+	 * @param date
+	 *            Datum fuer welches die Angebote sein sollen
+	 * @param number
+	 *            Anzahl an Angeboten, die angefragt wird
+	 * @return Liste aller guenstigsten Angebote
+	 */
+	private ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date, int number) {
+		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
+		if (allSuppliesAtDate.size() < number) {
+			number = allSuppliesAtDate.size();
+		}
+		ArrayList<Offer> cheapest = new ArrayList<Offer>();
+		for (int i = 0; i < number; i++) {
+			cheapest.add(allSuppliesAtDate.get(i));
+		}
+		return cheapest;
+	}
+
 }
