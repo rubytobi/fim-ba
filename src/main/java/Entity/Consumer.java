@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.OfferNotification;
+import Packet.SearchParams;
 import Packet.AnswerChangeRequest;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;

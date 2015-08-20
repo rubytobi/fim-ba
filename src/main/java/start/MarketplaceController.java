@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import Entity.Marketplace;
 import Entity.Offer;
-import Entity.SearchParams;
 import Packet.EndOfNegotiation;
+import Packet.SearchParams;
 import Util.DateTime;
 import Util.ResponseBuilder;
 import Packet.ChangeRequestLoadprofile;

@@ -14,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
+import Packet.SearchParams;
 import Packet.ChangeRequestLoadprofile;
 import Util.MatchedOffers;
 import Util.API;

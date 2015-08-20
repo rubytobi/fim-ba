@@ -1,4 +1,4 @@
-package Entity;
+package Packet;
 
 import java.util.GregorianCalendar;
 
