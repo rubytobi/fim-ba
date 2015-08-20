@@ -135,7 +135,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 					getMinPrice(), getMaxPrice()));
 		}
 
-		priceSugg = aggLoadprofile.getPriceSugg();
+		priceSugg = getAggLoadprofile().getPriceSugg();
 		// TODO Änderungen minPrice, maxPrice?
 		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;

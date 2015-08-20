@@ -20,30 +20,8 @@ public class BATest {
 		Loadprofile lB = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
 		Offer oB = new Offer(UUID.randomUUID(), lB);
 
-		Score scoreOne = new Score(oA, oB, null, null);
-		assertEquals("score shall be 0", 0.0, scoreOne.getScore(), 0.0);
-
-		Loadprofile lC = new Loadprofile(new double[] { 1.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
-		Offer oC = new Offer(UUID.randomUUID(), lC);
-
-		Score scoreTwo = new Score(oA, oC, null, null);
-		assertEquals("score shall be 1", 1.0, scoreTwo.getScore(), 0.0);
-
-		Loadprofile lD = new Loadprofile(new double[] { 1.0, -1.0, 5.0, 0.0 }, DateTime.currentTimeSlot());
-		Offer oD = new Offer(UUID.randomUUID(), lD);
-
-		Score scoreThree = new Score(oA, oD, null, null);
-		assertEquals("score shall be 7", 7.0, scoreThree.getScore(), 0.0);
-
 		Scorecard scorecard = new Scorecard();
 		assertEquals("comparision shall be null", null, scorecard.first());
 
-		scorecard.add(scoreOne);
-		assertEquals("comparision shall be true", true, scorecard.first().equals(scoreOne));
-
-		scorecard.add(scoreTwo);
-		assertEquals("comparision shall be null", true, scorecard.first().equals(scorecard.first()));
-
-		scorecard.add(scoreThree);
 	}
 }

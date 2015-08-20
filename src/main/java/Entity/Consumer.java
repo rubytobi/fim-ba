@@ -297,7 +297,12 @@ public class Consumer implements Identifiable {
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
 		// Offer offer = allOffers.get(confirmOffer.getUuid());
-		Offer offer = getOfferIntern(answerOffer.getUuid());
+		Offer offer = getOfferIntern(answerOffer.getOffer());
+
+		if (offer == null) {
+			Log.d(uuid, "hier läuft was schief!");
+			return;
+		}
 
 		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
 			if (lp.hasPrices()) {
@@ -401,7 +406,7 @@ public class Consumer implements Identifiable {
 		if (object == null) {
 			// Log.d(uuid, "notification queue empty");
 
-			Offer[] offerList = getOfferWithPrivileges(DateTime.now());
+			Offer[] offerList = getOfferWithPrivileges(DateTime.currentTimeSlot());
 
 			if (offerList.length == 0) {
 				// Log.d(uuid, "no offerWithPrivileges for sending
@@ -454,12 +459,34 @@ public class Consumer implements Identifiable {
 		}
 
 		Scorecard scorecard = new Scorecard();
-		for (Offer marketplace : getMarketplaceSupplies(
-				new SearchParams(receivedOffer.getDate(), receivedOffer.getMinPrice(), receivedOffer.getMaxPrice()))) {
-			for (Offer own : offerWithPrivileges) {
-				scorecard.add(new Score(marketplace, own, null, null));
+		for (Offer own : offerWithPrivileges) {
+
+			for (Offer marketplace : getMarketplaceSupplies(
+					new SearchParams(own.getDate(), own.getMinPrice(), own.getMaxPrice()))) {
+				scorecard.add(new Score(own, marketplace, own, receivedOffer, null));
+			}
+
+			Offer merged = null;
+
+			try {
+				merged = new Offer(own, receivedOffer);
+			} catch (OffersPriceborderException e) {
+				continue;
+			}
+
+			for (Offer marketplace : getMarketplaceSupplies(
+					new SearchParams(merged.getDate(), merged.getMinPrice(), merged.getMaxPrice()))) {
+				scorecard.add(new Score(merged, marketplace, own, receivedOffer, null));
 			}
 		}
+
+		// for (Offer marketplace : getMarketplaceSupplies(
+		// new SearchParams(receivedOffer.getDate(),
+		// receivedOffer.getMinPrice(), receivedOffer.getMaxPrice()))) {
+		// for (Offer own : offerWithPrivileges) {
+		// scorecard.add(new Score(marketplace, own, null, null));
+		// }
+		// }
 
 		if (scorecard.isEmpty()) {
 			API<Void, double[]> api2 = new API<Void, double[]>(double[].class);
@@ -471,11 +498,11 @@ public class Consumer implements Identifiable {
 			Offer marketplace = new Offer(api2.getSenderUUID(), lp);
 
 			for (Offer own : offerWithPrivileges) {
-				scorecard.add(new Score(marketplace, own, null, null));
+				scorecard.add(new Score(own, marketplace, own, null, null));
 			}
 		}
 
-		Log.d(uuid, "Scorecard: " + scorecard);
+		Log.d(uuid, scorecard.toString());
 
 		if (scorecard.isEmpty()) {
 			Log.e(uuid, "getMarketplaceSupplies returns null?");
@@ -501,14 +528,8 @@ public class Consumer implements Identifiable {
 				Log.d(uuid, "nichts konnte erreicht werden");
 				return;
 			} else {
-				try {
-					newOffer = new Offer(new Offer(bestScore.getOwn(), receivedOffer), contributions);
-					allOfferContributions.put(newOffer.getUUID(), contributions);
-				} catch (OffersPriceborderException e) {
-					Log.e(uuid, e.getMessage());
-					// TODO Was passiert, wenn Exception eintritt?
-				}
-
+				newOffer = new Offer(bestScore.getMerge(), contributions);
+				allOfferContributions.put(newOffer.getUUID(), contributions);
 			}
 		} else {
 			// neues Angebot erstellen
@@ -594,8 +615,19 @@ public class Consumer implements Identifiable {
 		// neue abweichung des erweiterten angebots gegenüber dem
 		// marktplatzangebot berechnen
 		// TODO logik prüfen!
-		Score newScore = new Score(bestScore.getMarketplace(), bestScore.getOwn(), receivedOffer, contributionOffer);
-		if (newScore.getScore() >= bestScore.getScore()) {
+		Offer newMerge = null;
+		Score newScore = null;
+		try {
+			newMerge = new Offer(bestScore.getMerge(), contributionOffer);
+			newScore = new Score(newMerge, bestScore.getMarketplace(), bestScore.getOwn(), receivedOffer,
+					contributionOffer);
+		} catch (OffersPriceborderException e) {
+			Log.d(uuid, "Angebote konnten nicht verknüpft werden.");
+		} catch (NullPointerException e) {
+			Log.d(uuid, "Beitrag konnte nicht realisiert werden.");
+		}
+
+		if (newScore == null || newScore.getScore() >= bestScore.getScore()) {
 			Log.d(uuid, "abweichung konnte nicht verringert werden, angebot nicht gut und wird verworfen");
 
 			// change requests aufheben
@@ -622,7 +654,7 @@ public class Consumer implements Identifiable {
 	}
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
-		Log.d(this.uuid, uuid + "received deltaloadprofile [" + deltaLoadprofile.toString() + "]");
+		Log.d(this.uuid, "received deltaloadprofile [" + deltaLoadprofile.toString() + "]");
 		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
 		GregorianCalendar timeCurrent = DateTime.now();
 		double[] valuesNew = deltaLoadprofile.getValues();

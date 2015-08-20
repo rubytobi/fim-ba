@@ -133,7 +133,7 @@ public class API<Request, Response> {
 	}
 
 	public void call(Identifiable who, HttpMethod how, Request what) {
-		Log.d(who.getUUID(), uri);
+		Log.d(who.getUUID(), uri + " body: " + what);
 
 		RestTemplate rest = new RestTemplate();
 
