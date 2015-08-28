@@ -1,5 +1,6 @@
 package Entity;
 
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Map;
@@ -9,7 +10,7 @@ import java.util.UUID;
 import org.springframework.http.HttpMethod;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
-import Packet.AnswerChangeRequest;
+import Packet.AnswerChangeRequestSchedule;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
@@ -44,9 +45,9 @@ public class BHKW implements Device {
 	 * Preis fuer 1l Brennstoff
 	 */
 	private double priceFuel;
-	
+
 	private double priceEex;
-	
+
 	/**
 	 * Fahrplan, der für die aktuelle ChangeRequest errechnet wurde
 	 */
@@ -141,9 +142,9 @@ public class BHKW implements Device {
 	 * @param cr
 	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
 	 *            soll
-	 * @return
+	 * @return Antwort auf den CR
 	 */
-	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr) {
+	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		String dateCR = DateTime.ToString(cr.getStartLoadprofile());
 		String dateCurrent = DateTime.ToString(cr.getStartLoadprofile());
@@ -268,7 +269,7 @@ public class BHKW implements Device {
 		}
 
 		// Schicke Info mit moeglichen Aenderungen und Preis dafuer an Consumer
-		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), changesKWH, price);
+		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), changesKWH, price);
 
 		waitForAnswerCR = true;
 		return answer;
@@ -594,7 +595,7 @@ public class BHKW implements Device {
 
 			if (sumDeltaValues != 0) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed, Loadprofile.Type.DELTA);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 			}
 			waitToChargeDeltaLoadprofile = false;
@@ -635,19 +636,23 @@ public class BHKW implements Device {
 		newPlan[minute] = oldPlan[minute];
 
 		// Pruefe, ob es weitere Abweichungen gibt
-		if (!oldPlan.equals(newPlan)) {
+		if (oldPlan.equals(newPlan)) {
+			Log.d(uuid, "Alter und neuer Lastplan unterscheiden sich nicht.");
+		} else {
+			Log.d(uuid,
+					"Alter und neuer Lastplan unterscheiden sich. Prüfen ob Deltalastprofil verschickt werden kann.");
+
 			if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed)) && waitForAnswerCR) {
-				// Warte mit Versenden des Delta-Lastprofils auf die Antwort der
-				// ChangeRequest
 				waitToChargeDeltaLoadprofile = true;
+				Log.d(uuid, "Warten mit Versenden des Deltalastprofils auf die Antwort der Änderungsanfrage.");
 			} else {
 				double[] deltaValues = new double[numSlots];
 				for (int i = 0; i < numSlots; i++) {
 					deltaValues[i] = oldPlan[i] - newPlan[i];
 				}
 
-				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start);
+				Log.d(uuid, "Versende Deltalastprofil an den Consumer.");
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start, Loadprofile.Type.DELTA);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 			}
 		}
@@ -697,20 +702,21 @@ public class BHKW implements Device {
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
-		
+
 		// Berechne die entstehenden Selbstkosten
 		double sumLoadprofile = 0;
-		for (int i= 0; i<numSlots; i++) {
+		for (int i = 0; i < numSlots; i++) {
 			sumLoadprofile += valuesLoadprofile[i];
 		}
 		double netCosts = sumLoadprofile * consFuelPerKWh * priceFuel;
 
 		// Lege minPrice und priceSugg fest.
-		
+
 		double priceSugg = Math.max(priceEex, netCosts);
 		double minPrice = Math.min(priceEex, netCosts);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice, Double.POSITIVE_INFINITY);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, minPrice,
+				Double.POSITIVE_INFINITY, Loadprofile.Type.INITIAL);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 

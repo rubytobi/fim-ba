@@ -7,7 +7,7 @@ import org.springframework.http.HttpMethod;
 import com.fasterxml.jackson.annotation.JsonView;
 import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
-import Packet.AnswerChangeRequest;
+import Packet.AnswerChangeRequestSchedule;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
@@ -19,44 +19,76 @@ import Util.View;
  *
  */
 public class Fridge implements Device {
-	// Fahrplan, den der Consumer gerade aushandelt mit Verbrauch (0) und
-	// Temperatur (1)
+	/**
+	 * Fahrplan, den der Consumer gerade aushandelt mit Verbrauch (0) und
+	 * Temperatur (1)
+	 */
 	@JsonView(View.Detail.class)
 	private double[][] scheduleMinutes = new double[2][15 * numSlots];
 
-	// Zeitpunkt, ab dem scheduleMinutes gilt
+	/**
+	 * Zeitpunkt, ab dem scheduleMinutes gilt
+	 */
 	@JsonView(View.Summary.class)
 	private GregorianCalendar timeFixed;
 
-	// Fahrpläne, die schon ausgehandelt sind und fest stehen
+	/**
+	 * Fahrpläne, die schon ausgehandelt sind und fest stehen
+	 */
 	@JsonView(View.Detail.class)
 	private TreeMap<String, double[]> schedulesFixed = new TreeMap<String, double[]>();
 
-	// Fahrplan, der für die aktuelle ChangeRequest errechnet wurde
+	/**
+	 * Fahrplan, der für die aktuelle ChangeRequest errechnet wurde
+	 */
 	private double[][] scheduleCurrentChangeRequest = new double[2][numSlots * 15];
 
-	// Lastprofile, die schon ausgehandelt sind und fest stehen
+	/**
+	 * Lastprofile, die schon ausgehandelt sind und fest stehen
+	 */
 	@JsonView(View.Detail.class)
 	private TreeMap<String, double[]> loadprofilesFixed = new TreeMap<String, double[]>();
 
-	// currTemp: Temperatur, bei der der nächste neue Fahrplan beginnen soll
+	/**
+	 * Temperatur, bei der der nächste neue Fahrplan beginnen soll
+	 */
 	@JsonView(View.Detail.class)
 	private double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
 
-	// currCooling: Gibt an, ob der nächste Fahrplan mit Kühlen beginnen soll
-	// waitForAnswerCR: Gibt an, ob aktuell auf die Antwort auf eine Change
-	// Request gewartet wird
-	// waitToChargeDeltaLoadprofile: Gibt an, ob während des Wartens auf die
-	// Antwort einer Change Request eine Termperaturänderung war
+	/**
+	 * Gibt an, ob der nächste Fahrplan mit Kühlen beginnen soll
+	 */
 	@JsonView(View.Detail.class)
-	private boolean currCooling, waitForAnswerCR, waitToChargeDeltaLoadprofile;
+	private boolean currCooling;
 
-	// Wie viel Grad pro Minute erwärmt bzw. kühlt der Kühlschrank?
+	/**
+	 * Gibt an, ob aktuell auf die Antwort auf eine Change Request gewartet wird
+	 */
 	@JsonView(View.Detail.class)
-	private double fallCooling, riseWarming;
+	private boolean waitForAnswerCR;
 
-	// consCooling: Verbrauch zum Kühlen pro Minute in kWh
-	// priceCooling: Kosten für eine Minute kühlen
+	/**
+	 * Gibt an, ob während des Wartens auf die Antwort einer Change Request eine
+	 * Termperaturänderung war
+	 */
+	@JsonView(View.Detail.class)
+	private boolean waitToChargeDeltaLoadprofile;
+
+	/**
+	 * Wie viel Grad pro Minute kühlt der Kühlschrank?
+	 */
+	@JsonView(View.Detail.class)
+	private double fallCooling;
+
+	/**
+	 * Wie viel Grad pro Minute erwärmt der Kühlschrank?
+	 */
+	@JsonView(View.Detail.class)
+	private double riseWarming;
+
+	/**
+	 * Verbrauch zum Kühlen pro Minute in kWh
+	 */
 	@JsonView(View.Detail.class)
 	private double consCooling;
 
@@ -77,8 +109,7 @@ public class Fridge implements Device {
 	private Fridge() {
 		status = DeviceStatus.CREATED;
 		uuid = UUID.randomUUID();
-		Marketplace mp = Marketplace.instance();
-		this.priceEex = mp.getEEXPrice();
+		priceEex = Marketplace.getEEXPrice();
 	}
 
 	/**
@@ -144,7 +175,7 @@ public class Fridge implements Device {
 	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
 	 *            soll
 	 */
-	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr) {
+	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		int[] changesMinute = new int[numSlots];
 		double[][] plannedSchedule = scheduleMinutes.clone();
@@ -524,7 +555,7 @@ public class Fridge implements Device {
 		}
 
 		// Gibt mögliche Änderungen und den Faktor für deren Preis zurück
-		AnswerChangeRequest answer = new AnswerChangeRequest(cr.getUUID(), newChangesKWH, factorForPrice);
+		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH, factorForPrice);
 		return answer;
 	}
 
@@ -921,7 +952,7 @@ public class Fridge implements Device {
 			}
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, timeFixed, Loadprofile.Type.DELTA);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils
@@ -1011,7 +1042,8 @@ public class Fridge implements Device {
 		// Lege maxPrice fest
 		double maxPrice = Math.max(0, priceEex);
 
-		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, Double.NEGATIVE_INFINITY, maxPrice);
+		Loadprofile loadprofile = new Loadprofile(valuesLoadprofile, timeFixed, priceSugg, Double.NEGATIVE_INFINITY,
+				maxPrice, Loadprofile.Type.INITIAL);
 		sendLoadprofileToConsumer(loadprofile);
 	}
 
@@ -1096,7 +1128,7 @@ public class Fridge implements Device {
 			}
 			if (change) {
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, Loadprofile.Type.DELTA);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils

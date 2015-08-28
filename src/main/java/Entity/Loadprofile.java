@@ -13,6 +13,10 @@ import Util.DateTime;
  *
  */
 public class Loadprofile {
+	public enum Type {
+		UNDEFINED, INITIAL, DELTA, CHANGE_REQUEST, MIXED
+	};
+
 	private UUID uuid;
 
 	// Verbrauch pro 15 Minuten
@@ -34,11 +38,10 @@ public class Loadprofile {
 	private double minPrice;
 
 	// Gibt, an, ob das Lastprofil Preise festsetzt
-	@JsonProperty("hasPrices")
-	private boolean hasPrices;
+	private Type type;
 
 	private Loadprofile() {
-		hasPrices = false;
+		type = Type.UNDEFINED;
 		uuid = UUID.randomUUID();
 	}
 
@@ -58,19 +61,23 @@ public class Loadprofile {
 	 * @param isDelta
 	 *            Gibt an, ob das Lastprofil ein Deltalastprofil ist
 	 */
-	public Loadprofile(double[] values, GregorianCalendar date, double priceSugg, double minPrice, double maxPrice) {
+	public Loadprofile(double[] values, GregorianCalendar date, double priceSugg, double minPrice, double maxPrice,
+			Type isDelta) {
 		this();
 
 		this.values = values;
 		this.date = date;
+		this.type = isDelta;
+
 		if (minPrice <= priceSugg && priceSugg <= maxPrice) {
 			this.priceSugg = priceSugg;
 			this.maxPrice = maxPrice;
 			this.minPrice = minPrice;
-			hasPrices = true;
-		} else {
-			hasPrices = false;
 		}
+	}
+
+	public Type getType() {
+		return type;
 	}
 
 	/**
@@ -82,13 +89,15 @@ public class Loadprofile {
 	 *            Werte des Lastprofils
 	 * @param date
 	 *            Startzeit des Lastprofils
+	 * @param state
+	 *            Lastprofilestatus
 	 */
-	public Loadprofile(double[] values, GregorianCalendar date) {
+	public Loadprofile(double[] values, GregorianCalendar date, Type state) {
 		this();
 
 		this.values = values;
 		this.date = date;
-		this.hasPrices = false;
+		this.type = state;
 	}
 
 	/**
@@ -123,11 +132,11 @@ public class Loadprofile {
 		this.priceSugg = (lp1.getPriceSugg() * lp1.getLoad() + lp2.getPriceSugg() * lp2.getLoad())
 				/ (lp1.getLoad() + lp2.getLoad());
 
-		hasPrices = false;
+		type = Type.MIXED;
 	}
 
 	public Loadprofile(ChangeRequestSchedule cr) {
-		this(cr.getChangesLoadprofile(), cr.getStartLoadprofile());
+		this(cr.getChangesLoadprofile(), cr.getStartLoadprofile(), Type.MIXED);
 		this.uuid = cr.getUUID();
 	}
 
@@ -208,7 +217,7 @@ public class Loadprofile {
 	 */
 	public String toString() {
 		return "Loadprofile [values=" + Arrays.toString(values) + ",date=" + DateTime.ToString(date) + ",priceSugg="
-				+ priceSugg + ",minPrice=" + minPrice + ",maxPrice=" + maxPrice + ",hasPrices=" + hasPrices + "]";
+				+ priceSugg + ",minPrice=" + minPrice + ",maxPrice=" + maxPrice + ",isDelta=" + type + "]";
 	}
 
 	/**
@@ -250,8 +259,8 @@ public class Loadprofile {
 	}
 
 	@JsonIgnore
-	public boolean hasPrices() {
-		return hasPrices;
+	public boolean isDelta() {
+		return type.equals(Type.DELTA);
 	}
 
 	public UUID getUUID() {
@@ -260,10 +269,5 @@ public class Loadprofile {
 
 	public Offer toOffer(UUID author) {
 		return new Offer(author, this);
-	}
-
-	public static int compare(Object loadprofile, Object loadprofile2) {
-		// TODO Auto-generated method stub
-		return 0;
 	}
 }

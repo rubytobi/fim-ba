@@ -17,7 +17,7 @@ import Container.DeviceContainer;
 import Entity.BHKW;
 import Entity.Device;
 import Entity.Fridge;
-import Packet.AnswerChangeRequest;
+import Packet.AnswerChangeRequestSchedule;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
 import Util.ResponseBuilder;
@@ -77,6 +77,7 @@ public class DeviceController {
 	 *            Geraet-ID
 	 * @param consumerUUID
 	 *            Consumer-ID
+	 * @return leere Antwort
 	 */
 	@RequestMapping(value = "/devices/{deviceUUID}/link/{consumerUUID}", method = RequestMethod.POST)
 	public ResponseEntity<Void> linkDevice(@PathVariable UUID deviceUUID, @PathVariable UUID consumerUUID) {
@@ -119,13 +120,15 @@ public class DeviceController {
 	 *            ChangeRequest
 	 * @param uuid
 	 *            Device-ID
+	 * @return Antwort auf CD
 	 */
 	@RequestMapping(value = "/devices/{uuid}", method = RequestMethod.DELETE)
-	public ResponseEntity<AnswerChangeRequest> receiveChangeRequest(@RequestBody ChangeRequestSchedule cr,
+	public ResponseEntity<AnswerChangeRequestSchedule> receiveChangeRequest(@RequestBody ChangeRequestSchedule cr,
 			@PathVariable UUID uuid) {
-		AnswerChangeRequest body = DeviceContainer.instance().get(uuid).changeLoadprofile(cr);
+		AnswerChangeRequestSchedule body = DeviceContainer.instance().get(uuid).receiveChangeRequestSchedule(cr);
 
-		return new ResponseBuilder<AnswerChangeRequest>(DeviceContainer.instance().get(uuid)).body(body).build();
+		return new ResponseBuilder<AnswerChangeRequestSchedule>(DeviceContainer.instance().get(uuid)).body(body)
+				.build();
 	}
 
 	/**
@@ -135,7 +138,7 @@ public class DeviceController {
 	 *            Zeit des Lastprofils
 	 * @param uuid
 	 *            Device-ID
-	 * @return
+	 * @return Leere Antwort
 	 */
 	@RequestMapping(value = "/devices/{uuid}/confirm/{time}", method = RequestMethod.GET)
 	public ResponseEntity<Void> receiveChangeRequest(@RequestBody GregorianCalendar time, @PathVariable UUID uuid) {

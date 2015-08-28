@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
+import Packet.AnswerChangeRequestLoadprofile;
 import Packet.ChangeRequestLoadprofile;
 import Util.API;
 import Util.Log;
@@ -94,8 +95,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		status = OfferStatus.VALID;
 	}
 
-	// TODO
-	public Offer(Offer withPrivileges, HashMap<UUID, ChangeRequestLoadprofile> contributions) {
+	public Offer(Offer withPrivileges, HashMap<UUID, AnswerChangeRequestLoadprofile> contributions) {
 		this();
 
 		Log.d(uuid, "Offer(withPrivileges=" + withPrivileges.toString() + ",contributions=" + contributions.toString()
@@ -116,8 +116,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 			for (UUID loadprofileUUID : withPrivileges.getAllLoadprofiles().get(consumerUUID).keySet()) {
 				if (this.allLoadprofiles.get(consumerUUID).containsKey(loadprofileUUID)) {
 					// ein bereits existierendes loadprofile soll
-					// hinzugefügt
-					// werden???
+					// hinzugefügt werden???
 					Log.d(uuid, "adding an existing loadprofile [" + loadprofileUUID + "] to the offer ["
 							+ this.toString() + "]");
 					continue;
@@ -131,8 +130,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 
 		for (UUID consumer : contributions.keySet()) {
 
-			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChange(), getDate(), getPriceSugg(),
-					getMinPrice(), getMaxPrice()));
+			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChanges(), getDate(),
+					getPriceSugg(), getMinPrice(), getMaxPrice(), Loadprofile.Type.DELTA));
 		}
 
 		priceSugg = getAggLoadprofile().getPriceSugg();
@@ -149,6 +148,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 *            Offer Angebot des Authors
 	 * @param withoutPrivileges
 	 *            Offer zweites Angbeot
+	 * @throws OffersPriceborderException
+	 *             die Preisgrenzen stimmen nicht überein
 	 */
 	public Offer(Offer withPrivileges, Offer withoutPrivileges) throws OffersPriceborderException {
 		this();
@@ -195,7 +196,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 							"new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
 					Loadprofile value = o.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
 
-
 					if (value.getMinPrice() < this.minPrice) {
 						this.minPrice = value.getMinPrice();
 					}
@@ -228,15 +228,13 @@ public class Offer implements Comparable<Offer>, Cloneable {
 
 		newPriceSugg = Math.round(100.00 * (weightWithPrivileges * priceSuggWithPrivileges
 				+ weightWithoutPrivileges * priceSuggWithoutPrivileges)) / 100.00;
-		
+
 		if (newPriceSugg < this.minPrice) {
 			newPriceSugg = this.minPrice;
-		}
-		else if (newPriceSugg > this.maxPrice) {
+		} else if (newPriceSugg > this.maxPrice) {
 			newPriceSugg = this.maxPrice;
 		}
 		this.priceSugg = newPriceSugg;
-
 
 		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;

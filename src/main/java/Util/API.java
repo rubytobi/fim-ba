@@ -1,7 +1,6 @@
 package Util;
 
 import java.util.ArrayList;
-import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.UUID;
 
@@ -133,7 +132,7 @@ public class API<Request, Response> {
 	}
 
 	public void call(Identifiable who, HttpMethod how, Request what) {
-		Log.d(who.getUUID(), uri + " body: " + what);
+		// Log.d(who.getUUID(), uri + " body: " + what);
 
 		RestTemplate rest = new RestTemplate();
 

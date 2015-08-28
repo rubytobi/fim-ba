@@ -5,7 +5,7 @@ import java.util.UUID;
 import java.util.GregorianCalendar;
 
 import Packet.ChangeRequestSchedule;
-import Packet.AnswerChangeRequest;
+import Packet.AnswerChangeRequestSchedule;
 
 /**
  * Interface fuer alle Verbrauchsgeraete
@@ -21,8 +21,9 @@ public interface Device extends Identifiable {
 	 * @param cr
 	 *            Enthaelt Informationen, wie das Lastprofil geaendert werden
 	 *            soll
+	 * @return Antwort auf den CR
 	 */
-	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr);
+	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr);
 
 	/**
 	 * Erzeugt ein Deltalastprofil und sendet es an den Consumer. Methode wird
@@ -76,7 +77,7 @@ public interface Device extends Identifiable {
 	 *            Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
 	 */
 	public void confirmLoadprofile(GregorianCalendar time);
-	
+
 	public void receiveAnswerChangeRequest(boolean acceptChange);
 
 }

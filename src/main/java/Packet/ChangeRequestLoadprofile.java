@@ -53,10 +53,16 @@ public class ChangeRequestLoadprofile {
 	}
 
 	public Loadprofile toLoadprofile(GregorianCalendar date) {
-		return new Loadprofile(change, date);
+		return new Loadprofile(change, date, Loadprofile.Type.DELTA);
 	}
 
 	public String toString() {
 		return "ChangeRequestLoadprofile [offer=" + offer + ",change=" + Arrays.toString(change) + "]";
+	}
+
+	public void sub(AnswerChangeRequestLoadprofile answer) {
+		for (int i = 0; i < 4; i++) {
+			change[i] -= answer.getChanges()[i];
+		}
 	}
 }

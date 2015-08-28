@@ -37,23 +37,34 @@ public class MarketplaceController {
 		return Marketplace.instance().getPrediction();
 	}
 
-	@RequestMapping(value = "/marketplace/search", method = RequestMethod.GET)
-	public ResponseEntity<Offer[]> searchOffers(@RequestBody(required = false) SearchParams params) {
-		if (params == null) {
-			params = new SearchParams(DateTime.currentTimeSlot(), Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
-		}
+	@RequestMapping(value = "/marketplace/search", method = RequestMethod.POST)
+	public ResponseEntity<Offer[]> searchOffers(@RequestBody SearchParams params) {
+		return Marketplace.instance().search(params);
+	}
+
+	@RequestMapping(value = "/marketplace/search/now", method = RequestMethod.GET)
+	public ResponseEntity<Offer[]> searchOffersNow() {
+		SearchParams params = new SearchParams(DateTime.currentTimeSlot(), Double.NEGATIVE_INFINITY,
+				Double.POSITIVE_INFINITY);
+		return Marketplace.instance().search(params);
+	}
+
+	@RequestMapping(value = "/marketplace/search/next", method = RequestMethod.GET)
+	public ResponseEntity<Offer[]> searchOffersNextHour() {
+		SearchParams params = new SearchParams(DateTime.nextTimeSlot(), Double.NEGATIVE_INFINITY,
+				Double.POSITIVE_INFINITY);
 		return Marketplace.instance().search(params);
 	}
 
 	@RequestMapping(value = "/marketplace/offers", method = RequestMethod.POST)
 	public ResponseEntity<Void> addOffer(@RequestBody Offer offer) {
-		Marketplace.instance().addOffer(offer);
+		Marketplace.instance().receiveOffer(offer);
 		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
 
 	@RequestMapping(value = "/marketplace/offers/{uuid}", method = RequestMethod.GET)
 	public Offer getOffer(@RequestBody UUID uuid) {
-		return Marketplace.instance().getOffers(uuid);
+		return Marketplace.instance().getOffer(uuid);
 	}
 
 	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)

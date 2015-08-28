@@ -2,6 +2,8 @@ package Packet;
 
 import java.util.UUID;
 
+import Entity.Offer;
+
 /**
  * Paket, das an alle Devices verschikt wird, um ueber ein neues Angebot zu
  * informieren
@@ -18,9 +20,9 @@ public class OfferNotification {
 	/**
 	 * Erstellt eine neue OfferNotification
 	 * 
-	 * @param location
-	 *            URL, unter der das neue Angebot zu finden ist
-	 * @param offerUUID
+	 * @param consumer
+	 *            Consumer der das Angebot bereit hält
+	 * @param offer
 	 *            Angebots-ID
 	 */
 	public OfferNotification(UUID consumer, UUID offer) {
@@ -49,5 +51,9 @@ public class OfferNotification {
 	 */
 	public String toString() {
 		return "OfferNotification [consumer=" + consumer + ",offer=" + offer + "]";
+	}
+
+	public static OfferNotification parseOffer(Offer offer) {
+		return new OfferNotification(offer.getAuthor(), offer.getUUID());
 	}
 }

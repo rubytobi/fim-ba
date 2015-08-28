@@ -14,10 +14,12 @@ public class BATest {
 
 	@Test
 	public void testScoreCalculation() {
-		Loadprofile lA = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
+		Loadprofile lA = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot(),
+				Loadprofile.Type.DELTA);
 		Offer oA = new Offer(UUID.randomUUID(), lA);
 
-		Loadprofile lB = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot());
+		Loadprofile lB = new Loadprofile(new double[] { 0.0, 0.0, 0.0, 0.0 }, DateTime.currentTimeSlot(),
+				Loadprofile.Type.DELTA);
 		Offer oB = new Offer(UUID.randomUUID(), lB);
 
 		Scorecard scorecard = new Scorecard();

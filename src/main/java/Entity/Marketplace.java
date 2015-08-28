@@ -343,9 +343,8 @@ public class Marketplace implements Identifiable {
 		sumLoadprofilesConfirmedOffers.put(DateTime.ToString(offer.getDate()), values);
 
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer.getUUID(), newPrice);
-		Set<UUID> set = offer.getAllLoadprofiles().keySet();
 
-		for (UUID consumer : set) {
+		for (UUID consumer : offer.getAllLoadprofiles().keySet()) {
 			API<AnswerToOfferFromMarketplace, Void> api2 = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
 			api2.consumers(consumer).offers(offer.getUUID()).confirmByMarketplace();
 			api2.call(this, HttpMethod.POST, answerOffer);
@@ -442,8 +441,8 @@ public class Marketplace implements Identifiable {
 				blackListPossibleMatches.put(date, possibleMatchesBlackList);
 
 				// Setze beide Angebote wieder neu auf den Marktplatz
-				addOffer(offers[0]);
-				addOffer(offers[1]);
+				receiveOffer(offers[0]);
+				receiveOffer(offers[1]);
 			}
 			negotiatingOffers.remove(negotiation);
 		}
@@ -579,11 +578,13 @@ public class Marketplace implements Identifiable {
 	}
 
 	/**
+	 * Gibt ein Angebot zurück
 	 * 
 	 * @param uuid
-	 * @return
+	 *            Angebots-ID
+	 * @return Angebot
 	 */
-	public Offer getOffers(UUID uuid) {
+	public Offer getOffer(UUID uuid) {
 		// TODO Auto-generated method stub
 		Set<String> demands = demand.keySet();
 		for (String current : demands) {
@@ -900,7 +901,7 @@ public class Marketplace implements Identifiable {
 	 * @param offer
 	 *            Neues Angebot, das am Markt teilnehmen will
 	 */
-	public void addOffer(Offer offer) {
+	public void receiveOffer(Offer offer) {
 		GregorianCalendar dateGreg = offer.getDate();
 		String date = DateTime.ToString(dateGreg);
 
@@ -980,7 +981,7 @@ public class Marketplace implements Identifiable {
 	 *            Lastprofile
 	 */
 	public void removeOffer(UUID offer, boolean confirmed) {
-		Offer removeOffer = getOffers(offer);
+		Offer removeOffer = getOffer(offer);
 		if (removeOffer == null) {
 			removeOffer = getSupply(offer);
 		}
@@ -1231,9 +1232,8 @@ public class Marketplace implements Identifiable {
 		String dateString = DateTime.ToString(DateTime.currentTimeSlot());
 
 		if (!supply.containsKey(dateString) || supply.get(dateString) == null) {
-			return new ResponseBuilder<Offer[]>(this)
-					.body(new Offer[] {
-							new Offer(uuid, new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot())) })
+			return new ResponseBuilder<Offer[]>(this).body(new Offer[] { new Offer(uuid,
+					new Loadprofile(prediction.get(dateString), DateTime.currentTimeSlot(), Loadprofile.Type.MIXED)) })
 					.build();
 		}
 
@@ -1262,29 +1262,37 @@ public class Marketplace implements Identifiable {
 	 *            Anzahl an Angeboten, die angefragt wird
 	 * @return Liste aller teuersten Angebote
 	 */
-	private ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar date, int number) {
-		ArrayList<Offer> allDemandsAtDate = demand.get(date);
-		if (allDemandsAtDate.size() < number) {
-			number = allDemandsAtDate.size();
-		}
-		ArrayList<Offer> mostExpensive = new ArrayList<Offer>();
-		for (int i = 0; i < number; i++) {
-			mostExpensive.add(allDemandsAtDate.get(i));
-		}
-		return mostExpensive;
-	}
+	// private ArrayList<Offer> getMostExpensiveDemandOffer(GregorianCalendar
+	// date, int number) {
+	// ArrayList<Offer> allDemandsAtDate = demand.get(date);
+	// if (allDemandsAtDate.size() < number) {
+	// number = allDemandsAtDate.size();
+	// }
+	// ArrayList<Offer> mostExpensive = new ArrayList<Offer>();
+	// for (int i = 0; i < number; i++) {
+	// mostExpensive.add(allDemandsAtDate.get(i));
+	// }
+	// return mostExpensive;
+	// }
 
+	/**
+	 * Ermögicht die Suche nach Angeboten
+	 * 
+	 * @param params
+	 *            Suchparameter
+	 * @return Liste an eingeschlossenen Angeboten
+	 */
 	public ResponseEntity<Offer[]> search(SearchParams params) {
 		String date = DateTime.ToString(params.getDate());
 
 		ArrayList<Offer> result = new ArrayList<Offer>();
 
 		for (Offer o : demand.getOrDefault(date, new ArrayList<Offer>())) {
-			if (o.getMinPrice() <= params.getMinPrice()) {
+			if (o.getMinPrice() < params.getMinPrice()) {
 				continue;
 			}
 
-			if (o.getMaxPrice() >= params.getMaxPrice()) {
+			if (o.getMaxPrice() > params.getMaxPrice()) {
 				continue;
 			}
 
@@ -1316,16 +1324,17 @@ public class Marketplace implements Identifiable {
 	 *            Anzahl an Angeboten, die angefragt wird
 	 * @return Liste aller guenstigsten Angebote
 	 */
-	private ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date, int number) {
-		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
-		if (allSuppliesAtDate.size() < number) {
-			number = allSuppliesAtDate.size();
-		}
-		ArrayList<Offer> cheapest = new ArrayList<Offer>();
-		for (int i = 0; i < number; i++) {
-			cheapest.add(allSuppliesAtDate.get(i));
-		}
-		return cheapest;
-	}
+	// private ArrayList<Offer> getCheapestSupplyOffer(GregorianCalendar date,
+	// int number) {
+	// ArrayList<Offer> allSuppliesAtDate = supply.get(date);
+	// if (allSuppliesAtDate.size() < number) {
+	// number = allSuppliesAtDate.size();
+	// }
+	// ArrayList<Offer> cheapest = new ArrayList<Offer>();
+	// for (int i = 0; i < number; i++) {
+	// cheapest.add(allSuppliesAtDate.get(i));
+	// }
+	// return cheapest;
+	// }
 
 }

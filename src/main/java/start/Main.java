@@ -20,10 +20,10 @@ public class Main {
 		now.set(Calendar.SECOND, 0);
 		now.set(Calendar.MILLISECOND, 0);
 
-		Loadprofile loadprofile = new Loadprofile(values, now, 2.0, 5.0, 8.0);
-		System.out.println("Max: " +loadprofile.getMaxPrice());
-		System.out.println("Min: " +loadprofile.getMinPrice());
-		
+		Loadprofile loadprofile = new Loadprofile(values, now, 2.0, 5.0, 8.0, Loadprofile.Type.INITIAL);
+		System.out.println("Max: " + loadprofile.getMaxPrice());
+		System.out.println("Min: " + loadprofile.getMinPrice());
+
 		double startTemp = 5.5;
 		double maxPrice = Math.max(0, 5);
 		double minPrice = Math.min(0, 5);
@@ -36,9 +36,8 @@ public class Main {
 		} else {
 			double span = maxTemp1 - minTemp1;
 			startTemp = startTemp - minTemp1;
-			System.out.println( (Math.round(100.00 * (startTemp / span)) / 100.00)*maxPrice + minPrice);
+			System.out.println((Math.round(100.00 * (startTemp / span)) / 100.00) * maxPrice + minPrice);
 		}
-		
 
 	}
 }

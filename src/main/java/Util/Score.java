@@ -1,7 +1,6 @@
 package Util;
 
 import Entity.Offer;
-import Event.OffersPriceborderException;
 
 public class Score implements Cloneable {
 	private Offer marketplace;
@@ -75,18 +74,6 @@ public class Score implements Cloneable {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		if (obj instanceof Score) {
-			if (((Score) obj).getOwn().getUUID().equals(own.getUUID())
-					&& ((Score) obj).getMarketplace().getUUID().equals(marketplace.getUUID())) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	@Override
 	public Score clone() {
 		return new Score(merge, marketplace, own, received, changeRequest);
 	}
@@ -106,5 +93,13 @@ public class Score implements Cloneable {
 
 	public double getPriceDeviation() {
 		return Math.abs(marketplace.getPriceSugg() - merge.getPriceSugg());
+	}
+
+	public boolean hasReceivedOffer() {
+		return hasReceived;
+	}
+
+	public boolean hasChangeRequest() {
+		return hasChangeRequest;
 	}
 }

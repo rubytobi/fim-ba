@@ -12,7 +12,7 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.ChangeRequestSchedule;
-import Packet.AnswerChangeRequest;
+import Packet.AnswerChangeRequestSchedule;
 import Util.DateTime;
 import Util.View;
 
@@ -323,7 +323,7 @@ public class Washer implements Device {
 		// TODO
 	}
 
-	public AnswerChangeRequest changeLoadprofile(ChangeRequestSchedule cr) {
+	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
 		// TODO
 		return null;
 	}

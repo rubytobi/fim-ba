@@ -20,6 +20,7 @@ import Entity.Offer;
 import Packet.OfferNotification;
 import Util.ResponseBuilder;
 import Util.View;
+import Packet.AnswerChangeRequestLoadprofile;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 
@@ -69,6 +70,7 @@ public class ConsumerController {
 	 *            der gewuenschte Consumer
 	 * @param deviceUUID
 	 *            das zu verbindende Gerät
+	 * @return Leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{consumerUUID}/link/{deviceUUID}", method = RequestMethod.POST)
 	public ResponseEntity<Void> linkDeviceToCustomer(@PathVariable UUID consumerUUID, @PathVariable UUID deviceUUID) {
@@ -120,6 +122,9 @@ public class ConsumerController {
 	 *            Lastprofil
 	 * @param uuid
 	 *            Consumer-ID
+	 * @param identity
+	 *            Wer ruft
+	 * @return leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/loadprofiles", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveLoadprofileByDevice(
@@ -137,6 +142,7 @@ public class ConsumerController {
 	 *            Angebotsbenachrichtigung
 	 * @param uuid
 	 *            Consumer-ID
+	 * @return leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveOfferNotification(@RequestBody OfferNotification offerNotification,
@@ -152,7 +158,7 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 * @param answerOffer
 	 *            Angebots-Antwort
-	 * @return
+	 * @return leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/confirmByMarketplace", method = RequestMethod.POST)
 	public ResponseEntity<Void> confirmOfferByMarketplace(@PathVariable UUID uuid,
@@ -169,7 +175,7 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 * @param cr
 	 *            Aenderungsaufforderung
-	 * @return
+	 * @return leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/receiveChangeRequestLoadprofile", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveChangeRequestLoadprofile(@PathVariable UUID uuid,
@@ -186,9 +192,10 @@ public class ConsumerController {
 	 *            Consumer-ID
 	 * @param cr
 	 *            Aenderungsaufforderung
+	 * @return Antwort auf CR
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest", method = RequestMethod.POST)
-	public ResponseEntity<ChangeRequestLoadprofile> receiveChangeRequest(@PathVariable UUID uuid,
+	public ResponseEntity<AnswerChangeRequestLoadprofile> receiveChangeRequest(@PathVariable UUID uuid,
 			@RequestBody ChangeRequestLoadprofile cr) {
 		return ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
 	}
@@ -210,7 +217,7 @@ public class ConsumerController {
 	 *            Verhandlungs-ID
 	 * @param answerOffer
 	 *            Angebots-Antwort
-	 * @return
+	 * @return Leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/negotiation/{uuidNegotiation/priceChangeRequest", method = RequestMethod.POST)
 	public ResponseEntity<Void> priceChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidNegotiation,
@@ -232,7 +239,7 @@ public class ConsumerController {
 	 * @return Consumer bestaetigt Bestaetigung
 	 */
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOffer}/confirm/{key}", method = RequestMethod.GET)
-	public boolean confirmOfferByConsumer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer,
+	public ResponseEntity<Boolean> confirmOfferByConsumer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOffer,
 			@PathVariable UUID key) {
 		return ConsumerContainer.instance().get(uuidConsumer).confirmOfferByConsumer(uuidOffer, key);
 	}
@@ -247,11 +254,13 @@ public class ConsumerController {
 	 *            alte Angebots-ID
 	 * @param uuidOfferNew
 	 *            neue Angebots-ID
+	 * @return leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuidConsumer}/offers/{uuidOfferOld}/replace/{uuidOfferNew}", method = RequestMethod.GET)
-	public void replaceOffer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOfferOld,
+	public ResponseEntity<Void> replaceOffer(@PathVariable UUID uuidConsumer, @PathVariable UUID uuidOfferOld,
 			@PathVariable UUID uuidOfferNew) {
 		ConsumerContainer.instance().get(uuidConsumer).replaceOffer(uuidOfferOld, uuidOfferNew);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuidConsumer));
 	}
 
 	/**
@@ -264,11 +273,13 @@ public class ConsumerController {
 	 *            Angebots-ID auf die geantwortet wird
 	 * @param offerNotification
 	 *            Antgebotsbenachrichtigung
+	 * @return Leere Antwort
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/answer", method = RequestMethod.POST)
-	public void confirmOfferByDevice(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
+	public ResponseEntity<Void> confirmOfferByDevice(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
 			@RequestBody OfferNotification offerNotification) {
 		ConsumerContainer.instance().get(uuid).answerOffer(uuidOffer, offerNotification);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
 
 	/**

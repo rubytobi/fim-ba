@@ -31,7 +31,7 @@ import Util.API;
 @EnableScheduling
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
-	private static final int maxFridges = 10;
+	private static final int maxFridges = 3;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 	private final static Identifiable root = new Identifiable() {
 		private final UUID root = UUID.fromString("00000000-0000-0000-0000-0000");
@@ -132,7 +132,7 @@ public class Application {
 		}
 	}
 
-	@Scheduled(fixedRate = 5000)
+	// @Scheduled(fixedRate = 5000)
 	public static void pingMarketplace() {
 		RestTemplate rest = new RestTemplate();
 

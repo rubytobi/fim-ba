@@ -16,6 +16,7 @@ public class Identity {
 	/**
 	 * 
 	 * @param caller
+	 *            Object des Rufenden
 	 */
 	public Identity(Identifiable caller) {
 		this.uuid = caller.getUUID();

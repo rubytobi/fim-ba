@@ -64,4 +64,15 @@ public class DateTime {
 		return now;
 	}
 
+	public static GregorianCalendar nextTimeSlot() {
+		GregorianCalendar now = now();
+
+		now.set(Calendar.HOUR, now.get(Calendar.HOUR) + 1);
+		now.set(Calendar.MINUTE, 0);
+		now.set(Calendar.SECOND, 0);
+		now.set(Calendar.MILLISECOND, 0);
+
+		return now;
+	}
+
 }

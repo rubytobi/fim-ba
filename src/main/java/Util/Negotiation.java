@@ -2,10 +2,7 @@ package Util;
 
 import java.util.UUID;
 
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
-import org.springframework.web.client.RestTemplate;
-
 import Container.NegotiationContainer;
 import Entity.Identifiable;
 import Entity.Marketplace;
@@ -13,7 +10,6 @@ import Entity.Offer;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.AnswerToPriceChangeRequest;
 import Packet.EndOfNegotiation;
-import start.Application;
 
 public class Negotiation {
 	private Offer offer1, offer2;
@@ -32,7 +28,6 @@ public class Negotiation {
 	private Negotiation() {
 		marketplace = Marketplace.instance();
 	}
-
 
 	public Negotiation(Offer offer1, Offer offer2, double sumLoadprofile1, double sumLoadprofile2) {
 		this();
