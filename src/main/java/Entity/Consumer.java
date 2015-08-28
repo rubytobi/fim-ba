@@ -601,11 +601,11 @@ public class Consumer implements Identifiable {
 
 		for (UUID c : contributions.keySet()) {
 			if (contributionOffer == null) {
-				contributionOffer = contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c);
+				contributionOffer = contributions.get(c).getLoadprofile().toOffer(c);
 			} else {
 				try {
 					contributionOffer = new Offer(contributionOffer,
-							contributions.get(c).toLoadprofile(ownOffer.getDate()).toOffer(c));
+							contributions.get(c).getLoadprofile().toOffer(c));
 				} catch (OffersPriceborderException e) {
 					Log.e(uuid, "Aufgrund der Preisgrenzen, konnte die Änderung nicht zusammengeführt werden.");
 					Log.e(uuid, e.getMessage());
@@ -715,9 +715,7 @@ public class Consumer implements Identifiable {
 
 		if (affectedOffer == null) {
 			Log.d(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
-			return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
-					.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), new double[] { 0.0, 0.0, 0.0, 0.0 }, 1))
-					.build();
+			return null;
 		}
 
 		// Frage eigenes Device nach Änderung
@@ -728,8 +726,56 @@ public class Consumer implements Identifiable {
 		Log.d(uuid, "Angefragte Änderung: [" + Arrays.toString(cr.getChange()) + "]");
 		Log.d(uuid, "Erhaltene Änderung: [" + Arrays.toString(answer.getChanges()) + "]");
 
+		// TODO Berechnung neue Grenzen
+		// TODO ANswerChangeRequestLoadprofile ändern
+
+		// Suche das initiale Lastprofil, das zu dieser Änderung gehört
+		Set<UUID> loadprofiles = affectedOffer.getAllLoadprofiles().get(this.getUUID()).keySet();
+		Loadprofile initialLoadprofile = null;
+		for (UUID uuidLoadprofile : loadprofiles) {
+			Loadprofile currentLoadprofile = affectedOffer.getAllLoadprofiles().get(this.getUUID())
+					.get(uuidLoadprofile);
+			if (currentLoadprofile.getType() == Loadprofile.Type.INITIAL) {
+				initialLoadprofile = currentLoadprofile;
+			}
+		}
+		
+		if (initialLoadprofile == null) {
+			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");
+			return null;
+		}
+
+		// Berechne die Summe des alten Lastprofiles
+		double sumOldLoadprofile = 0;
+		for (int i = 0; i < numSlots; i++) {
+			sumOldLoadprofile += initialLoadprofile.getValues()[i];
+		}
+
+		// Berechne den Preis der Änderung und die daraus resultierenden neune
+		// Minima und Maxima
+		double priceChange = answer.getPriceFactor() * affectedOffer.getPriceSugg();
+
+		double newMax, newMin;
+		if (sumOldLoadprofile < 0) {
+			newMax = initialLoadprofile.getMaxPrice() - priceChange;
+			newMin = initialLoadprofile.getMinPrice();
+		} else {
+			newMin = initialLoadprofile.getMinPrice() + priceChange;
+			newMax = initialLoadprofile.getMaxPrice();
+		}
+		
+		// Lege neuen Preisvorschlag fest
+		double newPriceSugg = initialLoadprofile.getPriceSugg();
+		if (newPriceSugg < newMin) {
+			newPriceSugg = newMin;
+		}
+		if (newPriceSugg > newMax) {
+			newPriceSugg = newMax;
+		}
+
+		Loadprofile changedLoadprofile = new Loadprofile(answer.getChanges(), initialLoadprofile.getDate(), newPriceSugg, newMin, newMax, Loadprofile.Type.CHANGE_REQUEST);
 		return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
-				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), answer.getChanges(), answer.getPriceFactor()))
+				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), changedLoadprofile))
 				.build();
 				// }
 				//

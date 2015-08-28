@@ -15,14 +15,9 @@ public class AnswerChangeRequestLoadprofile {
 	private UUID uuid;
 
 	/**
-	 * Mögliche Änderungen des Geräts
+	 * Lastprofil, das alle Änderungen und deren Grenzen enthält
 	 */
-	private double[] changes;
-
-	/**
-	 * Kostenfaktor für die möglichen Änderungen
-	 */
-	private double priceFactor;
+	private Loadprofile loadprofile;
 
 	public AnswerChangeRequestLoadprofile() {
 		// dummy
@@ -38,28 +33,18 @@ public class AnswerChangeRequestLoadprofile {
 	 * @param priceFactor
 	 *            Preisänderungsfaktor
 	 */
-	public AnswerChangeRequestLoadprofile(UUID uuid, double[] changes, double priceFactor) {
+	public AnswerChangeRequestLoadprofile(UUID uuid, Loadprofile loadprofile) {
 		this.uuid = uuid;
-		this.changes = changes;
-		this.priceFactor = priceFactor;
+		this.loadprofile = loadprofile;
 	}
 
 	/**
-	 * Gibt die Änderungen zurück
+	 * Gibt das geänderte Lastprofil zurück
 	 * 
-	 * @return Änderungen
+	 * @return geändertes Lastprofil
 	 */
-	public double[] getChanges() {
-		return changes;
-	}
-
-	/**
-	 * Gibt den Preisänderungsfaktor zurück
-	 * 
-	 * @return Preisänderungsfaktor
-	 */
-	public double getPriceFactor() {
-		return priceFactor;
+	public Loadprofile getLoadprofile() {
+		return loadprofile;
 	}
 
 	/**
@@ -79,6 +64,7 @@ public class AnswerChangeRequestLoadprofile {
 	@JsonIgnore
 	public boolean isZero() {
 		double sum = 0;
+		double[] changes = loadprofile.getValues();
 
 		for (double d : changes) {
 			sum += d;
@@ -91,12 +77,7 @@ public class AnswerChangeRequestLoadprofile {
 		}
 	}
 
-	public Loadprofile toLoadprofile(GregorianCalendar date) {
-		return new Loadprofile(changes, date, Loadprofile.Type.MIXED);
-	}
-
 	public String toString() {
-		return "AnswerChangeRequestLoadprofile [changes=" + Arrays.toString(changes) + ", priceFactor=" + priceFactor
-				+ ", uuid=" + uuid + "]";
+		return "AnswerChangeRequestLoadprofile " + loadprofile.toString();
 	}
 }

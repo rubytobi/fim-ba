@@ -931,6 +931,7 @@ public class Fridge implements Device {
 		if (acceptChange) {
 			scheduleMinutes = scheduleCurrentChangeRequest;
 		}
+		
 		// Erstelle das aktuelle Deltalastprofil, wenn während des Wartens auf
 		// die Antwort eine Temperaturänderung war
 		if (waitToChargeDeltaLoadprofile) {
