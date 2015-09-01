@@ -82,7 +82,7 @@ public class Application {
 			uuid = api.getResponse();
 		} else {
 			API<FridgeCreation, UUID> api = new API<FridgeCreation, UUID>(UUID.class);
-			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 1, 5, 0.1);
+			FridgeCreation fridgeCreation = new FridgeCreation(8, 9, 4, 2, -0.5, 0.2, 0.1, 5, 0.1);
 			api.devices().fridge();
 			api.call(root, HttpMethod.POST, fridgeCreation);
 

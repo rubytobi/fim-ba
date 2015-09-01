@@ -128,7 +128,9 @@ public class Offer implements Comparable<Offer>, Cloneable {
 				this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
 			}
 		}
-
+		
+		minPrice = withPrivileges.getMinPrice();
+		maxPrice = withPrivileges.getMaxPrice();
 		for (UUID consumer : contributions.keySet()) {
 			Loadprofile currentLoadprofile = contributions.get(consumer).getLoadprofile();
 			addLoadprofile(consumer, currentLoadprofile);
