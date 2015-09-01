@@ -23,7 +23,7 @@ public class FridgeCreation {
 		this.fallCooling = fallCooling;
 		this.riseWarming = riseWarming;
 		this.consCooling = consCooling;
-		this.currTemp = currTemp;
+		this.currTemp = Math.random() * (maxTemp2 - minTemp2) + minTemp2;
 	}
 
 	public double getMaxTemp1() {

@@ -68,7 +68,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	private Offer() {
 		uuid = UUID.randomUUID();
 		status = OfferStatus.INITIALIZED;
-		authKey = null;
 	}
 
 	/**
@@ -136,7 +135,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 
 		priceSugg = getAggLoadprofile().getPriceSugg();
 		// TODO Änderungen minPrice, maxPrice?
-		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
 	}
@@ -236,7 +234,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		}
 		this.priceSugg = newPriceSugg;
 
-		authKey = UUID.randomUUID();
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
 	}
@@ -409,5 +406,9 @@ public class Offer implements Comparable<Offer>, Cloneable {
 
 		this.aggLoadprofile = null;
 		this.sumAggLoadprofile = null;
+	}
+
+	public void generateAuthKey() {
+		authKey = UUID.randomUUID();
 	}
 }
