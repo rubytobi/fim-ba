@@ -10,6 +10,10 @@ import java.util.Calendar;
 public class DateTime {
 	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
+	private static GregorianCalendar programStart = null;
+
+	private static double factorTimeScaling = 1;
+
 	public static String timestamp() {
 		return simpleDateFormat.format(now().getTime());
 	}
@@ -19,7 +23,26 @@ public class DateTime {
 	}
 
 	public static GregorianCalendar now() {
-		return new GregorianCalendar(TimeZone.getTimeZone("America/Los Angeles"));
+		GregorianCalendar realTime = new GregorianCalendar(TimeZone.getTimeZone("America/Los Angeles"));
+
+		if (programStart == null) {
+			programStart = realTime;
+		}
+
+		GregorianCalendar simulationTime = (GregorianCalendar) realTime.clone();
+
+		// Berechne, wie viele Millisekunden seit dem Start des Programms
+		// vergangen sind
+		long millisReal = realTime.getTimeInMillis();
+		long millisStart = programStart.getTimeInMillis();
+		long millis = millisReal - millisStart;
+
+		int millisToAdd = (int) millis;
+
+		millisToAdd *= factorTimeScaling - 1;
+		simulationTime.add(Calendar.MILLISECOND, millisToAdd);
+
+		return simulationTime;
 	}
 
 	public static GregorianCalendar parse(String calendar) throws IllegalArgumentException {
