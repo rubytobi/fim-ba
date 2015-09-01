@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.AnswerChangeRequestLoadprofile;
-import Packet.ChangeRequestLoadprofile;
 import Util.API;
 import Util.Log;
 import Util.View;
@@ -128,13 +127,26 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		}
 
 		for (UUID consumer : contributions.keySet()) {
+			Loadprofile currentLoadprofile = contributions.get(consumer).getLoadprofile();
+			addLoadprofile(consumer, currentLoadprofile);
+			if (currentLoadprofile.getMinPrice() < minPrice) {
+				minPrice = currentLoadprofile.getMinPrice();
+			}
+			if (currentLoadprofile.getMaxPrice() > maxPrice) {
+				maxPrice = currentLoadprofile.getMaxPrice();
+			}
 
-			addLoadprofile(consumer, new Loadprofile(contributions.get(consumer).getChanges(), getDate(),
-					getPriceSugg(), getMinPrice(), getMaxPrice(), Loadprofile.Type.DELTA));
 		}
 
-		priceSugg = getAggLoadprofile().getPriceSugg();
-		// TODO Änderungen minPrice, maxPrice?
+		// Prüfe, dass priceSugg weiterhin innerhalb von min und max liegt und
+		// passe es gegebenenfalls an
+		if (priceSugg < minPrice) {
+			priceSugg = minPrice;
+		}
+		if (priceSugg > maxPrice) {
+			priceSugg = maxPrice;
+		}
+
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
 	}

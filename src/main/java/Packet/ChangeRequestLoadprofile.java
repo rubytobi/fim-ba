@@ -62,7 +62,7 @@ public class ChangeRequestLoadprofile {
 
 	public void sub(AnswerChangeRequestLoadprofile answer) {
 		for (int i = 0; i < 4; i++) {
-			change[i] -= answer.getChanges()[i];
+			change[i] -= answer.getLoadprofile().getValues()[i];
 		}
 	}
 }
