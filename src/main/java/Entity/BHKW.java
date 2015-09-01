@@ -268,7 +268,7 @@ public class BHKW implements Device {
 		}
 
 		// Schicke Info mit moeglichen Aenderungen und Preis dafuer an Consumer
-		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), changesKWH, price);
+		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), changesKWH, price, 0);
 
 		waitForAnswerCR = true;
 		return answer;

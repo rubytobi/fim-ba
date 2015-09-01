@@ -20,6 +20,11 @@ public class AnswerChangeRequestSchedule {
 	 */
 	private double priceFactor;
 
+	/**
+	 * Strafpreis, der für die möglichen Änderungen verlangt wird
+	 */
+	private double sumPenalty;
+
 	protected AnswerChangeRequestSchedule() {
 		// dummy
 	}
@@ -34,10 +39,11 @@ public class AnswerChangeRequestSchedule {
 	 * @param priceFactor
 	 *            Preisänderungsfaktor
 	 */
-	public AnswerChangeRequestSchedule(UUID uuid, double[] changes, double priceFactor) {
+	public AnswerChangeRequestSchedule(UUID uuid, double[] changes, double priceFactor, double sumPenalty) {
 		this.uuid = uuid;
 		this.changes = changes;
 		this.priceFactor = priceFactor;
+		this.sumPenalty = sumPenalty;
 	}
 
 	/**
@@ -65,6 +71,10 @@ public class AnswerChangeRequestSchedule {
 	 */
 	public UUID getUUID() {
 		return uuid;
+	}
+	
+	public double getSumPenalty() {
+		return sumPenalty;
 	}
 
 	/**
