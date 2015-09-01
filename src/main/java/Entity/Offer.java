@@ -80,6 +80,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public Offer(UUID author, Loadprofile loadprofile) {
 		this();
 
+		Log.d(uuid, "Offer(author=" + author.toString() + ",loadprofile=" + loadprofile + ")");
+
 		// Erstellt neues Angebot auf Basis eines Lastprofils
 		HashMap<UUID, Loadprofile> loadprofiles = new HashMap<UUID, Loadprofile>();
 		loadprofiles.put(loadprofile.getUUID(), loadprofile);
@@ -91,6 +93,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this.maxPrice = loadprofile.getMaxPrice();
 
 		status = OfferStatus.VALID;
+		Log.d(uuid, "-- END Offer(): " + toString());
 	}
 
 	public Offer(Offer withPrivileges, HashMap<UUID, AnswerChangeRequestLoadprofile> contributions) {
@@ -164,6 +167,9 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public Offer(Offer withPrivileges, Offer withoutPrivileges) throws OffersPriceborderException {
 		this();
 
+		Log.d(uuid, "Offer(withPrivileges=" + withPrivileges.toString() + ",withoutPrivileges="
+				+ withoutPrivileges.toString() + ")");
+
 		double minWithPrivileges = withPrivileges.getMinPrice();
 		double maxWithPrivileges = withPrivileges.getMaxPrice();
 		double minWithoutPrivileges = withoutPrivileges.getMinPrice();
@@ -173,16 +179,14 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this.minPrice = Math.max(minWithPrivileges, minWithoutPrivileges);
 		this.maxPrice = Math.min(maxWithPrivileges, maxWithoutPrivileges);
 		if (minPrice > maxPrice) {
+			Log.e(uuid, "ABER OffersPriceborderException!");
 			// Werfe Exception, dass Angebot nicht erstellt werden kann
 			throw new OffersPriceborderException();
 		}
 
-		Log.d(uuid, "Offer(withPrivileges=" + withPrivileges.toString() + ",withoutPrivileges="
-				+ withoutPrivileges.toString() + ")");
-
 		// füge author respektive neue werte hinzu
 		this.author = withPrivileges.getAuthor();
-		Log.d(uuid, "set author [" + author + "]");
+		Log.d(uuid, "Setze Author [" + author + "]");
 
 		for (Offer o : new Offer[] { withPrivileges, withoutPrivileges }) {
 			// Lastprofile aus bestehendem Angebot einbeziehen
@@ -198,7 +202,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 						// ein bereits existierendes loadprofile soll
 						// hinzugefügt
 						// werden???
-						Log.d(uuid, "adding an existing loadprofile [" + loadprofileUUID + "] to the offer ["
+						Log.e(uuid, "adding an existing loadprofile [" + loadprofileUUID + "] to the offer ["
 								+ this.toString() + "]");
 						continue;
 					}
@@ -255,8 +259,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 */
 	public String toString() {
-		return "{author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size()
-				+ "}";
+		return "{uuid=" + uuid + ",author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner="
+				+ allLoadprofiles.size() + "}";
 	}
 
 	/**

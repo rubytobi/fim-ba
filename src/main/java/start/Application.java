@@ -31,7 +31,7 @@ import Util.API;
 @EnableScheduling
 public class Application {
 	private static String BASE_URI = "http://localhost:8080";
-	private static final int maxFridges = 20;
+	private static final int maxFridges = 3;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 	private final static Identifiable root = new Identifiable() {
 		private final UUID root = UUID.fromString("00000000-0000-0000-0000-0000");
@@ -73,7 +73,7 @@ public class Application {
 
 		UUID uuid = null;
 
-		if ((DeviceContainer.instance().size() + "").endsWith("0")) {
+		if ((DeviceContainer.instance().size() + "").endsWith("3")) {
 			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
 			BHKWCreation bhkwCreation = new BHKWCreation(1, 5, 1, 100, 5);
 			api.devices().bhkw();

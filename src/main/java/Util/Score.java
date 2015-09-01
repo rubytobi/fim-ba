@@ -7,7 +7,6 @@ import Entity.Offer;
 public class Score implements Cloneable {
 	private Offer marketplace;
 	private Offer own;
-	private Double score = null;
 	private boolean hasReceived = false;
 	private boolean hasChangeRequest = false;
 	private Offer received;

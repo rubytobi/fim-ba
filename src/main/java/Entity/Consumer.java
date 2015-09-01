@@ -255,10 +255,8 @@ public class Consumer implements Identifiable {
 	 */
 	public ResponseEntity<Boolean> confirmOfferByConsumer(UUID uuidOffer, UUID authKey) {
 		Log.d(uuid, "-- START confirmOfferByConsumer --");
-		// Offer offer = allOffers.get(uuidOffer);
 		Offer offer = getOfferIntern(uuidOffer);
 
-		// Prüfen ob "AuthKey" übereinstimmt
 		if (!offer.getAuthKey().equals(authKey)) {
 			Log.d(uuid, "Consumer möchte mit ungültigem Authkey das Angebot bestätigen");
 			return new ResponseBuilder<Boolean>(this).body(false).build();
@@ -352,7 +350,7 @@ public class Consumer implements Identifiable {
 		return new ResponseBuilder<Offer[]>(this).body(allOffers.values().toArray(new Offer[allOffers.size()])).build();
 	}
 
-	private Offer[] searchMarketplace(SearchParams params) {
+	public Offer[] searchMarketplace(SearchParams params) {
 		API<SearchParams, Offer[]> api2 = new API<SearchParams, Offer[]>(Offer[].class);
 		api2.marketplace().search();
 		api2.call(this, HttpMethod.POST, params);
@@ -450,38 +448,10 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
-		Scorecard scorecard = new Scorecard();
-		for (Offer own : offerWithPrivileges) {
-
-			for (Offer marketplace : searchMarketplace(
-					new SearchParams(own.getDate(), own.getMinPrice(), own.getMaxPrice()))) {
-
-				if (marketplace.getUUID().equals(own.getUUID())) {
-					continue;
-				}
-
-				scorecard.add(new Score(own, marketplace, own, receivedOffer, null));
-			}
-
-			Offer merged = null;
-
-			try {
-				merged = new Offer(own, receivedOffer);
-			} catch (OffersPriceborderException e) {
-				continue;
-			}
-
-			for (Offer marketplace : searchMarketplace(
-					new SearchParams(merged.getDate(), merged.getMinPrice(), merged.getMaxPrice()))) {
-				if (marketplace.getUUID().equals(own.getUUID())) {
-					continue;
-				}
-
-				scorecard.add(new Score(merged, marketplace, own, receivedOffer, null));
-			}
-		}
+		Scorecard scorecard = new Scorecard(this, receivedOffer, offerWithPrivileges);
 
 		if (scorecard.isEmpty()) {
+			Log.d(uuid, "Keine Angebote am Marktplatz vorrätig. Nutze die Vorhersage zur Optimierung.");
 			Offer marketplace = getMarketplacePrediction();
 			for (Offer own : offerWithPrivileges) {
 				scorecard.add(new Score(own, marketplace, own, null, null));
@@ -516,7 +486,7 @@ public class Consumer implements Identifiable {
 
 		newOffer.generateAuthKey();
 
-		Log.d(uuid, "Neues Angebot erreicht: " + newOffer);
+		Log.d(uuid, "Neues Angebot	 erreicht: " + newOffer);
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), scorecard.first().getOwn());
 
@@ -796,8 +766,7 @@ public class Consumer implements Identifiable {
 		Loadprofile changedLoadprofile = new Loadprofile(answer.getChanges(), initialLoadprofile.getDate(),
 				newPriceSugg, newMin, newMax, Loadprofile.Type.CHANGE_REQUEST);
 		return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
-				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), changedLoadprofile))
-				.build();
+				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), changedLoadprofile)).build();
 	}
 
 	private AnswerChangeRequestLoadprofile askConsumerForChange(UUID uuidConsumer, UUID uuidOffer,

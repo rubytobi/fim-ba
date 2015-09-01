@@ -1,6 +1,11 @@
 package start;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,8 +32,19 @@ public class GeneralController {
 	}
 
 	@RequestMapping("/index")
-	public HashMap<UUID, Offer> index() {
-		return getAllOffers();
+	public List<Offer> index() {
+		Collection<Offer> offers = getAllOffers().values();
+		List<Offer> offerList = Arrays.asList(offers.toArray(new Offer[offers.size()]));
+
+		Collections.sort(offerList, new Comparator<Offer>() {
+
+			@Override
+			public int compare(Offer o1, Offer o2) {
+				return -1 * Integer.compare(o1.getAllLoadprofiles().size(), o2.getAllLoadprofiles().size());
+			}
+		});
+
+		return offerList;
 	}
 
 	@RequestMapping("/graph")

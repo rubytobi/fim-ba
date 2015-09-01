@@ -22,8 +22,5 @@ public class BATest {
 				Loadprofile.Type.DELTA);
 		Offer oB = new Offer(UUID.randomUUID(), lB);
 
-		Scorecard scorecard = new Scorecard();
-		assertEquals("comparision shall be null", null, scorecard.first());
-
 	}
 }
