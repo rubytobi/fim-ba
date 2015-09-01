@@ -300,6 +300,9 @@ public class Consumer implements Identifiable {
 	 *            das bestätigte Angebot
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
+		// TODO bestätige ChangeRequests die durch den Marktplatz vorher
+		// angefragt wurden, möglicherweise müssen diese irgendwo
+		// zwischengelagert werden
 		// Offer offer = allOffers.get(confirmOffer.getUuid());
 		Offer offer = getOfferIntern(answerOffer.getOffer());
 
@@ -622,7 +625,7 @@ public class Consumer implements Identifiable {
 		AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
 		Marketplace marketplace = Marketplace.instance();
 		Negotiation negotiationWhole = marketplace.getNegotiationsMap().get(negotiation);
-		
+
 		API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
 		api.negotiation().answerToPriceChangeRequest(negotiation);
 		api.call(negotiationWhole, HttpMethod.POST, answer);
@@ -741,7 +744,7 @@ public class Consumer implements Identifiable {
 				// TODO Was soll hier passieren??
 				// Dann ändern sich Grenzen nicht
 				newMax = initialLoadprofile.getMaxPrice();
-				Log.d(uuid,  "Preis für Änderung war nicht möglich");
+				Log.d(uuid, "Preis für Änderung war nicht möglich");
 			}
 		} else {
 			newMin = initialLoadprofile.getMinPrice() + priceChange;
@@ -750,7 +753,7 @@ public class Consumer implements Identifiable {
 				// TODO Was soll hier passieren ??
 				// Dann ändern sich Grenzen nicht
 				newMin = initialLoadprofile.getMinPrice();
-				Log.d(uuid,  "Preis für Änderung war nicht möglich");
+				Log.d(uuid, "Preis für Änderung war nicht möglich");
 			}
 		}
 
