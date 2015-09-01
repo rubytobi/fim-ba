@@ -262,6 +262,16 @@ public class Consumer implements Identifiable {
 			return new ResponseBuilder<Boolean>(this).body(false).build();
 		}
 
+		if (allOfferContributions.containsKey(uuidOffer)) {
+			for (UUID u : allOfferContributions.get(uuidOffer).keySet()) {
+				API<Void, Void> api = new API<Void, Void>(Void.class);
+				api.consumers(u).offers(uuidOffer).changeRequest().decline();
+				api.call(this, HttpMethod.GET, null);
+			}
+		} else {
+			Log.d(uuid, "Keine ChangeRequests zu bestätigen.");
+		}
+
 		// Alte Angebot suchen, mit dem das hier akzeptierte Angebot erweitert
 		// wurde
 		Offer v2 = getOfferIntern(uuidOffer);
@@ -555,7 +565,9 @@ public class Consumer implements Identifiable {
 					contributionOffer = new Offer(contributionOffer, contributions.get(c).getLoadprofile().toOffer(c));
 				} catch (OffersPriceborderException e) {
 					Log.e(uuid, "Aufgrund der Preisgrenzen, konnte die Änderung nicht zusammengeführt werden.");
-					Log.e(uuid, e.getMessage());
+
+					Log.d(uuid, "Der Beitrag des Consumers wird abgelehnt.");
+					rejectConsumersContribution(c, ownOffer.getUUID());
 				}
 			}
 		}
@@ -695,7 +707,7 @@ public class Consumer implements Identifiable {
 		Offer affectedOffer = allOffers.get(cr.getOffer());
 
 		if (affectedOffer == null) {
-			Log.d(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
+			Log.e(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
 			return null;
 		}
 
@@ -711,13 +723,16 @@ public class Consumer implements Identifiable {
 		// TODO ANswerChangeRequestLoadprofile ändern
 
 		// Suche das initiale Lastprofil, das zu dieser Änderung gehört
-		Set<UUID> loadprofiles = affectedOffer.getAllLoadprofiles().get(this.getUUID()).keySet();
 		Loadprofile initialLoadprofile = null;
-		for (UUID uuidLoadprofile : loadprofiles) {
-			Loadprofile currentLoadprofile = affectedOffer.getAllLoadprofiles().get(this.getUUID())
-					.get(uuidLoadprofile);
-			if (currentLoadprofile.getType() == Loadprofile.Type.INITIAL) {
-				initialLoadprofile = currentLoadprofile;
+		for (UUID o : allOffers.keySet()) {
+			for (UUID c : allOffers.get(o).getAllLoadprofiles().keySet()) {
+
+				for (UUID l : allOffers.get(o).getAllLoadprofiles().get(c).keySet()) {
+					if (allOffers.get(o).getAllLoadprofiles().get(c).get(l).getType()
+							.equals(Loadprofile.Type.INITIAL)) {
+						initialLoadprofile = allOffers.get(o).getAllLoadprofiles().get(c).get(l);
+					}
+				}
 			}
 		}
 
@@ -779,6 +794,12 @@ public class Consumer implements Identifiable {
 		api2.consumers(uuidConsumer).offers(uuidOffer).changeRequest();
 		api2.call(this, HttpMethod.POST, changeRequestLoadprofile);
 		return api2.getResponse();
+	}
+
+	private void rejectConsumersContribution(UUID uuidConsumer, UUID uuidOffer) {
+		API<Void, Void> api2 = new API<Void, Void>(Void.class);
+		api2.consumers(uuidConsumer).offers(uuidOffer).changeRequest().decline();
+		api2.call(this, HttpMethod.POST, null);
 	}
 
 	private AnswerChangeRequestSchedule askDeviceForChange(ChangeRequestSchedule changeRequestSchedule) {
