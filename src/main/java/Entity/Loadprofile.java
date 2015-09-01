@@ -39,6 +39,8 @@ public class Loadprofile {
 
 	// Gibt, an, ob das Lastprofil Preise festsetzt
 	private Type type;
+	
+	private double priceEex = 20;
 
 	private Loadprofile() {
 		type = Type.UNDEFINED;
@@ -98,6 +100,10 @@ public class Loadprofile {
 		this.values = values;
 		this.date = date;
 		this.type = state;
+		this.minPrice = Double.NEGATIVE_INFINITY;
+		this.maxPrice = Double.POSITIVE_INFINITY;
+		this.priceSugg = priceEex;
+
 	}
 
 	/**

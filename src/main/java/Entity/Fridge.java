@@ -16,7 +16,6 @@ import Util.View;
 
 /**
  * Klasse fuer Kuehlschraenke
- *
  */
 public class Fridge implements Device {
 	/**

@@ -759,7 +759,7 @@ public class Consumer implements Identifiable {
 			sumOldLoadprofile += initialLoadprofile.getValues()[i];
 		}
 
-		// Berechne den Preis der Änderung und die daraus resultierenden neune
+		// Berechne den Preis der Änderung und die daraus resultierenden neuen
 		// Minima und Maxima
 		double priceChange = answer.getPriceFactor() * affectedOffer.getPriceSugg();
 
