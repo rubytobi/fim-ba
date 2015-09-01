@@ -228,6 +228,18 @@ public class Marketplace implements Identifiable {
 	 */
 	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, int slot) {
 		String dateString = DateTime.ToString(date);
+		
+		// Beende alle aktuellen Verhandlungen zum uebergebenen Datum
+		Set<UUID> allNegotiations = negotiatingOffers.keySet();
+		for (UUID negotiation: allNegotiations) {
+			Negotiation currentNeg = negotiatingOffers.get(negotiation);
+			Offer[] offers = currentNeg.getOffers();
+			if (DateTime.ToString(offers[0].getDate()).equals(dateString)) {
+				EndOfNegotiation end = new EndOfNegotiation(currentNeg.getUUID(), 0, 0, false);
+				endOfNegotiation(end);
+			}
+		}		
+		
 		// Hole alle Angebote zu dem uebergebenen Datum
 		ArrayList<Offer> allDemandsAtDate = demand.get(dateString);
 		ArrayList<Offer> allSuppliesAtDate = supply.get(dateString);
@@ -615,6 +627,10 @@ public class Marketplace implements Identifiable {
 			negotiations.add(negotiation);
 		}
 		return negotiations;
+	}
+	
+	public HashMap<UUID, Negotiation> getNegotiationsMap() {
+		return negotiatingOffers;
 	}
 
 	public ArrayList<PossibleMatch> getPossibleMatches(GregorianCalendar date) {
@@ -1084,17 +1100,10 @@ public class Marketplace implements Identifiable {
 	}
 
 	/**
-	 * Bestaetigt ein zufaellig ausgewaehltes Verbraucherangebot des
-	 * Marktplatzes.
+	 * Ruft die Methode des BKV auf.
 	 */
 	public void ping() {
-		Set<String> set = demand.keySet();
-
-		for (String date : set) {
-			Offer offer = demand.get(date).get(0);
-			confirmOffer(offer, offer.getAggLoadprofile().getPriceSugg());
-			break;
-		}
+		BKV();
 	}
 
 	public String toString() {

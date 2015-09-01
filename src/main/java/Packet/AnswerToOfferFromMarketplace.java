@@ -9,9 +9,12 @@ import java.util.UUID;
  *
  */
 public class AnswerToOfferFromMarketplace {
+	/**
+	 * Bei einer Negotiation ist der Preis immer der aktuelle Preis des anderen
+	 * Angebots der Verhandlung
+	 */
 	private double price;
 	private UUID offer;
-
 
 	public AnswerToOfferFromMarketplace() {
 		// dummy

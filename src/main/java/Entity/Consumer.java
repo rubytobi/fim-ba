@@ -17,12 +17,15 @@ import Packet.AnswerChangeRequestSchedule;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
+import Packet.EndOfNegotiation;
+import Packet.AnswerToPriceChangeRequest;
 import Util.Score;
 import Util.Scorecard;
 import Util.View;
 import Util.API;
 import Util.DateTime;
 import Util.Log;
+import Util.Negotiation;
 import Event.OffersPriceborderException;
 import Util.ResponseBuilder;
 
@@ -604,8 +607,7 @@ public class Consumer implements Identifiable {
 				contributionOffer = contributions.get(c).getLoadprofile().toOffer(c);
 			} else {
 				try {
-					contributionOffer = new Offer(contributionOffer,
-							contributions.get(c).getLoadprofile().toOffer(c));
+					contributionOffer = new Offer(contributionOffer, contributions.get(c).getLoadprofile().toOffer(c));
 				} catch (OffersPriceborderException e) {
 					Log.e(uuid, "Aufgrund der Preisgrenzen, konnte die Änderung nicht zusammengeführt werden.");
 					Log.e(uuid, e.getMessage());
@@ -644,10 +646,44 @@ public class Consumer implements Identifiable {
 		return contributions;
 	}
 
+	/**
+	 * Behandelt die Preisänderungsanfrage von einer Verhandlung. Liegt der
+	 * Preis in den festgelegten Grenzen des Angebotes, wird er bestätigt,
+	 * andernfalls wird das jeweilige Minimum/ Maximum bestätigt
+	 * 
+	 * @param answerOffer
+	 *            Die Preisanfrage vom Marktplatz, beinhaltet den Prei und die
+	 *            UUID des betreffenden Angebots
+	 * @param negotiation
+	 *            Die UUID der aktuellen Verhandlung, von welcher die
+	 *            Preisanfrage stammt.
+	 */
 	public void priceChangeRequest(AnswerToOfferFromMarketplace answerOffer, UUID negotiation) {
-		// TODO Behandle Anfrage nach Preisänderung von Negotiation
+		double newPrice = answerOffer.getPrice();
 
-		// TODO Sende Antwort an Negotiation
+		// Prüfe, dass der neue Preis innerhalb der Preisgrenzen des Angebotes
+		// liegt
+		// Liegt er dazwischen, bestätige ihn.
+		// Liegt er nicht dazwischen, bestätige das Minimum bzw. das Maximum
+		Offer offer = allOffers.get(answerOffer.getOffer());
+		double min = offer.getMinPrice();
+		double max = offer.getMaxPrice();
+
+		if (newPrice < min) {
+			newPrice = min;
+		}
+		if (newPrice > max) {
+			newPrice = max;
+		}
+
+		// Sende Antwort an Negotiation
+		AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
+		Marketplace marketplace = Marketplace.instance();
+		Negotiation negotiationWhole = marketplace.getNegotiationsMap().get(negotiation);
+		
+		API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
+		api.negotiation().answerToPriceChangeRequest(negotiation);
+		api.call(negotiationWhole, HttpMethod.POST, answer);
 
 	}
 
@@ -739,7 +775,7 @@ public class Consumer implements Identifiable {
 				initialLoadprofile = currentLoadprofile;
 			}
 		}
-		
+
 		if (initialLoadprofile == null) {
 			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");
 			return null;
@@ -759,11 +795,23 @@ public class Consumer implements Identifiable {
 		if (sumOldLoadprofile < 0) {
 			newMax = initialLoadprofile.getMaxPrice() - priceChange;
 			newMin = initialLoadprofile.getMinPrice();
+			if (newMax < newMin) {
+				// TODO Was soll hier passieren??
+				// Dann ändern sich Grenzen nicht
+				newMax = initialLoadprofile.getMaxPrice();
+				Log.d(uuid,  "Preis für Änderung war nicht möglich");
+			}
 		} else {
 			newMin = initialLoadprofile.getMinPrice() + priceChange;
 			newMax = initialLoadprofile.getMaxPrice();
+			if (newMin < newMax) {
+				// TODO Was soll hier passieren ??
+				// Dann ändern sich Grenzen nicht
+				newMin = initialLoadprofile.getMinPrice();
+				Log.d(uuid,  "Preis für Änderung war nicht möglich");
+			}
 		}
-		
+
 		// Lege neuen Preisvorschlag fest
 		double newPriceSugg = initialLoadprofile.getPriceSugg();
 		if (newPriceSugg < newMin) {
@@ -773,10 +821,10 @@ public class Consumer implements Identifiable {
 			newPriceSugg = newMax;
 		}
 
-		Loadprofile changedLoadprofile = new Loadprofile(answer.getChanges(), initialLoadprofile.getDate(), newPriceSugg, newMin, newMax, Loadprofile.Type.CHANGE_REQUEST);
+		Loadprofile changedLoadprofile = new Loadprofile(answer.getChanges(), initialLoadprofile.getDate(),
+				newPriceSugg, newMin, newMax, Loadprofile.Type.CHANGE_REQUEST);
 		return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
-				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), changedLoadprofile))
-				.build();
+				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), changedLoadprofile)).build();
 				// }
 				//
 				// ChangeRequestLoadprofile possibleChange = new

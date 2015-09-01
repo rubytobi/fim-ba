@@ -237,6 +237,16 @@ public class API<Request, Response> {
 		uri += "/bhkw";
 		return this;
 	}
+	
+	public API<Request, Response> negotiation() {
+		uri += "/negotiation";
+		return this;
+	}
+	
+	public API<Request, Response> answerToPriceChangeRequest(UUID uuid) {
+		uri += uuid+ "/answerToPriceChangeRequest";
+		return this;
+	}
 
 	public API<Request, Response> search() {
 		uri += "/search";

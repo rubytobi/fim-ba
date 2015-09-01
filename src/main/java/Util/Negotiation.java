@@ -11,7 +11,7 @@ import Packet.AnswerToOfferFromMarketplace;
 import Packet.AnswerToPriceChangeRequest;
 import Packet.EndOfNegotiation;
 
-public class Negotiation {
+public class Negotiation implements Identifiable {
 	private Offer offer1, offer2;
 	private int round1, round2;
 	private boolean finished1, finished2, closed;

@@ -131,10 +131,10 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		for (UUID consumer : contributions.keySet()) {
 			Loadprofile currentLoadprofile = contributions.get(consumer).getLoadprofile();
 			addLoadprofile(consumer, currentLoadprofile);
-			if (currentLoadprofile.getMinPrice() < minPrice) {
+			if (currentLoadprofile.getMinPrice() > minPrice) {
 				minPrice = currentLoadprofile.getMinPrice();
 			}
-			if (currentLoadprofile.getMaxPrice() > maxPrice) {
+			if (currentLoadprofile.getMaxPrice() < maxPrice) {
 				maxPrice = currentLoadprofile.getMaxPrice();
 			}
 
@@ -171,9 +171,10 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		double maxWithPrivileges = withPrivileges.getMaxPrice();
 		double minWithoutPrivileges = withoutPrivileges.getMinPrice();
 		double maxWithoutPrivileges = withoutPrivileges.getMaxPrice();
-
-		this.minPrice = Math.min(minWithPrivileges, minWithoutPrivileges);
-		this.maxPrice = Math.max(maxWithPrivileges, maxWithoutPrivileges);
+		
+		// Lege Minimum und Maximum des gesamten Angebots fest
+		this.minPrice = Math.max(minWithPrivileges, minWithoutPrivileges);
+		this.maxPrice = Math.min(maxWithPrivileges, maxWithoutPrivileges);
 		if (minPrice > maxPrice) {
 			// Werfe Exception, dass Angebot nicht erstellt werden kann
 			throw new OffersPriceborderException();
@@ -209,10 +210,10 @@ public class Offer implements Comparable<Offer>, Cloneable {
 							"new loadprofile [" + loadprofileUUID + "] for consumer [" + consumerUUID + "] in offer");
 					Loadprofile value = o.getAllLoadprofiles().get(consumerUUID).get(loadprofileUUID);
 
-					if (value.getMinPrice() < this.minPrice) {
+					if (value.getMinPrice() > this.minPrice) {
 						this.minPrice = value.getMinPrice();
 					}
-					if (value.getMaxPrice() > this.maxPrice) {
+					if (value.getMaxPrice() < this.maxPrice) {
 						this.maxPrice = value.getMaxPrice();
 					}
 
