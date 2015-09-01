@@ -5,6 +5,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -63,12 +64,12 @@ public class MarketplaceController {
 	}
 
 	@RequestMapping(value = "/marketplace/offers/{uuid}", method = RequestMethod.GET)
-	public Offer getOffer(@RequestBody UUID uuid) {
+	public Offer getOffer(@PathVariable UUID uuid) {
 		return Marketplace.instance().getOffer(uuid);
 	}
 
-	@RequestMapping(value = "/marketplace/offer/{uuid}/invalidate", method = RequestMethod.GET)
-	public ResponseEntity<Void> removeOffer(@RequestBody UUID uuid) {
+	@RequestMapping(value = "/marketplace/offers/{uuid}/invalidate", method = RequestMethod.GET)
+	public ResponseEntity<Void> removeOffer(@PathVariable UUID uuid) {
 		Marketplace.instance().removeOffer(uuid, false);
 		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}

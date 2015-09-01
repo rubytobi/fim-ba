@@ -1,5 +1,7 @@
 package Util;
 
+import java.util.UUID;
+
 import Entity.Offer;
 
 public class Score implements Cloneable {
@@ -11,6 +13,15 @@ public class Score implements Cloneable {
 	private Offer received;
 	private Offer changeRequest;
 	private Offer merge = null;
+	private UUID uuid = UUID.randomUUID();
+
+	public boolean equals(Score s) {
+		return uuid.equals(s.getUUID());
+	}
+
+	public UUID getUUID() {
+		return uuid;
+	}
 
 	public Score(Offer merge, Offer marketplace, Offer own, Offer received, Offer changeRequest) {
 		this.merge = merge;
@@ -32,14 +43,6 @@ public class Score implements Cloneable {
 		return merge;
 	}
 
-	public double getScore() {
-		if (score == null) {
-			score = marketplace.getAggLoadprofile().chargeDeviationOtherProfile(merge.getAggLoadprofile());
-		}
-
-		return score;
-	}
-
 	public Offer getOwn() {
 		return this.own;
 	}
@@ -49,7 +52,7 @@ public class Score implements Cloneable {
 	}
 
 	public String toString() {
-		String score = "Score [score=" + getScore() + ",marketplace=";
+		String score = "Score [marketplace=";
 		if (marketplace != null)
 			score += marketplace.getUUID();
 		score += ",own=";

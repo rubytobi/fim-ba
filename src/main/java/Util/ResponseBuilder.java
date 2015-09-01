@@ -41,7 +41,7 @@ public class ResponseBuilder<T> {
 		headers.set("UUID", who.getUUID().toString());
 		headers.set("Class", who.getClass().getSimpleName());
 
-		Log.d(who.getUUID(), "response [headers=" + headers + ", body=" + body + "]");
+		//Log.d(who.getUUID(), "response [headers=" + headers + ", body=" + body + "]");
 		return new ResponseEntity<T>(body, headers, HttpStatus.OK);
 	}
 

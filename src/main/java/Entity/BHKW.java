@@ -101,8 +101,7 @@ public class BHKW implements Device {
 	private BHKW() {
 		status = DeviceStatus.CREATED;
 		uuid = UUID.randomUUID();
-		Marketplace mp = Marketplace.instance();
-		this.priceEex = mp.getEEXPrice();
+		this.priceEex = Marketplace.getEEXPrice();
 	}
 
 	/**

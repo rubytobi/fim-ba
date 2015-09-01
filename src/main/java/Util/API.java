@@ -141,12 +141,6 @@ public class API<Request, Response> {
 		ResponseEntity<Response> response = null;
 		try {
 			response = rest.exchange(uri, how, entity, responseType);
-
-			if (response.getBody() == null && !responseType.toString().equals("class java.lang.Void")) {
-				Log.d(who.getUUID(),
-						"no response received and expected following: " + responseType + " # " + how + " " + uri);
-			}
-
 			this.response = response.getBody();
 
 			try {
