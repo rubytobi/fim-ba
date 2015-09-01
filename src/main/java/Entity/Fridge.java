@@ -80,6 +80,14 @@ public class Fridge implements Device {
 	private double fallCooling;
 
 	/**
+	 * Gibt an, wie viel der Kühlschrank verlangt, wenn die Temperatur durch
+	 * eine Änderung in die "rote Zone" kommt. (Rote Zone: zwischen min1 und
+	 * min2 bzw. max1 und max2)
+	 */
+	@JsonView(View.Detail.class)
+	private double penaltyPrice;
+
+	/**
 	 * Wie viel Grad pro Minute erwärmt der Kühlschrank?
 	 */
 	@JsonView(View.Detail.class)
@@ -137,7 +145,7 @@ public class Fridge implements Device {
 	 *            aktuelle Temperatur des Kuehlschranks
 	 */
 	public Fridge(double maxTemp1, double maxTemp2, double minTemp1, double minTemp2, double fallCooling,
-			double riseWarming, double consCooling, double currTemp) {
+			double riseWarming, double consCooling, double currTemp, double penaltyPrice) {
 		this();
 		// Prüfe Angaben auf Korrektheit
 		boolean correct = maxTemp1 <= maxTemp2;
@@ -160,6 +168,7 @@ public class Fridge implements Device {
 		this.currCooling = false;
 		this.waitForAnswerCR = false;
 		this.waitToChargeDeltaLoadprofile = false;
+		this.penaltyPrice = penaltyPrice;
 
 		simulationFridge = new SimulationFridge();
 
@@ -536,7 +545,7 @@ public class Fridge implements Device {
 		// Berechne den Faktor für den Preis.
 		// Hierbei wird berechnet, wie viel der Kühlschrank für die Anzahl an
 		// worsening Minuten beim Kühlen verbrauchen würde
-		double factorForPrice = worsening * consCooling;
+		double sumPenalty = Math.abs(worsening * penaltyPrice);
 
 		// Berechnet wie viele kWh nun pro Viertelstunde mehr oder weniger
 		// verbraucht wird und summiert die Werte auf.
@@ -549,12 +558,14 @@ public class Fridge implements Device {
 
 		// Jede kWh, die zusätzlich gekühlt werden muss, wird zum Faktor für den
 		// Preis hinzugerechnet
+		double factorForPrice = 0;
 		if (sumKWHAdditionalCooling > 0) {
 			factorForPrice += sumKWHAdditionalCooling;
 		}
 
 		// Gibt mögliche Änderungen und den Faktor für deren Preis zurück
-		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH, factorForPrice);
+		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
+				factorForPrice, sumPenalty);
 		return answer;
 	}
 
@@ -930,7 +941,7 @@ public class Fridge implements Device {
 		if (acceptChange) {
 			scheduleMinutes = scheduleCurrentChangeRequest;
 		}
-		
+
 		// Erstelle das aktuelle Deltalastprofil, wenn während des Wartens auf
 		// die Antwort eine Temperaturänderung war
 		if (waitToChargeDeltaLoadprofile) {
