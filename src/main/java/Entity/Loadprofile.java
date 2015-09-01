@@ -39,7 +39,7 @@ public class Loadprofile {
 
 	// Gibt, an, ob das Lastprofil Preise festsetzt
 	private Type type;
-	
+
 	private double priceEex = 20;
 
 	private Loadprofile() {
@@ -83,9 +83,9 @@ public class Loadprofile {
 	}
 
 	/**
-	 * Erstellt ein Deltalastprofil aus den übergebenen Werten. Die Preise
-	 * werden bei einem Deltalastprofil nicht gesetzt (priceSugg, minPrice,
-	 * maxPrice)
+	 * Erstellt ein Deltalastprofil aus den übergebenen Werten. Die Preisgrenzen
+	 * werden beim Deltalastprofil auf unendlich gesetzt und der Preisvorschlag
+	 * auf den aktuellen EEX-Preis.
 	 * 
 	 * @param values
 	 *            Werte des Lastprofils

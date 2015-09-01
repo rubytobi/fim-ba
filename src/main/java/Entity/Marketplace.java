@@ -228,18 +228,18 @@ public class Marketplace implements Identifiable {
 	 */
 	private void confirmAllRemainingOffersWithOnePrice(GregorianCalendar date, int slot) {
 		String dateString = DateTime.ToString(date);
-		
+
 		// Beende alle aktuellen Verhandlungen zum uebergebenen Datum
 		Set<UUID> allNegotiations = negotiatingOffers.keySet();
-		for (UUID negotiation: allNegotiations) {
+		for (UUID negotiation : allNegotiations) {
 			Negotiation currentNeg = negotiatingOffers.get(negotiation);
 			Offer[] offers = currentNeg.getOffers();
 			if (DateTime.ToString(offers[0].getDate()).equals(dateString)) {
 				EndOfNegotiation end = new EndOfNegotiation(currentNeg.getUUID(), 0, 0, false);
 				endOfNegotiation(end);
 			}
-		}		
-		
+		}
+
 		// Hole alle Angebote zu dem uebergebenen Datum
 		ArrayList<Offer> allDemandsAtDate = demand.get(dateString);
 		ArrayList<Offer> allSuppliesAtDate = supply.get(dateString);
@@ -628,7 +628,7 @@ public class Marketplace implements Identifiable {
 		}
 		return negotiations;
 	}
-	
+
 	public HashMap<UUID, Negotiation> getNegotiationsMap() {
 		return negotiatingOffers;
 	}
@@ -759,10 +759,8 @@ public class Marketplace implements Identifiable {
 					sumPossibleChangeDeviation += Math.abs(possibleChangeDeviation[i]);
 				}
 
-				// Pruefe, ob der Consumer eine aenderung vorgenommen hat und
-				// wenn
-				// ja,
-				// ob diese aenderung zur Verbesserung beitraegt
+				// Pruefe, ob der Consumer eine Aenderung vorgenommen hat und
+				// wenn ja, ob diese Aenderung zur Verbesserung beitraegt
 				if (sumPossibleChange > 0 && sumPossibleChangeDeviation < sumCurrentDeviation) {
 					// Bestaetige das Angebot zum uebergebenen Preis
 					confirmOffer(currentOffer, currentOffer.getPriceSugg());
@@ -780,6 +778,11 @@ public class Marketplace implements Identifiable {
 					if (sumCurrentDeviation == 0) {
 						break;
 					}
+				} else {
+					// Absage fuer ChangeRequest an Consumer
+					API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+					api1.consumers(author).offers(currentOffer.getUUID()).changeRequest().decline();
+					api1.call(this, HttpMethod.POST, cr);
 				}
 			}
 		}
