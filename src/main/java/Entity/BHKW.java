@@ -159,7 +159,6 @@ public class BHKW implements Device {
 		double[] newLevelReservoir = new double[numSlots];
 		for (int i = 0; i < numSlots; i++) {
 			oldLevelReservoir[i] = oldLevelReservoir[i] / 15;
-			// System.out.println("Level Reservoir: " + oldLevelReservoir[i]);
 		}
 
 		double price = 0;
@@ -167,22 +166,18 @@ public class BHKW implements Device {
 
 		for (int i = 0; i < numSlots; i++) {
 			double value = changesKWH[i];
-			// System.out.println("\nZu erreichender Wert: " + value);
 			double powerGained = 0;
 
 			if (value < 0) {
 				// Pruefe, dass produzierte Last nicht unter 0 faellt
 				if (planned[i] + value < 0) {
-					// System.out.println("Last fällt unter 0");
 					value = -planned[i];
 				}
 				// Berechne Waerme, die nun nicht mehr produziert,
 				// aber benoetigt wird und daher vom Waermespeicher
 				// bezogen werden muss
 				double heat = Math.abs(value / chpCoefficient);
-				// System.out.println("Heat: " + heat);
 				if (currentLevel - heat > 0) {
-					// System.out.println("Hole alle aus Wärmespeicher");
 					currentLevel -= heat;
 					powerGained = value;
 				} else {
@@ -190,21 +185,14 @@ public class BHKW implements Device {
 					powerGained = -currentLevel;
 					currentLevel = 0;
 				}
-				// System.out.println("Current Level: " + currentLevel);
-				// System.out.println("Power Gained: " + powerGained);
 			}
 			if (value > 0) {
 				// Pruefe, das maximale Last nicht ueberschritten wird
 				if (planned[i] / 15 + value / 15 > maxLoad) {
 					value = maxLoad - planned[i];
-					// System.out.println("Maximale Last wird überschritten " +
-					// maxLoad);
-					// System.out.println("Geplanter Wert: " + planned[i]);
-					// System.out.println("Neuer Value: " + value);
 				}
 				// Nehme Strom moeglichst vom Waermespeicher
 				if (currentLevel > 0) {
-					// System.out.println("Nehme Strom vom Waermespeicher");
 					if (currentLevel >= value) {
 						// TODO Wie Verhaeltnis abgefuehrte Waerme - daraus
 						// erzeugter Strom
@@ -214,11 +202,9 @@ public class BHKW implements Device {
 						powerGained = currentLevel;
 						currentLevel = 0;
 					}
-					// System.out.println("Power Gained: " + powerGained);
 				}
 
 				if (powerGained != value) {
-					// System.out.println("Produziere zusätzlichen Strom");
 					// Produziere restlichen Strom, speichere dabei
 					// als Nebenprodukt produzierte Waerme und
 					// berechne anfallende Kosten
@@ -234,11 +220,9 @@ public class BHKW implements Device {
 					// konnte
 					powerGained += powerProduced;
 
-					// Berechne Preis fuer zusaetzlich benoetigten Brennstoff
+					// Berechne Preis fuer zusaetzlich benoetigten Brennstoffs
 					price += Math.abs(powerProduced * consFuelPerKWh * priceFuel);
 				}
-				// System.out.println("Current Level: " + currentLevel);
-				// System.out.println("Power Gained: " + powerGained);
 			}
 			changesKWH[i] = powerGained;
 			newLevelReservoir[i] = currentLevel;
@@ -247,21 +231,19 @@ public class BHKW implements Device {
 			} else {
 				double status = newLevelReservoir[i - 1];
 				changeReservoir[i] = currentLevel - status;
-				// System.out.println("\nAusgangspunkt: " + status);
-				// System.out.println("Neues Level: " + currentLevel);
-				// System.out.println("Ergebnis: " + changeReservoir[i]);
 			}
 		}
 		double[][] changes = new double[2][numSlots];
-		// System.out.println("Mögliche vorgenommene Änderungen: ");
 		for (int i = 0; i < numSlots; i++) {
 			changes[0][i] = changeReservoir[i];
 			changes[1][i] = changesKWH[i];
-			// System.out.println("Level: " + changes[0][i] + " Strom: " +
-			// changes[1][i]);
 		}
 
 		double[][] newSchedule = chargeChangedSchedule(changes);
+		if (scheduleCurrentChangeRequest == null){
+			scheduleCurrentChangeRequest = new double[2][numSlots*15];
+		}
+
 		for (int i = 0; i < numSlots * 15; i++) {
 			scheduleCurrentChangeRequest[0][i] = newSchedule[0][i];
 			scheduleCurrentChangeRequest[1][i] = newSchedule[1][i];
@@ -272,6 +254,7 @@ public class BHKW implements Device {
 
 		waitForAnswerCR = true;
 		return answer;
+
 	}
 
 	private double[][] chargeChangedSchedule(double[][] changes) {
@@ -279,16 +262,11 @@ public class BHKW implements Device {
 		double[] plannedPowerLoadprofile = createValuesLoadprofile(planned[1]);
 
 		// Verteile Änderungen auf ganze Viertelstunde
-		double[][] changesPerMinute = new double[2][numSlots];
+		double[][] changesPerMinute = new double[2][numSlots * 15];
 		double[][] valuesToAchieve = new double[2][numSlots];
 		for (int i = 0; i < numSlots; i++) {
-			// System.out.println("Änderung Gesamt: Speicher: " + changes[0][i]
-			// + ", Erzeugung: " + changes[1][i]);
 			changesPerMinute[0][i] = Math.round(100.00 * changes[0][i] / 15) / 100.00;
 			changesPerMinute[1][i] = Math.round(100.00 * changes[1][i] / 15) / 100.00;
-			// System.out.println("Änderung pro Minute: Speicher: " +
-			// changesPerMinute[0][i] + ", Erzeugung: "
-			// + changesPerMinute[1][i]);
 
 			if (i == 0) {
 				valuesToAchieve[0][i] = planned[0][14] + changes[0][i];
@@ -297,25 +275,31 @@ public class BHKW implements Device {
 				valuesToAchieve[0][i] = valuesToAchieve[0][i - 1] + changes[0][i];
 			}
 			valuesToAchieve[1][i] = plannedPowerLoadprofile[i] + changes[1][i];
-
-			// System.out.println(
-			// "Zu Erreichen: Speicher: " + valuesToAchieve[0][i] + ",
-			// Erzeugung: " + valuesToAchieve[1][i]);
 		}
 
 		double achievedPower = 0;
 		boolean repeat = false;
-		double repeatPowerToChange = 0, repeatLevelToChange = 0, repeatPowerAchieved = 0, repeatLevelAchieved = 0;
+		double repeatPowerToChange = 0, repeatLevelToChange = 0, repeatPowerAchieved = 0, repeatLevelAchieved = 0,
+				totalPower = 0;
 
 		// Nehme Änderungen pro Viertel-Stunden-Slot vor
 		for (int n = 1; n < numSlots + 1; n++) {
-			// System.out.println("Änderung pro 15 Minuten");
 			int slotAnfang = (n - 1) * 15;
 			int slotEnde = n * 15;
+			totalPower = 0;
+
+			if (changesPerMinute[0][n - 1] == 0) {
+				if (n - 1 != 0) {
+					for (int j = slotAnfang; j < slotEnde; j++) {
+						planned[0][j] = planned[0][slotAnfang - 1];
+					}
+				}
+				continue;
+			}
+
 			for (int j = slotAnfang; j < slotEnde; j++) {
 				// Berechne das neue Level des Wärmespeichers und die neue
-				// Stromerzeugung,
-				// wenn mit den Änderungen
+				// Stromerzeugung, wenn mit den Änderungen
 				double levelPlanned = planned[0][j];
 				double powerPlanned = planned[1][j];
 				double newLevel;
@@ -327,8 +311,6 @@ public class BHKW implements Device {
 				// und in den folgenden Minuten muss die Änderung größer sein
 				if (levelPlanned == 0 || levelPlanned == sizeHeatReservoir || powerPlanned == 0
 						|| powerPlanned == maxLoad) {
-					// System.out.println("Grenzwerte sind schon vor Änderung
-					// erreicht gewesen.");
 					// Übernehme für das geplante Level das Level von der
 					// vorherigen Minute
 					// Die geplante Stromerzeugung bleibt
@@ -338,31 +320,29 @@ public class BHKW implements Device {
 					} else {
 						newLevel = planned[0][j];
 					}
+					newPower = planned[1][j];
 
 					// Erhöhe die benötigte Änderung
 					changesPerMinute[0][n - 1] *= 1.07;
 					changesPerMinute[1][n - 1] *= 1.07;
 				} else {
 					// Berechne den neuen Wert für das Level
-					if (j == 0) {
-						newLevel = planned[0][j] + Math.round(100.00 * changesPerMinute[0][n - 1]) / 100.00;
+					if (j == 0 || repeat) {
+						newLevel = Math.round(100.00 * (changesPerMinute[0][n - 1] + planned[0][j])) / 100.00;
 					} else {
 						newLevel = Math.round(100.00 * (planned[0][j - 1] + changesPerMinute[0][n - 1])) / 100.00;
 					}
 
-					// Prüfe, ob der neu berechnete Wert die Grenezen über- oder
-					// unterschreitet
+					// Prüfe, ob der neu berechnete Wert die Grenzen über- oder
+					// unterschreitet.
 					// Wenn ja, passe ihn an und lege die Beschränkung für die
-					// Erzeugung fest
+					// Erzeugung fest.
+					// Hierbei wird so viel an Änderung wie möglich durchgeführt
 					if (newLevel < 0) {
-						// System.out.println("-----------------------Level wäre
-						// < 0");
 						newLevel = 0;
 						double changedLevel = planned[0][j - 1];
 						restrictionChangePower = chpCoefficient * changedLevel;
 					} else if (newLevel > sizeHeatReservoir) {
-						// System.out.println("-----------------------Level wäre
-						// zu hoch");
 						newLevel = sizeHeatReservoir;
 						double changedLevel = sizeHeatReservoir - planned[0][j];
 						restrictionChangePower = chpCoefficient * changedLevel;
@@ -381,50 +361,37 @@ public class BHKW implements Device {
 					// überschreitet
 					// Falls ja, passe newPower und newLevel entsprechend an.
 					if (newPower < 0) {
-						// System.out.println("------------------Power wäre <
-						// 0");
 						newPower = 0;
 						double changedPower = planned[1][j];
 						newLevel = changedPower / chpCoefficient;
 					} else if (newPower > maxLoad) {
-						// System.out.println("------------------Power wäre zu
-						// hoch");
 						newPower = maxLoad;
 						double changedPower = maxLoad - planned[1][j];
 						newLevel = changedPower / chpCoefficient;
 					}
 
 					if (repeat) {
-						if (j == 0) {
-							repeatPowerAchieved += Math.round(100.00 * (newPower - planned[1][j])) / 100.00;
-							repeatLevelAchieved += Math.round(100.00 * (newLevel - planned[0][j])) / 100.00;
-						} else {
-							repeatPowerAchieved += Math.round(100.00 * (newPower - planned[1][j])) / 100.00;
-							repeatLevelAchieved += Math.round(100.00 * (newLevel - planned[0][j - 1])) / 100.00;
-						}
+						// if (j == 0) {
+						repeatPowerAchieved += Math.round(100.00 * (newPower - planned[1][j])) / 100.00;
+						repeatLevelAchieved += Math.round(100.00 * (newLevel - planned[0][j])) / 100.00;
+						// } else {
+						// repeatLevelAchieved += Math.round(100.00 * (newLevel
+						// - planned[0][j - 1])) / 100.00;
+						// repeatPowerAchieved += Math.round(100.00 * (newPower
+						// - planned[1][j])) / 100.00;
+						// }
 						changesPerMinute[1][n - 1] = repeatPowerToChange - repeatPowerAchieved;
 						changesPerMinute[0][n - 1] = repeatLevelToChange - repeatLevelAchieved;
-						// System.out.println("Neue Werte pro Minute: Level: " +
-						// changesPerMinute[0][n - 1]
-						// + ", Erzeugung: " + changesPerMinute[0][n - 1]);
 					}
 
 					planned[0][j] = newLevel;
 					planned[1][j] = newPower;
 					achievedPower += newPower;
 				}
-
-				// System.out.println(
-				// (j + 1) + ". Minute neu: Speicher: " + planned[0][j] + ",
-				// Erzeugung: " + planned[1][j]);
+				totalPower += newPower;
 
 				if (repeat) {
-					// System.out.println("Power: Ziel: " + repeatPowerToChange
-					// + ", erreicht: " + repeatPowerAchieved);
-					// System.out.println("Level: Ziel: " + repeatLevelToChange
-					// + ", erreicht: " + repeatLevelAchieved);
 					if (repeatPowerAchieved == repeatPowerToChange && repeatLevelAchieved == repeatLevelToChange) {
-						// System.out.println("Änderung erreicht.");
 						repeat = false;
 						achievedPower = 0;
 						break;
@@ -434,25 +401,16 @@ public class BHKW implements Device {
 				if (j == slotEnde - 1) {
 					achievedPower = Math.round(100.00 * achievedPower) / 100.00;
 
-					double deviationPower = Math.round(Math.abs(valuesToAchieve[1][n - 1] - achievedPower) * 100.00)
+					double deviationPower = Math.round(Math.abs(valuesToAchieve[1][n - 1] - totalPower) * 100.00)
 							/ 100.00;
 					double deviationLevel = Math.round(Math.abs(valuesToAchieve[0][n - 1] - newLevel) * 100.00)
 							/ 100.00;
 
-					// System.out.println("Slotende");
-					// System.out.println("Erreichter Strom: " + achievedPower +
-					// " Ziel: " + valuesToAchieve[1][n - 1]);
-					// System.out.println("Abweichung: " + deviationPower);
-					// System.out.println("Erreichtes Level: " + newLevel + "
-					// Ziel: " + valuesToAchieve[0][n - 1]);
-					// System.out.println("Abweichung: " + deviationLevel);
 					if (!(deviationPower == 0 || deviationLevel == 0)) {
-						// System.out.println("-------------------Ziel insgesamt
-						// nicht erreicht, erneuter Durchlauf");
-						// System.out.println("Wegen Erzeugung: " +
-						// (deviationPower != 0));
-						// System.out.println("Wegen Speicher: " +
-						// (deviationLevel != 0));
+						if (deviationPower != deviationLevel) {
+							deviationPower = (deviationPower + deviationLevel) / 2;
+							deviationLevel = deviationPower;
+						}
 
 						repeat = true;
 						repeatPowerToChange = deviationPower;
@@ -468,9 +426,6 @@ public class BHKW implements Device {
 						}
 						changesPerMinute[0][n - 1] = deviationLevel;
 						changesPerMinute[1][n - 1] = deviationPower;
-						// System.out.println("Noch notwendige Änderungen:
-						// Level: " + changesPerMinute[0][n - 1]
-						// + ", Erzeugung: " + changesPerMinute[1][n - 1]);
 
 						n--;
 
@@ -478,10 +433,11 @@ public class BHKW implements Device {
 						repeat = false;
 					}
 					achievedPower = 0;
+					totalPower = 0;
 				}
 			}
 		}
-		return changesPerMinute;
+		return planned;
 	}
 
 	/**

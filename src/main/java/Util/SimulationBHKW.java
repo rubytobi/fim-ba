@@ -20,7 +20,7 @@ public class SimulationBHKW {
 		double[][] schedule1 = new double[2][numSlots*15];
 		double[][] schedule2 = new double[2][numSlots*15];
 		boolean rising = true;
-		int value = 10;
+		double value = maxLoad;
 		int rounds = 0;
 		for (int i=0; i<numSlots*15; i++) {
 			schedule1[0][i] = 5;
