@@ -220,13 +220,16 @@ public class Consumer implements Identifiable {
 		Log.d(uuid, "-- START confirmOfferByConsumer --");
 		Offer offer = getOfferIntern(uuidOffer);
 
-		if (!offer.getAuthKey().equals(authKey)) {
+		if (offer.getAuthKey().equals(authKey)) {
+			Log.d(uuid, "Angebot wurde bestätigt.");
+		} else {
 			Log.d(uuid, "Consumer möchte mit ungültigem Authkey das Angebot bestätigen");
 			return new ResponseBuilder<Boolean>(this).body(false).build();
 		}
 
 		if (allOfferContributions.containsKey(uuidOffer)) {
 			for (UUID u : allOfferContributions.get(uuidOffer).keySet()) {
+				Log.d(uuid, "Bestätige dem Consumer [" + u + "] den nötig gewordenen ChangeRequest.");
 				API<Void, Void> api = new API<Void, Void>(Void.class);
 				api.consumers(u).offers(uuidOffer).changeRequest().decline();
 				api.call(this, HttpMethod.GET, null);
@@ -271,11 +274,10 @@ public class Consumer implements Identifiable {
 		// TODO bestätige ChangeRequests die durch den Marktplatz vorher
 		// angefragt wurden, möglicherweise müssen diese irgendwo
 		// zwischengelagert werden
-		// Offer offer = allOffers.get(confirmOffer.getUuid());
 		Offer offer = getOfferIntern(answerOffer.getOffer());
 
 		if (offer == null) {
-			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist!");
+			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist?!");
 			return;
 		}
 
@@ -286,8 +288,6 @@ public class Consumer implements Identifiable {
 				api2.devices(device).confirmLoadprofile().toString();
 				api2.call(this, HttpMethod.POST, null);
 			}
-
-			// TODO Speichere Lastprofil in Historie ab
 		}
 
 		removeOffer(offer.getUUID());
@@ -351,7 +351,10 @@ public class Consumer implements Identifiable {
 	}
 
 	public ResponseEntity<Offer> getOffer(UUID offer) {
-		return new ResponseBuilder<Offer>(this).body(getOfferIntern(offer)).build();
+		Offer o = getOfferIntern(offer);
+		ResponseEntity<Offer> response = new ResponseBuilder<Offer>(this).body(o).build();
+		Log.d(uuid, "ResponseEntity [" + response + "]");
+		return response;
 	}
 
 	private Offer getOfferFromUrl(UUID consumer, UUID offer) {
@@ -363,7 +366,7 @@ public class Consumer implements Identifiable {
 	}
 
 	private Offer getOfferIntern(UUID offer) {
-		// Log.d(uuid, "get offer" + offer);
+		Log.d(uuid, "get offer" + offer);
 		return this.allOffers.get(offer);
 	}
 
@@ -433,9 +436,8 @@ public class Consumer implements Identifiable {
 				try {
 					contributionOffer = new Offer(contributionOffer, contributions.get(c).getLoadprofile().toOffer(c));
 				} catch (OffersPriceborderException e) {
-					Log.e(uuid, "Aufgrund der Preisgrenzen, konnte die Änderung nicht zusammengeführt werden.");
-
-					Log.d(uuid, "Der Beitrag des Consumers wird abgelehnt.");
+					Log.d(uuid,
+							"Aufgrund der Preisgrenzen, konnte die Änderung nicht zusammengeführt werden. Der Beitrag des Consumers wird abgelehnt.");
 					rejectConsumersContribution(c, ownOffer.getUUID());
 				}
 			}
@@ -564,8 +566,8 @@ public class Consumer implements Identifiable {
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), scorecard.first().getOwn());
 
-		Log.d(uuid, "Antworte auf das eingetroffene Angebot.");
 		OfferNotification newNotification = new OfferNotification(newOffer.getAuthor(), newOffer.getUUID());
+		Log.d(uuid, "Antworte auf das eingetroffene Angebot. " + newNotification);
 
 		API<OfferNotification, Void> api2 = new API<OfferNotification, Void>(Void.class);
 		api2.consumers(receivedOffer.getAuthor()).offers(receivedOffer.getUUID()).answer();
@@ -823,29 +825,31 @@ public class Consumer implements Identifiable {
 	 * Vertrag wird einfach ausgetauscht. Dabei muss das neue Angebot vom Author
 	 * des alten Angebots geschickt werden.
 	 * 
-	 * @param oldOffer
+	 * @param uuidOldOffer
 	 *            Angebots-ID des zu ersetzende Angebots
-	 * @param newOffer
+	 * @param uuidNewOffer
 	 *            neue Angebots-ID
 	 */
-	public void replaceOffer(UUID oldOffer, UUID newOffer) {
-		if (getOfferIntern(oldOffer) == null)
+	public void replaceOffer(UUID uuidOldOffer, UUID uuidNewOffer) {
+		Offer oldOffer = getOfferIntern(uuidOldOffer);
+		if (oldOffer == null) {
+			Log.e(uuid, "Altes zu ersetzendes Angebot nicht mehr vorhanden?!");
 			return;
+		}
 
 		// das neue Angebot besorgen
-		Offer offer = getOfferFromUrl(getOfferIntern(oldOffer).getAuthor(), newOffer);
+		Offer newOffer = getOfferFromUrl(oldOffer.getAuthor(), uuidNewOffer);
 
-		if (offer == null) {
-			// TODO what? darf nicht sein!
+		if (newOffer == null) {
 			Log.e(uuid, "Angebot konnte nicht ersetzt werden da extern nicht vorhanden?!");
 			return;
 		}
 
 		// altes Angebot entfernen
-		removeOffer(oldOffer);
+		removeOffer(uuidOldOffer);
 
 		// neues Angebot einfügen
-		addOffer(offer);
+		addOffer(newOffer);
 	}
 
 	public Offer[] searchMarketplace(SearchParams params) {

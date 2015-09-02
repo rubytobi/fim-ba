@@ -92,6 +92,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this.minPrice = loadprofile.getMinPrice();
 		this.maxPrice = loadprofile.getMaxPrice();
 
+		calculateAggLoadprofile();
+
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
 	}
@@ -128,7 +130,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 				this.allLoadprofiles.get(consumerUUID).put(loadprofileUUID, value);
 			}
 		}
-		
+
 		minPrice = withPrivileges.getMinPrice();
 		maxPrice = withPrivileges.getMaxPrice();
 		for (UUID consumer : contributions.keySet()) {
@@ -151,6 +153,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		if (priceSugg > maxPrice) {
 			priceSugg = maxPrice;
 		}
+
+		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
@@ -176,7 +180,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		double maxWithPrivileges = withPrivileges.getMaxPrice();
 		double minWithoutPrivileges = withoutPrivileges.getMinPrice();
 		double maxWithoutPrivileges = withoutPrivileges.getMaxPrice();
-		
+
 		// Lege Minimum und Maximum des gesamten Angebots fest
 		this.minPrice = Math.max(minWithPrivileges, minWithoutPrivileges);
 		this.maxPrice = Math.min(maxWithPrivileges, maxWithoutPrivileges);
@@ -253,6 +257,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		}
 		this.priceSugg = newPriceSugg;
 
+		calculateAggLoadprofile();
+
 		status = OfferStatus.VALID;
 		Log.d(uuid, "-- END Offer(): " + toString());
 	}
@@ -285,24 +291,25 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		return new API<Void, Void>(Void.class).consumers(author).offers(uuid).toString();
 	}
 
+	private void calculateAggLoadprofile() {
+		for (UUID consumerUUID : this.allLoadprofiles.keySet()) {
+			for (UUID loadprofileUUID : this.allLoadprofiles.get(consumerUUID).keySet()) {
+				Loadprofile lp = this.allLoadprofiles.get(consumerUUID).get(loadprofileUUID);
+				if (this.aggLoadprofile == null) {
+					this.aggLoadprofile = lp;
+				} else {
+					this.aggLoadprofile = new Loadprofile(this.aggLoadprofile, lp);
+				}
+			}
+		}
+	}
+
 	/**
 	 * Liefert das aggregierte Lastprofil des Angebots
 	 * 
 	 * @return Aggregiertes Lastprofil des Angebots
 	 */
 	public Loadprofile getAggLoadprofile() {
-		if (aggLoadprofile == null) {
-			for (UUID consumerUUID : this.allLoadprofiles.keySet()) {
-				for (UUID loadprofileUUID : this.allLoadprofiles.get(consumerUUID).keySet()) {
-					Loadprofile lp = this.allLoadprofiles.get(consumerUUID).get(loadprofileUUID);
-					if (this.aggLoadprofile == null) {
-						this.aggLoadprofile = lp;
-					} else {
-						this.aggLoadprofile = new Loadprofile(this.aggLoadprofile, lp);
-					}
-				}
-			}
-		}
 		return aggLoadprofile;
 	}
 
