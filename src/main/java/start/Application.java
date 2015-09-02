@@ -24,8 +24,10 @@ import Entity.Consumer;
 import Entity.Device;
 import Entity.Fridge;
 import Entity.Identifiable;
+import Entity.Marketplace;
 import Packet.FridgeCreation;
 import Util.API;
+import Util.DateTime;
 
 @SpringBootApplication
 @EnableScheduling
@@ -46,6 +48,15 @@ public class Application {
 		System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
 
 		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
+
+		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
+		// langsamer (<1) als die reale Zeit vergeht
+		DateTime.setTimeFactor(1);
+
+		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
+		// starten soll
+		Marketplace marketplace = Marketplace.instance();
+		marketplace.setMinuteOfSecondPhase(45);
 
 		SpringApplicationBuilder builder = new SpringApplicationBuilder(Application.class);
 		builder.headless(false).run(args);

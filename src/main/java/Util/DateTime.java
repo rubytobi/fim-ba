@@ -12,16 +12,30 @@ public class DateTime {
 
 	private static GregorianCalendar programStart = null;
 
-	private static double factorTimeScaling = 1;
+	private static double timeFactor = 1;
 
 	public static String timestamp() {
 		return simpleDateFormat.format(now().getTime());
 	}
 
+	/**
+	 * Gibt den String des übergebenen GregorianCalendars zurück.
+	 * 
+	 * @param calendar
+	 *            GregorianCalendar, dessen String erstellt werden soll
+	 * @return calendar als String
+	 */
 	public static String ToString(GregorianCalendar calendar) {
 		return simpleDateFormat.format(calendar.getTime());
 	}
 
+	/**
+	 * Die Methode gibt immer die aktuelle Zeit der Simulation zurück. Je nach
+	 * Belegung der Variable timeFactor kann diese Zeit schneller oder langsamer
+	 * als die reale Zeit vergehen.
+	 * 
+	 * @return Die aktuelle Zeit der Simulation als GregorianCalendar
+	 */
 	public static GregorianCalendar now() {
 		GregorianCalendar realTime = new GregorianCalendar(TimeZone.getTimeZone("America/Los Angeles"));
 
@@ -39,7 +53,7 @@ public class DateTime {
 
 		int millisToAdd = (int) millis;
 
-		millisToAdd *= factorTimeScaling - 1;
+		millisToAdd *= timeFactor - 1;
 		simulationTime.add(Calendar.MILLISECOND, millisToAdd);
 
 		return simulationTime;
@@ -77,6 +91,11 @@ public class DateTime {
 		return calendar;
 	}
 
+	/**
+	 * Gibt die Anfangszeit der aktuellen Stunde zurück.
+	 * 
+	 * @return Anfangszeit der aktuellen Stunde als GregorianCalendar
+	 */
 	public static GregorianCalendar currentTimeSlot() {
 		GregorianCalendar now = now();
 
@@ -87,15 +106,33 @@ public class DateTime {
 		return now;
 	}
 
+	/**
+	 * Gibt die Anfangszeit der nächsten Stunde zurück.
+	 * 
+	 * @return Anfangszeit der nächsten Stunde als GregorianCalendar
+	 */
 	public static GregorianCalendar nextTimeSlot() {
 		GregorianCalendar now = now();
 
-		now.set(Calendar.HOUR, now.get(Calendar.HOUR) + 1);
+		now.set(Calendar.HOUR_OF_DAY, now.get(Calendar.HOUR_OF_DAY) + 1);
 		now.set(Calendar.MINUTE, 0);
 		now.set(Calendar.SECOND, 0);
 		now.set(Calendar.MILLISECOND, 0);
 
 		return now;
+	}
+
+	/**
+	 * Ermöglicht es, den Faktor der Zeit zu setzen. Dieser bestimmt, ob und wie
+	 * viel die Simulationszeit schneller bzw. langsamer als die reale Zeit
+	 * vergehen soll.
+	 * 
+	 * @param factor
+	 *            Faktor, um welchen die Simulationszeit gegenüber der realen
+	 *            Zeit langsamer (<1) bzw. schneller (>1) vergehen soll.
+	 */
+	public static void setTimeFactor(double factor) {
+		timeFactor = factor;
 	}
 
 }

@@ -64,6 +64,11 @@ public class Marketplace implements Identifiable {
 	 * Map, die alle bisher zusammengefuehrten Angebote nach Zeitslot beinhaltet
 	 */
 	private HashMap<String, ArrayList<MatchedOffers>> matchedOffers = new HashMap<String, ArrayList<MatchedOffers>>();
+	
+	/**
+	 * Minute, zu welcher die zweite Phase des Marktplatzes starten soll
+	 */
+	private int minuteOfSecondPhase;
 
 	/**
 	 * Map, die alle Angebote beinhaltet, ueber deren Preis gerade mit den
@@ -166,7 +171,7 @@ public class Marketplace implements Identifiable {
 		 * Matche den aktuellen Slot, wenn bereits 55 Minuten oder mehr
 		 * vergangen sind
 		 */
-		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= 55) {
+		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY) && now.get(Calendar.MINUTE) >= minuteOfSecondPhase) {
 			matchNextSlot();
 		}
 
@@ -1080,6 +1085,10 @@ public class Marketplace implements Identifiable {
 		} else {
 			listPossibleMatches.put(key, newPossibleMatches);
 		}
+	}
+	
+	public void setMinuteOfSecondPhase(int minute) {
+		minuteOfSecondPhase = minute;
 	}
 
 	/**
