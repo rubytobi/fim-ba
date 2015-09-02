@@ -146,10 +146,14 @@ public class BHKW implements Device {
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
 		double[] changesKWH = cr.getChangesLoadprofile();
 		String dateCR = DateTime.ToString(cr.getStartLoadprofile());
-		String dateCurrent = DateTime.ToString(cr.getStartLoadprofile());
+		String dateCurrent = DateTime.ToString(timeFixed);
 		if (!dateCR.equals(dateCurrent)) {
 			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
-			// timeFixed angefragt werden
+			// timeFixed angefragt werden. Sende daher Antwort ohne Änderungen
+			Log.e(uuid,  "Änderungen sind für diesen Zeitslot nicht möglich.");
+			double[] zero = { 0, 0, 0, 0 };
+			AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), zero, 0, 0);
+			return answer;
 		}
 
 		// Berechne 15-Minuten Werte für Füllstand und Erzeugung
@@ -240,8 +244,8 @@ public class BHKW implements Device {
 		}
 
 		double[][] newSchedule = chargeChangedSchedule(changes);
-		if (scheduleCurrentChangeRequest == null){
-			scheduleCurrentChangeRequest = new double[2][numSlots*15];
+		if (scheduleCurrentChangeRequest == null) {
+			scheduleCurrentChangeRequest = new double[2][numSlots * 15];
 		}
 
 		for (int i = 0; i < numSlots * 15; i++) {
@@ -250,13 +254,22 @@ public class BHKW implements Device {
 		}
 
 		// Schicke Info mit moeglichen Aenderungen und Preis dafuer an Consumer
-		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), changesKWH, price, 0);
+		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), changesKWH, 0, price);
 
 		waitForAnswerCR = true;
 		return answer;
 
 	}
 
+	/**
+	 * Berechnet den neuen Fahrplan zu den übergebenen Änderungen
+	 * 
+	 * @param changes
+	 *            Geplante Änderungen mit Änderung des Reservoirlevels[0] und
+	 *            Änderung der Stromerzeugung [1]
+	 * @return Minütlicher plan mit neuen Reservoirlevels [0] und neuer
+	 *         Stromerzeugung [1]
+	 */
 	private double[][] chargeChangedSchedule(double[][] changes) {
 		double[][] planned = scheduleMinutes.clone();
 		double[] plannedPowerLoadprofile = createValuesLoadprofile(planned[1]);

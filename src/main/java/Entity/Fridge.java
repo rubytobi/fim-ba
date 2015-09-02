@@ -184,6 +184,15 @@ public class Fridge implements Device {
 	 *            soll
 	 */
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
+		if (! DateTime.ToString(cr.getStartLoadprofile()).equals(DateTime.ToString(timeFixed))) {
+			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
+			// timeFixed angefragt werden. Sende daher Antwort ohne Änderungen
+			Log.e(uuid,  "Änderungen sind für diesen Zeitslot nicht möglich.");
+			double[] zero = { 0, 0, 0, 0 };
+			AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), zero, 0, 0);
+			return answer;
+		}
+		
 		double[] changesKWH = cr.getChangesLoadprofile();
 		int[] changesMinute = new int[numSlots];
 		double[][] plannedSchedule = scheduleMinutes.clone();
