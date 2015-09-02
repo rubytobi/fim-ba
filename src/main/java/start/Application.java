@@ -32,7 +32,7 @@ import Util.API;
 public class Application {
 	public class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 3;
+		public static final int maxDevices = 5;
 
 		// Jedes x-te Gerät ist ein BHKW
 		public static final int bhkwQuota = 3;
@@ -82,7 +82,7 @@ public class Application {
 
 	@Scheduled(fixedRate = 100)
 	public static void init() {
-		if (DeviceContainer.instance().size() >= Params.bhkwQuota) {
+		if (DeviceContainer.instance().size() >= Params.maxDevices) {
 			return;
 		}
 

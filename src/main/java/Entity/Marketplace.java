@@ -733,7 +733,8 @@ public class Marketplace implements Identifiable {
 			// Frage verbliebenen Angebote der Reihe nach
 			// nach Ausgleichsmoeglichkeiten
 			for (Offer currentOffer : remainingOffers) {
-				ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(currentOffer.getUUID(), currentDeviation);
+				ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(currentOffer.getUUID(), currentDeviation,
+						currentOffer.getDate());
 				UUID author = currentOffer.getAuthor();
 
 				// Versende Anfrage an Author

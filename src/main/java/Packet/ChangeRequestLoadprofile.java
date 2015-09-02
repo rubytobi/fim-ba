@@ -6,6 +6,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import Entity.Loadprofile;
+import Util.DateTime;
 
 /**
  * Paket, mit welchem der Consumer seine Partner-Consumers um eine Anpassung des
@@ -13,8 +14,9 @@ import Entity.Loadprofile;
  *
  */
 public class ChangeRequestLoadprofile {
-	UUID offer;
-	double[] change;
+	private UUID offer;
+	private double[] change;
+	private GregorianCalendar time;
 
 	protected ChangeRequestLoadprofile() {
 		// dummy
@@ -29,9 +31,10 @@ public class ChangeRequestLoadprofile {
 	 * @param change
 	 *            Änderung
 	 */
-	public ChangeRequestLoadprofile(UUID offer, double[] change) {
+	public ChangeRequestLoadprofile(UUID offer, double[] change, GregorianCalendar time) {
 		this.offer = offer;
 		this.change = change;
+		this.time = time;
 	}
 
 	public UUID getOffer() {
@@ -52,17 +55,22 @@ public class ChangeRequestLoadprofile {
 		return true;
 	}
 
-	public Loadprofile toLoadprofile(GregorianCalendar date) {
-		return new Loadprofile(change, date, Loadprofile.Type.DELTA);
+	public Loadprofile toLoadprofile() {
+		return new Loadprofile(change, time, Loadprofile.Type.DELTA);
 	}
 
 	public String toString() {
-		return "ChangeRequestLoadprofile [offer=" + offer + ",change=" + Arrays.toString(change) + "]";
+		return "ChangeRequestLoadprofile [offer=" + offer + ", change=" + Arrays.toString(change) + ", time="
+				+ DateTime.ToString(time) + "]";
 	}
 
 	public void sub(AnswerChangeRequestLoadprofile answer) {
 		for (int i = 0; i < 4; i++) {
 			change[i] -= answer.getLoadprofile().getValues()[i];
 		}
+	}
+
+	public GregorianCalendar getTime() {
+		return time;
 	}
 }

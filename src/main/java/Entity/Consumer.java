@@ -403,7 +403,8 @@ public class Consumer implements Identifiable {
 
 		// Berechnen der Abweichung
 		HashMap<UUID, AnswerChangeRequestLoadprofile> contributions = new HashMap<UUID, AnswerChangeRequestLoadprofile>();
-		ChangeRequestLoadprofile aim = new ChangeRequestLoadprofile(ownOffer.getUUID(), bestScore.getDelta());
+		ChangeRequestLoadprofile aim = new ChangeRequestLoadprofile(ownOffer.getUUID(), bestScore.getDelta(),
+				ownOffer.getDate());
 
 		Log.d(uuid, "Verbesserungsziel: " + Arrays.toString(aim.getChange()));
 
@@ -634,10 +635,18 @@ public class Consumer implements Identifiable {
 			return null;
 		}
 
+		if (cr.getTime().before(DateTime.nextTimeSlot())) {
+			Log.e(uuid, "Anfrage für den aktuellen Zeitslot nicht möglich.");
+			return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
+					.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), new Loadprofile(
+							new double[] { 0.0, 0.0, 0.0, 0.0 }, cr.getTime(), Loadprofile.Type.CHANGE_REQUEST)))
+					.build();
+		}
+
 		// Frage eigenes Device nach Änderung
 		// ( und passe noch benötigte Änderung an )
 		AnswerChangeRequestSchedule answer = askDeviceForChange(
-				new ChangeRequestSchedule(DateTime.currentTimeSlot(), cr.getChange()));
+				new ChangeRequestSchedule(cr.getTime(), cr.getChange()));
 
 		Log.d(uuid, "Angefragte Änderung: [" + Arrays.toString(cr.getChange()) + "]");
 		Log.d(uuid, "Erhaltene Änderung: [" + Arrays.toString(answer.getChanges()) + "]");
