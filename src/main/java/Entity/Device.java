@@ -12,6 +12,13 @@ import Packet.AnswerChangeRequestSchedule;
  *
  */
 public interface Device extends Identifiable {
+	/**
+	 * Gibt den SimpleName der Klasse zurück
+	 * 
+	 * @return SimpleClassName
+	 */
+	public String getType();
+
 	int numSlots = 4;
 
 	/**

@@ -51,8 +51,14 @@ public class Fridge implements Device {
 	/**
 	 * Temperatur, bei der der nächste neue Fahrplan beginnen soll
 	 */
+	@JsonView(View.Summary.class)
+	private double currTemp;
+
+	/**
+	 * Grenzen des Kühlschranks
+	 */
 	@JsonView(View.Detail.class)
-	private double currTemp, maxTemp1, minTemp1, maxTemp2, minTemp2;
+	private double maxTemp1, minTemp1, maxTemp2, minTemp2;
 
 	/**
 	 * Gibt an, ob der nächste Fahrplan mit Kühlen beginnen soll
@@ -928,6 +934,15 @@ public class Fridge implements Device {
 			start.add(Calendar.HOUR_OF_DAY, -1);
 		}
 		return schedule;
+	}
+
+	/**
+	 * Gibt den SimpleName der Klasse zurück
+	 * 
+	 * @return SimpleClassName
+	 */
+	public String getType() {
+		return getClass().getSimpleName();
 	}
 
 	/**

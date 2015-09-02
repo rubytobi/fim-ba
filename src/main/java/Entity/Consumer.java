@@ -335,6 +335,22 @@ public class Consumer implements Identifiable {
 		return new ResponseBuilder<Offer[]>(this).body(allOffers.values().toArray(new Offer[allOffers.size()])).build();
 	}
 
+	private Loadprofile getInitialLoadprofile() {
+		for (UUID o : allOffers.keySet()) {
+			for (UUID c : allOffers.get(o).getAllLoadprofiles().keySet()) {
+
+				for (UUID l : allOffers.get(o).getAllLoadprofiles().get(c).keySet()) {
+					if (allOffers.get(o).getAllLoadprofiles().get(c).get(l).getType()
+							.equals(Loadprofile.Type.INITIAL)) {
+						return allOffers.get(o).getAllLoadprofiles().get(c).get(l);
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
 	private Offer getMarketplacePrediction() {
 		API<Void, double[]> api2 = new API<Void, double[]>(double[].class);
 		api2.marketplace().prediction();
@@ -351,10 +367,7 @@ public class Consumer implements Identifiable {
 	}
 
 	public ResponseEntity<Offer> getOffer(UUID offer) {
-		Offer o = getOfferIntern(offer);
-		ResponseEntity<Offer> response = new ResponseBuilder<Offer>(this).body(o).build();
-		Log.d(uuid, "ResponseEntity [" + response + "]");
-		return response;
+		return new ResponseBuilder<Offer>(this).body(getOfferIntern(offer)).build();
 	}
 
 	private Offer getOfferFromUrl(UUID consumer, UUID offer) {
@@ -366,7 +379,6 @@ public class Consumer implements Identifiable {
 	}
 
 	private Offer getOfferIntern(UUID offer) {
-		Log.d(uuid, "get offer" + offer);
 		return this.allOffers.get(offer);
 	}
 
@@ -400,6 +412,11 @@ public class Consumer implements Identifiable {
 		// erhöht wird. versuche durch anpassung von lastprofilen eine
 		// besserung zu erreichen
 		Log.d(uuid, "Das eigene Angebot muss verbessert werden.");
+
+		if (ownOffer.getDate().before(DateTime.nextTimeSlot())) {
+			Log.d(uuid, "Kann Angbeote der aktuellen Stunde nicht verbessern.");
+			return null;
+		}
 
 		// Berechnen der Abweichung
 		HashMap<UUID, AnswerChangeRequestLoadprofile> contributions = new HashMap<UUID, AnswerChangeRequestLoadprofile>();
@@ -547,6 +564,12 @@ public class Consumer implements Identifiable {
 		if (scorecard.first().hasReceivedOffer()) {
 			Log.d(uuid, "Bestmögliches Angebot enthält bereits das externe Angebot.");
 			newOffer = scorecard.first().getMerge();
+		} else if (scorecard.size() == 1) {
+			Log.d(uuid, "Keine Angebote als Vergleich vorhanden.");
+			newOffer = scorecard.first().getMerge();
+		} else if (scorecard.first().getOwn().getDate().before(DateTime.nextTimeSlot())) {
+			Log.d(uuid, "Angebot liegt in der aktuellen Stunde. Keine Verbesserung durch CRs möglich.");
+			newOffer = scorecard.first().getMerge();
 		} else {
 			Log.d(uuid, "Versuche das eigene Angebot anzupassen um besser zu werden.");
 			HashMap<UUID, AnswerChangeRequestLoadprofile> contributions = improveOwnOffer(scorecard.first().getOwn(),
@@ -563,7 +586,7 @@ public class Consumer implements Identifiable {
 
 		newOffer.generateAuthKey();
 
-		Log.d(uuid, "Neues Angebot	 erreicht: " + newOffer);
+		Log.d(uuid, "Neues Angebot erreicht: " + newOffer);
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), scorecard.first().getOwn());
 
@@ -651,22 +674,7 @@ public class Consumer implements Identifiable {
 		Log.d(uuid, "Angefragte Änderung: [" + Arrays.toString(cr.getChange()) + "]");
 		Log.d(uuid, "Erhaltene Änderung: [" + Arrays.toString(answer.getChanges()) + "]");
 
-		// TODO Berechnung neue Grenzen
-		// TODO ANswerChangeRequestLoadprofile ändern
-
-		// Suche das initiale Lastprofil, das zu dieser Änderung gehört
-		Loadprofile initialLoadprofile = null;
-		for (UUID o : allOffers.keySet()) {
-			for (UUID c : allOffers.get(o).getAllLoadprofiles().keySet()) {
-
-				for (UUID l : allOffers.get(o).getAllLoadprofiles().get(c).keySet()) {
-					if (allOffers.get(o).getAllLoadprofiles().get(c).get(l).getType()
-							.equals(Loadprofile.Type.INITIAL)) {
-						initialLoadprofile = allOffers.get(o).getAllLoadprofiles().get(c).get(l);
-					}
-				}
-			}
-		}
+		Loadprofile initialLoadprofile = getInitialLoadprofile();
 
 		if (initialLoadprofile == null) {
 			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");

@@ -146,4 +146,8 @@ public class Scorecard {
 		return "Scorecard [first=" + first() + ",map=" + sort() + "]";
 	}
 
+	public int size() {
+		return allScores.size();
+	}
+
 }

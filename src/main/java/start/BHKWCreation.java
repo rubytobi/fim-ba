@@ -11,13 +11,12 @@ public class BHKWCreation {
 		// dummy
 	}
 
-	public BHKWCreation(double chpCoefficient, double priceFuel, double consFuelPerKWh, double sizeHeatReservoir,
-			double maxLoad) {
+	public BHKWCreation(double chpCoefficient, double priceFuel, double consFuelPerKWh) {
 		this.chpCoefficient = chpCoefficient;
 		this.priceFuel = priceFuel;
 		this.consFuelPerKWh = consFuelPerKWh;
-		this.sizeHeatReservoir = sizeHeatReservoir;
-		this.maxLoad = maxLoad;
+		this.sizeHeatReservoir = ((int) (Math.random() * 10)) * (10 - 5) + 50;
+		this.maxLoad = ((int) (Math.random() * (10 - 5))) + 5;
 	}
 
 	public double getChpCoefficient() {

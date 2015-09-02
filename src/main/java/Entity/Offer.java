@@ -361,6 +361,22 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	}
 
 	/**
+	 * Gibt die Anzahl an Lastprofilen im Angebot zurück
+	 * 
+	 * @return Anzahl enthaltener Lastprofile
+	 */
+	@JsonIgnore
+	public int getNumLoadprofiles() {
+		int i = 0;
+
+		for (UUID consumer : allLoadprofiles.keySet()) {
+			i += allLoadprofiles.get(consumer).size();
+		}
+
+		return i;
+	}
+
+	/**
 	 * Liefert UUID des Angebots
 	 * 
 	 * @return UUID des Angebots

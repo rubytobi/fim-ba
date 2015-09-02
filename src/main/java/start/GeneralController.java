@@ -40,7 +40,7 @@ public class GeneralController {
 
 			@Override
 			public int compare(Offer o1, Offer o2) {
-				return -1 * Integer.compare(o1.getAllLoadprofiles().size(), o2.getAllLoadprofiles().size());
+				return -1 * Integer.compare(o1.getNumLoadprofiles(), o2.getNumLoadprofiles());
 			}
 		});
 

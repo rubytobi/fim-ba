@@ -1,6 +1,5 @@
 package Entity;
 
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Map;
@@ -8,6 +7,9 @@ import java.util.TreeMap;
 import java.util.UUID;
 
 import org.springframework.http.HttpMethod;
+
+import com.fasterxml.jackson.annotation.JsonView;
+
 import Event.IllegalDeviceState;
 import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequestSchedule;
@@ -15,6 +17,7 @@ import Util.API;
 import Util.DateTime;
 import Util.Log;
 import Util.SimulationBHKW;
+import Util.View;
 
 /**
  * Klasse fuer Blockheizkraftwerke (BHKW)
@@ -24,26 +27,31 @@ public class BHKW implements Device {
 	/**
 	 * Stromkoeffizient: Strom = Koeffizient * Waerme
 	 */
+	@JsonView(View.Detail.class)
 	private double chpCoefficient;
 
 	/**
 	 * Verbrauch fuer Leistung einer zusaetzlichen kWh in Liter
 	 */
+	@JsonView(View.Detail.class)
 	private double consFuelPerKWh;
 
 	/**
 	 * UUID des Consumers des BHKW
 	 */
+	@JsonView(View.Summary.class)
 	private UUID consumerUUID;
 
 	/**
 	 * Maximale Last des BHKW
 	 */
+	@JsonView(View.Summary.class)
 	private double maxLoad;
 
 	/**
 	 * Preis fuer 1l Brennstoff
 	 */
+	@JsonView(View.Detail.class)
 	private double priceFuel;
 
 	private double priceEex;
@@ -51,52 +59,65 @@ public class BHKW implements Device {
 	/**
 	 * Fahrplan, der für die aktuelle ChangeRequest errechnet wurde
 	 */
+	@JsonView(View.Detail.class)
 	private double[][] scheduleCurrentChangeRequest;
 
 	/**
 	 * Fahrplan in Minuten Rythmus, den der Consumer gerade aushandelt mit
 	 * Fuellstand des Reservoirs (0) und Stromerzeugung (1)
 	 */
+	@JsonView(View.Detail.class)
 	private double[][] scheduleMinutes;
 
 	/**
 	 * Fahrplaene in Minuten Rythmus, die schon ausgehandelt sind und fest
 	 * stehen mit Fuellstand des Reservoirs (0) und Stromerzeugung (1)
 	 */
+	@JsonView(View.Detail.class)
 	private TreeMap<String, double[][]> schedulesFixed = new TreeMap<String, double[][]>();
 
 	/**
 	 * Simulator fuer das BHKW
 	 */
+	@JsonView(View.Detail.class)
 	private SimulationBHKW simulation;
 
 	/**
 	 * Groesse des Waermespeichers
 	 */
+	@JsonView(View.Summary.class)
 	private double sizeHeatReservoir;
 
 	/**
 	 * Status des BHKW
 	 */
+	@JsonView(View.Summary.class)
 	private DeviceStatus status;
 
 	/**
 	 * Zeitpunkt, ab dem scheduleMinutes gilt
 	 */
+	@JsonView(View.Summary.class)
 	private GregorianCalendar timeFixed;
 
 	/**
 	 * UUID des BHKW
 	 */
+	@JsonView(View.Summary.class)
 	private UUID uuid;
 
 	/**
-	 * waitForAnswerCR: Gibt an, ob aktuell auf die Antwort auf eine Change
-	 * Request gewartet wird waitForChargeDeltaLoadprofile: Gibt an, ob während
-	 * des Wartens auf die Antwort einer Change Request eine Termperaturänderung
-	 * war
+	 * Gibt an, ob aktuell auf die Antwort auf eine Change Request gewartet wird
 	 */
-	private boolean waitForAnswerCR, waitToChargeDeltaLoadprofile;
+	@JsonView(View.Detail.class)
+	private boolean waitForAnswerCR;
+
+	/**
+	 * Gibt an, ob während des Wartens auf die Antwort einer Change Request eine
+	 * Termperaturänderung war
+	 */
+	@JsonView(View.Detail.class)
+	private boolean waitToChargeDeltaLoadprofile;
 
 	private BHKW() {
 		status = DeviceStatus.CREATED;
@@ -249,8 +270,12 @@ public class BHKW implements Device {
 		}
 
 		for (int i = 0; i < numSlots * 15; i++) {
-			scheduleCurrentChangeRequest[0][i] = newSchedule[0][i];
-			scheduleCurrentChangeRequest[1][i] = newSchedule[1][i];
+			try {
+				scheduleCurrentChangeRequest[0][i] = newSchedule[0][i];
+				scheduleCurrentChangeRequest[1][i] = newSchedule[1][i];
+			} catch (NullPointerException e) {
+				Log.e(uuid, "....................");
+			}
 		}
 
 		// Schicke Info mit moeglichen Aenderungen und Preis dafuer an Consumer
@@ -500,6 +525,15 @@ public class BHKW implements Device {
 	 */
 	public DeviceStatus getStatus() {
 		return status;
+	}
+
+	/**
+	 * Gibt den SimpleName der Klasse zurück
+	 * 
+	 * @return SimpleClassName
+	 */
+	public String getType() {
+		return getClass().getSimpleName();
 	}
 
 	/**
