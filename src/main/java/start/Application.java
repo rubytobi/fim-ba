@@ -24,16 +24,29 @@ import Entity.Consumer;
 import Entity.Device;
 import Entity.Fridge;
 import Entity.Identifiable;
-import Entity.Marketplace;
 import Packet.FridgeCreation;
 import Util.API;
-import Util.DateTime;
 
 @SpringBootApplication
 @EnableScheduling
 public class Application {
+	public class Params {
+		// Setze die Anzahl an Devices der Simulation
+		public static final int maxDevices = 3;
+
+		// Jedes x-te Gerät ist ein BHKW
+		public static final int bhkwQuota = 3;
+
+		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
+		// langsamer (<1) als die reale Zeit vergeht
+		public static final double timeFactor = 1;
+
+		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
+		// starten soll
+		public static final int marketplaceMinuteOfSecondPhase = 45;
+	}
+
 	private static String BASE_URI = "http://localhost:8080";
-	private static final int maxFridges = 3;
 	private DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'+0200'");
 	private final static Identifiable root = new Identifiable() {
 		private final UUID root = UUID.fromString("00000000-0000-0000-0000-0000");
@@ -48,15 +61,6 @@ public class Application {
 		System.setProperty("org.graphstream.ui.renderer", "org.graphstream.ui.j2dviewer.J2DGraphRenderer");
 
 		TimeZone.setDefault(TimeZone.getTimeZone("Europe/Berlin"));
-
-		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
-		// langsamer (<1) als die reale Zeit vergeht
-		DateTime.setTimeFactor(1);
-
-		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
-		// starten soll
-		Marketplace marketplace = Marketplace.instance();
-		marketplace.setMinuteOfSecondPhase(45);
 
 		SpringApplicationBuilder builder = new SpringApplicationBuilder(Application.class);
 		builder.headless(false).run(args);
@@ -78,13 +82,13 @@ public class Application {
 
 	@Scheduled(fixedRate = 100)
 	public static void init() {
-		if (DeviceContainer.instance().size() >= maxFridges) {
+		if (DeviceContainer.instance().size() >= Params.bhkwQuota) {
 			return;
 		}
 
 		UUID uuid = null;
 
-		if ((DeviceContainer.instance().size() + "").endsWith("3")) {
+		if (DeviceContainer.instance().size() % Params.bhkwQuota == 0) {
 			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
 			BHKWCreation bhkwCreation = new BHKWCreation(1, 5, 1, 100, 5);
 			api.devices().bhkw();

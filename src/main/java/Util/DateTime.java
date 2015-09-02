@@ -5,14 +5,15 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
+
+import start.Application;
+
 import java.util.Calendar;
 
 public class DateTime {
 	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 
 	private static GregorianCalendar programStart = null;
-
-	private static double timeFactor = 1;
 
 	public static String timestamp() {
 		return simpleDateFormat.format(now().getTime());
@@ -53,7 +54,7 @@ public class DateTime {
 
 		int millisToAdd = (int) millis;
 
-		millisToAdd *= timeFactor - 1;
+		millisToAdd *= Application.Params.timeFactor - 1;
 		simulationTime.add(Calendar.MILLISECOND, millisToAdd);
 
 		return simulationTime;
@@ -121,18 +122,4 @@ public class DateTime {
 
 		return now;
 	}
-
-	/**
-	 * Ermöglicht es, den Faktor der Zeit zu setzen. Dieser bestimmt, ob und wie
-	 * viel die Simulationszeit schneller bzw. langsamer als die reale Zeit
-	 * vergehen soll.
-	 * 
-	 * @param factor
-	 *            Faktor, um welchen die Simulationszeit gegenüber der realen
-	 *            Zeit langsamer (<1) bzw. schneller (>1) vergehen soll.
-	 */
-	public static void setTimeFactor(double factor) {
-		timeFactor = factor;
-	}
-
 }
