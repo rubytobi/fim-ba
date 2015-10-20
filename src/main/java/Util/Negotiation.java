@@ -21,6 +21,8 @@ public class Negotiation implements Identifiable {
 	private double minCurrentSum, maxCurrentSum;
 	private double acceptedMin1, acceptedMax1;
 	private double acceptedMin2, acceptedMax2;
+	private double fairPrice1, fairPrice2;
+	private boolean up1, up2;
 	private UUID uuid;
 	private int maxRounds = 3;
 	private Identifiable marketplace;
@@ -52,6 +54,7 @@ public class Negotiation implements Identifiable {
 		this.demand2 = sumLoadprofile2 < 0;
 		this.minCurrentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
 		this.maxCurrentSum = minCurrentSum;
+		chargeFairPrices();
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -63,14 +66,46 @@ public class Negotiation implements Identifiable {
 	}
 
 	/**
+	 * Berechnet, wie hoch die Anpassung der Preisvorschläge sein müsste, wenn
+	 * beide Seiten ihre Preisvorschläge um den gleichen Betrag anpassen und die
+	 * Zahlungen übereinstimmen. Des Weiteren wird bestimmt, welche Seite den
+	 * Preis erhöhen und welche Seite den Preis erniedrigen muss.
+	 */
+	private void chargeFairPrices() {
+		double currentSum1 = currentPrice1 * sumLoadprofile1;
+		double currentSum2 = currentPrice2 * sumLoadprofile2;
+		double absSumLP1 = Math.abs(sumLoadprofile1);
+		double absSumLP2 = Math.abs(sumLoadprofile2);
+		double fairChange;
+
+		if (Math.abs(currentSum1) > Math.abs(currentSum2)) {
+			fairChange = (absSumLP1 * offer1.getPriceSugg() - absSumLP2 * offer2.getPriceSugg())
+					/ (absSumLP1 + absSumLP2);
+			fairPrice1 = offer1.getPriceSugg() - fairChange;
+			fairPrice2 = offer2.getPriceSugg() + fairChange;
+			up1 = false;
+			up2 = true;
+		} else {
+			fairChange = (absSumLP2 * offer2.getPriceSugg() - absSumLP1 * offer1.getPriceSugg())
+					/ (absSumLP1 + absSumLP2);
+			fairPrice1 = offer1.getPriceSugg() + fairChange;
+			fairPrice2 = offer1.getPriceSugg() - fairChange;
+			up1 = true;
+			up2 = false;
+		}
+	}
+
+	/**
 	 * Gibt eine Beschreibung der Verhandlung auf der Console aus.
 	 */
 	public void negotiationToString() {
 		System.out.println("Negotiation " + uuid + " Confirmed: " + closed);
 		System.out.println("Offer1: " + offer1.getUUID() + " Runde: " + round1 + " Summe LP: " + sumLoadprofile1
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished1);
+		System.out.println("	Fairer Preis: " + fairPrice1 + " Erhöhung: " + up1);
 		System.out.println("Offer2: " + offer2.getUUID() + " Runde: " + round2 + " Summe LP: " + sumLoadprofile2
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished2);
+		System.out.println("	Fairer Preis: " + fairPrice2 + " Erhöhung: " + up2);
 	}
 
 	/**
@@ -95,10 +130,9 @@ public class Negotiation implements Identifiable {
 	}
 
 	/**
-	 * Sendet eine Preisanfrage an das übergebene Angebot. Hierfuer wird zuerst
-	 * mit Hilfe einer Zufallszahl festgelegt, welcher Preis angefragt wird.
-	 * Dabei ist die angefragte Preisänderung größer als die eigentlich
-	 * benötigte Änderung, aber kleiner als die davor angefragte Preisänderung.
+	 * Sendet eine Preisanfrage an das übergebene Angebot. Hierbei wird immer
+	 * der aktuelle Preisvorschlag des anderen Angebots als Preisanfrage
+	 * versendet
 	 * 
 	 * @param offer
 	 *            Angebot, an das Anfrage nach Preisänderung gesendet wird
@@ -109,21 +143,21 @@ public class Negotiation implements Identifiable {
 		Offer currentOffer;
 		if (offer.equals(offer1.getUUID())) {
 			currentOffer = offer1;
-			priceRequest = currentPrice2;
+			priceRequest = Math.abs(currentPrice2 * sumLoadprofile2) / sumLoadprofile1;
 			round1++;
 
 		} else {
 			currentOffer = offer2;
-			priceRequest = currentPrice1;
+			priceRequest = Math.abs(currentPrice1 * sumLoadprofile1) / sumLoadprofile2;
 			round2++;
 		}
-		System.out.println("An: " + currentOffer.getAuthor() + " Preis: " + priceRequest);
 
 		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		API<AnswerToOfferFromMarketplace, Void> api = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
 		api.consumers(currentOffer.getAuthor()).offers(offer).negotiation(uuid).priceChangeRequest();
 		api.call(marketplace, HttpMethod.POST, answerOffer);
+
 	}
 
 	/**
@@ -150,9 +184,10 @@ public class Negotiation implements Identifiable {
 
 	/**
 	 * Behandelt die Antwort eines Consumers mit neuem Preis. Wenn noch eine
-	 * Änderung notwendig ist, wird currentSum aktualisiert. Ist currentSum
-	 * größer gleich 0, werden die exakten Preise berechnet und die Verhandlung
-	 * damit beendet. Ansonsten wird geprüft, ob die maximale Anzahl an
+	 * Änderung notwendig ist, wird minCurrentSum und maxCurrentSum
+	 * aktualisiert. Ist minCurrentSum kleiner gleich 0 und maxCurrentSum größer
+	 * gleich 0, werden die exakten Preise berechnet und die Verhandlung damit
+	 * beendet. Ansonsten wird geprüft, ob die maximale Anzahl an
 	 * Verhandlungsrunden erreicht ist. Wenn ja erfolgt der Methodenaufruf von
 	 * finishNegotiationOffer, wenn nein wird eine erneute Preisanfrage
 	 * versendet.
@@ -233,26 +268,28 @@ public class Negotiation implements Identifiable {
 	}
 
 	/**
-	 * Berechnet exakte Preise, wenn Summe >= 0, so dass Summe = 0. Die neuen
-	 * Preise werden in currentPrice1 und currentPrice2 gespeichert.
+	 * Berechnet exakte Preise, wenn maxSumme >= 0 und minSumme <= =, so dass
+	 * Summe = 0. Die neuen Preise werden in currentPrice1 und currentPrice2
+	 * gespeichert.
 	 * 
-	 * @return Array mit neuen Preisen für Offer1 (0) und Offer2 (1)
+	 * @return Boolean-Wert, ob exakte Preise berechnet werden konnten
 	 */
 	private boolean chargeExactPrices() {
 		System.out.println("***chargeExactPrices***");
 		// Berechne neue, extakte Preise
-		double newPrice1 = sumLoadprofile1 * currentPrice1;
-		double newPrice2 = sumLoadprofile2 * currentPrice2;
+		double newPrice1;
+		double newPrice2;
 
-		if (!(Math.abs(newPrice1) == Math.abs(newPrice2))) {
-			if (Math.abs(newPrice1) > Math.abs(newPrice2) && newPrice1 > 0
-					|| Math.abs(newPrice1) < Math.abs(newPrice2) && newPrice1 < 0) {
-				newPrice1 = Math.abs(newPrice2 / sumLoadprofile1);
-				newPrice2 = Math.abs(newPrice2 / sumLoadprofile2);
-			} else {
-				newPrice2 = Math.abs(newPrice1 / sumLoadprofile2);
-				newPrice1 = Math.abs(newPrice1 / sumLoadprofile1);
-			}
+		if (currentPrice1 >= fairPrice1 && currentPrice2 <= fairPrice2 && up1
+				|| currentPrice2 >= fairPrice2 && currentPrice1 <= fairPrice1 && up2) {
+			newPrice1 = fairPrice1;
+			newPrice2 = fairPrice2;
+		} else if (currentPrice1 < fairPrice1 && up1 || currentPrice2 >= fairPrice2 && up2) {
+			newPrice2 = Math.abs((sumLoadprofile1 * currentPrice1) / sumLoadprofile2);
+			newPrice1 = currentPrice1;
+		} else {
+			newPrice1 = Math.abs((sumLoadprofile2 * currentPrice2) / sumLoadprofile1);
+			newPrice2 = currentPrice2;
 		}
 
 		// Prüfe, ob Ergebnis auch wirklich im angegebenen Preisrahmen

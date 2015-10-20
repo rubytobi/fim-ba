@@ -140,7 +140,7 @@ public class Marketplace implements Identifiable {
 	}
 
 	/**
-	 * ueberprueft, ob schon Minute 55 oder groeßer erreicht ist und macht ggf.
+	 * ueberprueft, ob schon minuteOfSecondPhase oder groeßer erreicht ist und macht ggf.
 	 * den naechsten Slot.
 	 * 
 	 */
@@ -169,7 +169,7 @@ public class Marketplace implements Identifiable {
 		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot);
 
 		/*
-		 * Matche den aktuellen Slot, wenn bereits 55 Minuten oder mehr
+		 * Matche den aktuellen Slot, wenn bereits minuteOfSeconfPhase Minuten oder mehr
 		 * vergangen sind
 		 */
 		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY)
@@ -483,6 +483,7 @@ public class Marketplace implements Identifiable {
 	public boolean findFittingOffer(Offer offer, boolean offerIsSupplyOffer) {
 		System.out.println("***Find fitting Offer***");
 		ArrayList<Offer> offers;
+		// Immer Gegenangebot, wegen Preis
 		if (offerIsSupplyOffer) {
 			offers = demand.get(DateTime.ToString(offer.getDate()));
 		} else {
@@ -754,7 +755,7 @@ public class Marketplace implements Identifiable {
 				}
 
 				// Berechne die neue Abweichung, wenn die uebergebene
-				// aenderung beachtet wird.
+				// Aenderung beachtet wird.
 				double[] possibleChange = currentAnswer.getChange();
 				double[] possibleChangeDeviation = currentDeviation.clone();
 				double sumPossibleChange = 0;
@@ -932,11 +933,11 @@ public class Marketplace implements Identifiable {
 
 		// currentDate gibt an, für welche Stunde noch Angebot entgegengenommen
 		// werden.
-		// Wenn die Minuten der aktuellen Stunde <= 45 sind, werden noch
+		// Wenn die Minuten der aktuellen Stunde <= minuteOfSecondPhase sind, werden noch
 		// Angebote für die aktuelle Stunde angenommen, ansonsten erst wieder
 		// für die nächste Stunde und später
 		GregorianCalendar currentDate = DateTime.now();
-		if (currentDate.get(Calendar.MINUTE) > 45) {
+		if (currentDate.get(Calendar.MINUTE) > minuteOfSecondPhase) {
 			currentDate.add(Calendar.HOUR_OF_DAY, +1);
 		}
 		currentDate.set(Calendar.MINUTE, 0);
@@ -955,7 +956,6 @@ public class Marketplace implements Identifiable {
 
 		// Berechne Summe des Lastprofils und addiere sie zu der Summe aller
 		// Lastprofile
-
 		double[] valuesLoadprofile = offer.getAggLoadprofile().getValues();
 		double sumLoadprofile = 0;
 		double[] sumAllOffers = sumLoadprofilesAllOffers.get(date);

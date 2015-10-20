@@ -8,7 +8,7 @@ import Packet.ChangeRequestSchedule;
 import Packet.AnswerChangeRequestSchedule;
 
 /**
- * Interface fuer alle Verbrauchsgeraete
+ * Interface fuer alle Geraete
  *
  */
 public interface Device extends Identifiable {
