@@ -140,8 +140,8 @@ public class Marketplace implements Identifiable {
 	}
 
 	/**
-	 * ueberprueft, ob schon minuteOfSecondPhase oder groeßer erreicht ist und macht ggf.
-	 * den naechsten Slot.
+	 * ueberprueft, ob schon minuteOfSecondPhase oder groeßer erreicht ist und
+	 * macht ggf. den naechsten Slot.
 	 * 
 	 */
 	public void BKV() {
@@ -169,8 +169,8 @@ public class Marketplace implements Identifiable {
 		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot);
 
 		/*
-		 * Matche den aktuellen Slot, wenn bereits minuteOfSeconfPhase Minuten oder mehr
-		 * vergangen sind
+		 * Matche den aktuellen Slot, wenn bereits minuteOfSeconfPhase Minuten
+		 * oder mehr vergangen sind
 		 */
 		if (now.get(Calendar.HOUR_OF_DAY) == nextSlot.get(Calendar.HOUR_OF_DAY)
 				&& now.get(Calendar.MINUTE) >= minuteOfSecondPhase) {
@@ -322,7 +322,7 @@ public class Marketplace implements Identifiable {
 		double[] prices = { priceDemand, priceSupply };
 		unitPricesWithPenalty.put(DateTime.ToString(date), prices);
 
-		// Bestaetige alle Angebote des Zeitrausm mit den errechneten Preisen
+		// Bestaetige alle Angebote des Zeitraums mit den errechneten Preisen
 		for (Offer demand : allDemandsAtDate) {
 			confirmOffer(demand, priceDemand);
 		}
@@ -683,7 +683,11 @@ public class Marketplace implements Identifiable {
 
 	/**
 	 * Gibt zurueck, ob fuer die Hoehe der Abweichung von der Prognose eine
-	 * Anpassung erfragt oder der reBAP bezahlt werden soll.
+	 * Anpassung erfragt oder der reBAP bezahlt werden soll. Hierfür sollen an
+	 * dieser Stelle die nach der Seminararbeit "Make or Buy im Bilanzkreis"
+	 * errechneten Grenzen für den Fremd- bzw. Eigenausgleich eingefügt werden.
+	 * Anhand von diesen kann dann entscheiden werden, ob ein Ausgleich durch
+	 * die intelligenten Geräte stattfinden soll oder nicht.
 	 * 
 	 * @param sumDeviationAll
 	 *            Hoehe der Abweichung von der Prognose
@@ -691,7 +695,19 @@ public class Marketplace implements Identifiable {
 	 *         reBAP bezahlt werden soll.
 	 */
 	public boolean make(double sumDeviationAll) {
-		return true;
+		/*
+		 * Berechnung nach Seminararbeit kann hier noch eingefügt werden. Die
+		 * Grenzen werden auf 0 gesetzt, sodass immer für einen Ausgleich durch
+		 * die intelligenten Geräte entschieden wird.
+		 */
+		double borderNegativeComp = 0;
+		double borderPositiveComp = 0;
+
+		if (sumDeviationAll > 0) {
+			return sumDeviationAll > borderNegativeComp;
+		} else {
+			return sumDeviationAll < borderPositiveComp;
+		}
 	}
 
 	/**
@@ -701,17 +717,23 @@ public class Marketplace implements Identifiable {
 	 */
 	private void matchNextSlot() {
 		double[] deviationAll = chargeDeviationAll(nextSlot);
-		double[] currentPrediction = prediction.get(nextSlot);
 		double sumDeviationAll = 0;
 		for (int i = 0; i < numSlots; i++) {
 			sumDeviationAll += Math.abs(deviationAll[i]);
 		}
-		if (deviationAll.equals(currentPrediction)) {
-			// Bestaetige alle noch uebrigen Angebote zum selben Preis
-			// Eine Strafe von 10% muss gezahlt werden.
-			confirmAllRemainingOffersWithOnePrice(nextSlot, 4);
-		}
-		if (make(sumDeviationAll)) {
+		/*
+		 * if (deviationAll.equals(currentPrediction)) { // Bestaetige alle noch
+		 * uebrigen Angebote zum selben Preis // Eine Strafe von 10% muss
+		 * gezahlt werden. confirmAllRemainingOffersWithOnePrice(nextSlot, 4); }
+		 */
+
+		// Fuehre zunächst alle Angebote, welche die Abweichung von der Prognose
+		// nicht signifikant erhöhen, zusammen
+		matchAllGoodOffers(nextSlot);
+
+		// Prüfe, ob eine Anpassung der intelligenten Geräte gefragt und nötigt
+		// ist. Wenn ja, führe sie durch
+		if (make(sumDeviationAll) && sumDeviationAll != 0) {
 			matchAllGoodOffers(nextSlot);
 
 			ArrayList<Offer> remainingOffers = demand.get(DateTime.ToString(nextSlot));
@@ -803,8 +825,7 @@ public class Marketplace implements Identifiable {
 
 	/**
 	 * Fuehrt alle Angebote eines Zeitraums zusammen, die die Abweichung von der
-	 * Prognose verbessern bzw. mit welchen die Abweichung von der Prognose < 5
-	 * ist.
+	 * Prognose verbessern.
 	 * 
 	 * @param slot
 	 *            Start des Zeitraums, fuer den die Angebote zusammengefuehrt
@@ -835,14 +856,14 @@ public class Marketplace implements Identifiable {
 			double[] deviationNew = new double[numSlots];
 			double sumDeviationNew = 0;
 			double sumDeviationOld = 0;
-			double volumePrediction = 0;
+			//double volumePrediction = 0;
 			for (int i = 0; i < numSlots; i++) {
 				deviationNew[i] = predictionCurrent[i] - sumLPCurrent[i] - loadprofile[i];
 				sumDeviationNew += Math.abs(deviationNew[i]);
 				sumDeviationOld += Math.abs(deviationOld[i]);
-				volumePrediction += Math.abs(predictionCurrent[i]);
+				//volumePrediction += Math.abs(predictionCurrent[i]);
 			}
-			if (sumDeviationNew < sumDeviationOld || sumDeviationNew < volumePrediction) {
+			if (sumDeviationNew < sumDeviationOld /*|| sumDeviationNew < volumePrediction*/) {
 				boolean matched = matchFittingOffers(offers[0], offers[1]);
 				if (matched) {
 					offersJustMatched.add(offers[0]);
@@ -933,7 +954,8 @@ public class Marketplace implements Identifiable {
 
 		// currentDate gibt an, für welche Stunde noch Angebot entgegengenommen
 		// werden.
-		// Wenn die Minuten der aktuellen Stunde <= minuteOfSecondPhase sind, werden noch
+		// Wenn die Minuten der aktuellen Stunde <= minuteOfSecondPhase sind,
+		// werden noch
 		// Angebote für die aktuelle Stunde angenommen, ansonsten erst wieder
 		// für die nächste Stunde und später
 		GregorianCalendar currentDate = DateTime.now();
@@ -989,6 +1011,7 @@ public class Marketplace implements Identifiable {
 				demand.put(date, offers);
 			}
 		}
+		marketplaceToString();
 	}
 
 	public void receiveAnswerChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {

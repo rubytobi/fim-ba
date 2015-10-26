@@ -21,8 +21,6 @@ public class Negotiation implements Identifiable {
 	private double minCurrentSum, maxCurrentSum;
 	private double acceptedMin1, acceptedMax1;
 	private double acceptedMin2, acceptedMax2;
-	private double fairPrice1, fairPrice2;
-	private boolean up1, up2;
 	private UUID uuid;
 	private int maxRounds = 3;
 	private Identifiable marketplace;
@@ -54,7 +52,6 @@ public class Negotiation implements Identifiable {
 		this.demand2 = sumLoadprofile2 < 0;
 		this.minCurrentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
 		this.maxCurrentSum = minCurrentSum;
-		chargeFairPrices();
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -66,46 +63,14 @@ public class Negotiation implements Identifiable {
 	}
 
 	/**
-	 * Berechnet, wie hoch die Anpassung der Preisvorschläge sein müsste, wenn
-	 * beide Seiten ihre Preisvorschläge um den gleichen Betrag anpassen und die
-	 * Zahlungen übereinstimmen. Des Weiteren wird bestimmt, welche Seite den
-	 * Preis erhöhen und welche Seite den Preis erniedrigen muss.
-	 */
-	private void chargeFairPrices() {
-		double currentSum1 = currentPrice1 * sumLoadprofile1;
-		double currentSum2 = currentPrice2 * sumLoadprofile2;
-		double absSumLP1 = Math.abs(sumLoadprofile1);
-		double absSumLP2 = Math.abs(sumLoadprofile2);
-		double fairChange;
-
-		if (Math.abs(currentSum1) > Math.abs(currentSum2)) {
-			fairChange = (absSumLP1 * offer1.getPriceSugg() - absSumLP2 * offer2.getPriceSugg())
-					/ (absSumLP1 + absSumLP2);
-			fairPrice1 = offer1.getPriceSugg() - fairChange;
-			fairPrice2 = offer2.getPriceSugg() + fairChange;
-			up1 = false;
-			up2 = true;
-		} else {
-			fairChange = (absSumLP2 * offer2.getPriceSugg() - absSumLP1 * offer1.getPriceSugg())
-					/ (absSumLP1 + absSumLP2);
-			fairPrice1 = offer1.getPriceSugg() + fairChange;
-			fairPrice2 = offer1.getPriceSugg() - fairChange;
-			up1 = true;
-			up2 = false;
-		}
-	}
-
-	/**
 	 * Gibt eine Beschreibung der Verhandlung auf der Console aus.
 	 */
 	public void negotiationToString() {
 		System.out.println("Negotiation " + uuid + " Confirmed: " + closed);
 		System.out.println("Offer1: " + offer1.getUUID() + " Runde: " + round1 + " Summe LP: " + sumLoadprofile1
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished1);
-		System.out.println("	Fairer Preis: " + fairPrice1 + " Erhöhung: " + up1);
 		System.out.println("Offer2: " + offer2.getUUID() + " Runde: " + round2 + " Summe LP: " + sumLoadprofile2
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished2);
-		System.out.println("	Fairer Preis: " + fairPrice2 + " Erhöhung: " + up2);
 	}
 
 	/**
@@ -279,7 +244,36 @@ public class Negotiation implements Identifiable {
 		// Berechne neue, extakte Preise
 		double newPrice1;
 		double newPrice2;
+		
+		// Berechen Faire Preise
+		double price1 = offer1.getPriceSugg();
+		double price2 = offer2.getPriceSugg();
+		double sum1 = price1 * sumLoadprofile1;
+		double sum2 = price2 * sumLoadprofile2;
+		double absSumLP1 = Math.abs(sumLoadprofile1);
+		double absSumLP2 = Math.abs(sumLoadprofile2);
+		double fairChange, fairPrice1, fairPrice2;
+		boolean up1, up2;
 
+		if (Math.abs(sum1) > Math.abs(sum2)) {
+			fairChange = (absSumLP1 * price1 - absSumLP2 * price2)
+					/ (absSumLP1 + absSumLP2);
+			fairPrice1 = offer1.getPriceSugg() - fairChange;
+			fairPrice2 = offer2.getPriceSugg() + fairChange;
+			up1 = false;
+			up2 = true;
+		} else {
+			fairChange = (absSumLP2 * price2 - absSumLP1 * price1)
+					/ (absSumLP1 + absSumLP2);
+			fairPrice1 = offer1.getPriceSugg() + fairChange;
+			fairPrice2 = offer1.getPriceSugg() - fairChange;
+			up1 = true;
+			up2 = false;
+		}
+		
+		// Prüfe, ob faire Preise verhandelt werden konnten
+		// Wenn ja, verwende faire Preise
+		// Wenn nein, berechne andere Preise
 		if (currentPrice1 >= fairPrice1 && currentPrice2 <= fairPrice2 && up1
 				|| currentPrice2 >= fairPrice2 && currentPrice1 <= fairPrice1 && up2) {
 			newPrice1 = fairPrice1;
