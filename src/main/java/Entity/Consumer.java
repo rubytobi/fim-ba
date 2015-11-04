@@ -274,6 +274,7 @@ public class Consumer implements Identifiable {
 		// TODO bestätige ChangeRequests die durch den Marktplatz vorher
 		// angefragt wurden, möglicherweise müssen diese irgendwo
 		// zwischengelagert werden
+		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " +answerOffer.getPrice());
 		Offer offer = getOfferIntern(answerOffer.getOffer());
 
 		if (offer == null) {
@@ -636,7 +637,6 @@ public class Consumer implements Identifiable {
 		API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
 		api.negotiation().answerToPriceChangeRequest(negotiation);
 		api.call(negotiationWhole, HttpMethod.POST, answer);
-
 	}
 
 	public void receiveChangeRequestDecline(UUID uuidOffer, UUID author) {
@@ -659,12 +659,16 @@ public class Consumer implements Identifiable {
 		}
 
 		if (cr.getTime().before(DateTime.nextTimeSlot())) {
+			System.out.println("NextTimeSlot: " + DateTime.ToString(DateTime.nextTimeSlot()));
+			System.out.println("Time CR: " + DateTime.ToString(cr.getTime()));
 			Log.e(uuid, "Anfrage für den aktuellen Zeitslot nicht möglich.");
 			return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
 					.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), new Loadprofile(
 							new double[] { 0.0, 0.0, 0.0, 0.0 }, cr.getTime(), Loadprofile.Type.CHANGE_REQUEST)))
 					.build();
 		}
+		System.out.println("Zeit passt");
+		System.out.println("Frage Devices nach Änderung");
 
 		// Frage eigenes Device nach Änderung
 		// ( und passe noch benötigte Änderung an )
@@ -676,24 +680,25 @@ public class Consumer implements Identifiable {
 
 		Loadprofile initialLoadprofile = getInitialLoadprofile();
 
+		// Prüfe, ob ein initiales Lastprofil gefunden werden kann und wenn ja,
+		// berechne dessen Summe
 		if (initialLoadprofile == null) {
 			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");
+			//Wirklich return null??
 			return null;
 		}
-
-		// Berechne die Summe des alten Lastprofiles
-		double sumOldLoadprofile = 0;
+		double sumInitialLoadprofile = 0;
 		for (int i = 0; i < numSlots; i++) {
-			sumOldLoadprofile += initialLoadprofile.getValues()[i];
+			sumInitialLoadprofile += initialLoadprofile.getValues()[i];
 		}
 
 		// Berechne den Preis der Änderung und die daraus resultierenden neuen
-		// Minima und Maxima
+		// Minima und Maxima auf Basis des initialen Lastprofils
 		double priceChange = answer.getPriceFactor() * affectedOffer.getPriceSugg();
 		priceChange = priceChange + answer.getSumPenalty();
 
 		double newMax, newMin;
-		if (sumOldLoadprofile < 0) {
+		if (sumInitialLoadprofile < 0) {
 			newMax = initialLoadprofile.getMaxPrice() - priceChange;
 			newMin = initialLoadprofile.getMinPrice();
 			if (newMax < newMin) {
@@ -705,7 +710,7 @@ public class Consumer implements Identifiable {
 		} else {
 			newMin = initialLoadprofile.getMinPrice() + priceChange;
 			newMax = initialLoadprofile.getMaxPrice();
-			if (newMin < newMax) {
+			if (newMin > newMax) {
 				// TODO Was soll hier passieren ??
 				// Dann ändern sich Grenzen nicht
 				newMin = initialLoadprofile.getMinPrice();
@@ -713,7 +718,7 @@ public class Consumer implements Identifiable {
 			}
 		}
 
-		// Lege neuen Preisvorschlag fest
+		// Lege neuen Preisvorschlag für das Lastprofil fest
 		double newPriceSugg = initialLoadprofile.getPriceSugg();
 		if (newPriceSugg < newMin) {
 			newPriceSugg = newMin;

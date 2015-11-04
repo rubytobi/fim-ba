@@ -40,7 +40,7 @@ public class MatchedOffers {
 		}
 		String s = "UUID: " +uuid+ " time: " +DateTime.ToString(time);
 		s = s + o1 + " Preis 1: " +price1;
-		s = s + o2 + " Preis 2: " +price2;
+		s = s + "\n" +o2 + " Preis 2: " +price2;
 		return s;
 	}
 	

@@ -36,6 +36,8 @@ public class Loadprofile {
 	// Minimaler Preis, den das Device für dieses Lastprofil zulässt
 	@JsonProperty("minPrice")
 	private double minPrice;
+	
+	private int numSlots = 4;
 
 	// Gibt, an, ob das Lastprofil Preise festsetzt
 	private Type type;
@@ -67,7 +69,8 @@ public class Loadprofile {
 			Type isDelta) {
 		this();
 
-		this.values = values;
+		this.values = values;	
+		roundValues();
 		this.date = date;
 		this.type = isDelta;
 
@@ -98,6 +101,7 @@ public class Loadprofile {
 		this();
 
 		this.values = values;
+		roundValues();
 		this.date = date;
 		this.type = state;
 		this.minPrice = Double.NEGATIVE_INFINITY;
@@ -131,6 +135,7 @@ public class Loadprofile {
 		for (int i = 0; i < 4; i++) {
 			values[i] = lp1.getValues()[i] + lp2.getValues()[i];
 		}
+		roundValues();
 
 		this.maxPrice = Math.min(lp1.getMaxPrice(), lp2.getMaxPrice());
 		this.minPrice = Math.max(lp1.getMinPrice(), lp2.getMinPrice());
@@ -202,6 +207,17 @@ public class Loadprofile {
 	 */
 	public GregorianCalendar getDate() {
 		return date;
+	}
+	
+	/**
+	 * Rundet alle Werte des Lastprofils auf zwei Nachkommastellen
+	 */
+	public void roundValues() {
+		if (values != null) {
+			for (int i=0; i<numSlots; i++) {
+				values[i] = Math.round(100.00 * values[i]) / 100.00;
+			}
+		}
 	}
 
 	/**

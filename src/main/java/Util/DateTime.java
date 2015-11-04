@@ -115,7 +115,7 @@ public class DateTime {
 	public static GregorianCalendar nextTimeSlot() {
 		GregorianCalendar now = now();
 
-		now.set(Calendar.HOUR_OF_DAY, now.get(Calendar.HOUR_OF_DAY) + 1);
+		//now.add(Calendar.HOUR_OF_DAY, 1);
 		now.set(Calendar.MINUTE, 0);
 		now.set(Calendar.SECOND, 0);
 		now.set(Calendar.MILLISECOND, 0);

@@ -39,7 +39,9 @@ public class Application {
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
-		public static final double timeFactor = 1;
+		// Beachte, dass bei einer sehr schnellen Simulationszeit die
+		// Ping-Zeiten angepasst werden müssen!
+		public static final double timeFactor = 20;
 
 		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
 		// starten soll
@@ -118,6 +120,8 @@ public class Application {
 
 	@Scheduled(initialDelay = 5000, fixedRate = 1000)
 	public static void pingAllDevices() {
+		System.out.println("PING DEVICES");
+
 		RestTemplate rest = new RestTemplate();
 
 		ResponseEntity<Fridge[]> devices = rest.exchange(BASE_URI + "/devices", HttpMethod.GET, null, Fridge[].class);
@@ -132,6 +136,7 @@ public class Application {
 
 	@Scheduled(fixedRate = 1000)
 	public static void pingAllConsumers() {
+		System.out.println("PING CONSUMERS");
 		RestTemplate rest = new RestTemplate();
 
 		ResponseEntity<Consumer[]> consumers = rest.exchange(BASE_URI + "/consumers", HttpMethod.GET, null,
@@ -147,10 +152,10 @@ public class Application {
 		}
 	}
 
-	// @Scheduled(fixedRate = 5000)
+	@Scheduled(fixedRate = 5000)
 	public static void pingMarketplace() {
+		System.out.println("PING MARKETPLACE");
 		RestTemplate rest = new RestTemplate();
-
 		try {
 			rest.exchange(BASE_URI + "/marketplace/ping", HttpMethod.POST, null, Void.class);
 		} catch (HttpServerErrorException e) {
