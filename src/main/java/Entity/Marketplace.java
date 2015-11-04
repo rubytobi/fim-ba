@@ -296,28 +296,18 @@ public class Marketplace implements Identifiable {
 
 		// Hole alle Angebote zu dem uebergebenen Datum und pruefe, ob wirklich
 		// Angebote vorliegen
-		ArrayList<Offer> fetchDemands = demand.get(dateString);
-		ArrayList<Offer> allDemandsAtDate;
-		if (fetchDemands != null) {
-			allDemandsAtDate = (ArrayList<Offer>) fetchDemands.clone();
-		} else {
-			allDemandsAtDate = null;
-		}
-		ArrayList<Offer> fetchSupplies = supply.get(dateString);
-		ArrayList<Offer> allSuppliesAtDate;
-		if (fetchSupplies != null) {
-			allSuppliesAtDate = (ArrayList<Offer>) fetchSupplies.clone();
-		} else {
-			allSuppliesAtDate = null;
-		}
+		ArrayList<Offer> allDemandsAtDate = demand.get(dateString);
+		ArrayList<Offer> allSuppliesAtDate = supply.get(dateString);
 
 		if (allDemandsAtDate == null && allSuppliesAtDate == null) {
 			System.out.println("Keine Angebote für dieses Date");
 			return;
 		}
 
-		ArrayList<Offer> toRemoveFromDemands = new ArrayList<Offer>();
-		ArrayList<Offer> toRemoveFromSupplies = new ArrayList<Offer>();
+		// Erstelle Arrays, in welchen alle Angebote gesammelt werden, welche
+		// zum Einheitspreis bestätigt werden sollen
+		ArrayList<Offer> demandOnePrice = new ArrayList<Offer>();
+		ArrayList<Offer> supplyOnePrice = new ArrayList<Offer>();
 		double volumeDemand = 0;
 		double volumeSupply = 0;
 		double sumPricesDemand = 0;
@@ -338,21 +328,12 @@ public class Marketplace implements Identifiable {
 				// Andernfalls nicht, da es noch Zeit hat einen Partner zu
 				// finden.
 				if (sumUntilCurrentSlot != 0) {
+					demandOnePrice.add(currentOffer);
 					volumeDemand += currentOffer.getSumAggLoadprofile();
 					sumPricesDemand += currentOffer.getSumAggLoadprofile() * currentOffer.getPriceSugg();
-				} else {
-					toRemoveFromDemands.add(currentOffer);
 				}
 			}
-			// Entferne Angebote mit sumUntilCurrentSlot = 0
-			if (toRemoveFromDemands != null) {
-				if (demand.get(dateString).size() == toRemoveFromDemands.size()) {
-					System.out.println("Alle Demand-Angebote werden entfernt");
-				}
-				for (Offer removeOffer : toRemoveFromDemands) {
-					allDemandsAtDate.remove(removeOffer);
-				}
-			}
+
 			System.out.println("\nSumPricesDemand: " + sumPricesDemand);
 			System.out.println("VolumeDemand: " + volumeDemand);
 		}
@@ -372,20 +353,10 @@ public class Marketplace implements Identifiable {
 				// Andernfalls nicht, da es noch Zeit hat einen Partner zu
 				// finden.
 				if (sumUntilCurrentSlot != 0) {
+					supplyOnePrice.add(currentOffer);
 					volumeSupply += currentOffer.getSumAggLoadprofile();
 					sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPriceSugg();
-				} else {
-					toRemoveFromSupplies.add(currentOffer);
-				}
-			}
-			// Entferne Angebote mit sumUntilCurrentSlot = 0
-			if (toRemoveFromSupplies != null) {
-				if (toRemoveFromSupplies.size() == supply.get(dateString).size()) {
-					System.out.println("Alle Supply-Angebote wurden entfernt.");
-				}
-				for (Offer removeOffer : toRemoveFromSupplies) {
-					allSuppliesAtDate.remove(removeOffer);
-				}
+				} 
 			}
 
 			System.out.println("\nSumPricesSupply: " + sumPricesSupply);
@@ -402,8 +373,8 @@ public class Marketplace implements Identifiable {
 				Offer[] offers = currentNeg.getOffers();
 				Offer offer1 = offers[0];
 				Offer offer2 = offers[1];
-				if (allSuppliesAtDate.contains(offer1) || allDemandsAtDate.contains(offer1)
-						|| allSuppliesAtDate.contains(offer2) || allDemandsAtDate.contains(offer2)) {
+				if (supplyOnePrice.contains(offer1) || demandOnePrice.contains(offer1)
+						|| supplyOnePrice.contains(offer2) || demandOnePrice.contains(offer2)) {
 					EndOfNegotiation end = new EndOfNegotiation(currentNeg.getUUID(), 0, 0, false);
 					endOfNegotiation(end);
 				}
@@ -421,7 +392,7 @@ public class Marketplace implements Identifiable {
 			priceDemand = 0;
 			priceSupply = -penalty * 2;
 		} else if (volumeSupply == 0) {
-			priceDemand = eexPrice + penalty*2;
+			priceDemand = eexPrice + penalty * 2;
 			priceSupply = 0;
 		} else {
 			priceDemand = Math.abs((middle + penalty) / volumeDemand);
@@ -438,23 +409,17 @@ public class Marketplace implements Identifiable {
 		}
 
 		// Bestaetige alle Angebote des Zeitraums mit den errechneten Preisen
-		if (allDemandsAtDate != null) {
-			if (allDemandsAtDate.size() != 0) {
-				for (Offer demand : allDemandsAtDate) {
-					confirmOffer(demand, priceDemand);
-				}
-			} else {
-				System.out.println("Demands At Date leer");
+		if (demandOnePrice.size() != 0) {
+			for (Offer demand : demandOnePrice) {
+				confirmOffer(demand, priceDemand);
 			}
 		} else {
-			System.out.println("Keine Demands At Date");
+			System.out.println("Demands At Date leer");
 		}
 
-		if (allSuppliesAtDate != null) {
-			if (allSuppliesAtDate.size() != 0) {
-				for (Offer supply : allSuppliesAtDate) {
-					confirmOffer(supply, priceSupply);
-				}
+		if (supplyOnePrice.size() != 0) {
+			for (Offer supply : supplyOnePrice) {
+				confirmOffer(supply, priceSupply);
 			}
 		} else {
 			System.out.println("Keine Supplies At Date");
@@ -748,10 +713,9 @@ public class Marketplace implements Identifiable {
 			for (Offer offer : demandOffers) {
 				if (offer.getUUID() == uuid) {
 					return offer;
-				}
-				else {
-					System.out.println("Übergeben: " +uuid);
-					System.out.println("Aktuell:   " +offer.getUUID());
+				} else {
+					System.out.println("Übergeben: " + uuid);
+					System.out.println("Aktuell:   " + offer.getUUID());
 				}
 			}
 		}
@@ -885,7 +849,7 @@ public class Marketplace implements Identifiable {
 		// ist. Wenn ja, führe sie durch
 		boolean anyMake = false;
 		boolean[] make = make(deviationAll);
-		for (int i=0; i<numSlots; i++) {
+		for (int i = 0; i < numSlots; i++) {
 			anyMake = anyMake || make[i];
 		}
 		if (anyMake && sumDeviationAll != 0) {
@@ -1361,8 +1325,8 @@ public class Marketplace implements Identifiable {
 		if (oldPossibleMatches == null) {
 			return;
 		}
-		System.out.println("Anzahl Possible Matches davor: " +oldPossibleMatches.size());
-		
+		System.out.println("Anzahl Possible Matches davor: " + oldPossibleMatches.size());
+
 		ArrayList<PossibleMatch> newPossibleMatches = new ArrayList<PossibleMatch>();
 		for (PossibleMatch current : oldPossibleMatches) {
 			Offer[] offers = current.getOffers();
@@ -1375,7 +1339,7 @@ public class Marketplace implements Identifiable {
 		} else {
 			listPossibleMatches.put(key, newPossibleMatches);
 		}
-		System.out.println("Anzahl Possible Matches danach: " +oldPossibleMatches.size());
+		System.out.println("Anzahl Possible Matches danach: " + oldPossibleMatches.size());
 	}
 
 	/**
