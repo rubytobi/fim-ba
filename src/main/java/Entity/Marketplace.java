@@ -154,34 +154,14 @@ public class Marketplace implements Identifiable {
 	 * 
 	 */
 	public void BKV() {
-		/*
-		 * Prüfe alle Angebote des aktuellen Slots
-		 */
+		// Hole die aktuelle Zeit des Systems
 		GregorianCalendar now = DateTime.now();
 		System.out.println("Aktuelle Zeit: " + DateTime.ToString(now));
+		System.out.println("Next Slot: " +DateTime.ToString(nextSlot));
 
 		// Berechne den Startzeitpunkt der als letztes gematchten Stunde
 		GregorianCalendar slotLastMatched = (GregorianCalendar) nextSlot.clone();
 		slotLastMatched.add(Calendar.HOUR_OF_DAY, -1);
-
-		/*
-		 * GregorianCalendar slotLastMatched = (GregorianCalendar)
-		 * nextSlot.clone(); slotLastMatched.add(Calendar.HOUR_OF_DAY, -1);
-		 * System.out.println("SlotLastMatched: " +
-		 * DateTime.ToString(slotLastMatched)); System.out.println("NexSlot: " +
-		 * DateTime.ToString(nextSlot));
-		 * 
-		 * // Fuehre zuerst alle guten Angebote des aktuellen Slots zusammen und
-		 * // bestaetige dann alle verbliebenen Angebote zu einem Einheitspreis
-		 * confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot); /*
-		 * matchAllGoodOffers(slotLastMatched);
-		 * 
-		 */
-
-		/*
-		 * Matche den aktuellen Slot, wenn bereits minuteOfSeconfPhase Minuten
-		 * oder mehr vergangen sind
-		 */
 
 		// Berechne aktuellen Slot
 		int slot;
@@ -196,13 +176,13 @@ public class Marketplace implements Identifiable {
 		// Bestätige die Angebote zum Einheitspreis, die jetzt fällig sind
 		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot, false);
 
-		System.out.println(minute + " Minuten > " + minuteOfSecondPhase + ": " + (minute >= minuteOfSecondPhase));
+		System.out.println(minute + " Minuten >= " + minuteOfSecondPhase + ": " + (minute >= minuteOfSecondPhase));
 
-		if (now.get(Calendar.HOUR_OF_DAY) > nextSlot.get(Calendar.HOUR_OF_DAY)) {
-			System.out.println("passe Slot an");
-		}
-
-		if (now.get(Calendar.HOUR_OF_DAY) + 1 == nextSlot.get(Calendar.HOUR_OF_DAY) && minute >= minuteOfSecondPhase) {
+		// Prüfe, ob die aktuelle Zeit schon nah genug am nächsten zur
+		// matchenden Slot dran ist oder ob der Slot sogar schon erreicht ist.
+		// Wenn ja, matche den nächsten Slot.
+		if (now.get(Calendar.HOUR_OF_DAY) + 1 == nextSlot.get(Calendar.HOUR_OF_DAY) && minute >= minuteOfSecondPhase
+				|| now.get(Calendar.HOUR_OF_DAY) + 1 > nextSlot.get(Calendar.HOUR_OF_DAY)) {
 			System.out.println("MatchNextSlot");
 			matchNextSlot();
 		}
@@ -294,6 +274,22 @@ public class Marketplace implements Identifiable {
 		System.out.println("Einheitspreis: " + dateString + " Slot: " + slot);
 		System.out.println("Date: " + dateString);
 
+		// Prüfe, ob noch alte Angebote (vor date) vorliegen und wenn ja,
+		// bestätige diese auch durch den Einheitspreis
+		Set<String> allDates = demand.keySet();
+		for (String currentDate : allDates) {
+			GregorianCalendar current = DateTime.stringToCalendar(currentDate);
+			if (current.before(date)) {
+				System.out.println("Es liegen noch ältere Angebote für " + currentDate + " vor.");
+				confirmAllRemainingOffersWithOnePrice(current, numSlots - 1, false);
+			}
+		}
+
+		// Prüfe, dass slot nicht zu groß ist und passe es ggf. an
+		if (slot > numSlots - 1) {
+			slot = numSlots - 1;
+		}
+
 		// Hole alle Angebote zu dem uebergebenen Datum und pruefe, ob wirklich
 		// Angebote vorliegen
 		ArrayList<Offer> allDemandsAtDate = demand.get(dateString);
@@ -356,7 +352,7 @@ public class Marketplace implements Identifiable {
 					supplyOnePrice.add(currentOffer);
 					volumeSupply += currentOffer.getSumAggLoadprofile();
 					sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPriceSugg();
-				} 
+				}
 			}
 
 			System.out.println("\nSumPricesSupply: " + sumPricesSupply);
@@ -465,11 +461,11 @@ public class Marketplace implements Identifiable {
 
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer.getUUID(), newPrice);
 
-		for (UUID consumer : offer.getAllLoadprofiles().keySet()) {
-			API<AnswerToOfferFromMarketplace, Void> api2 = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
-			api2.consumers(consumer).offers(offer.getUUID()).confirmByMarketplace();
-			api2.call(this, HttpMethod.POST, answerOffer);
-		}
+		// Informiere Autor des Angebots über Bestätigung
+		UUID author = offer.getAuthor();
+		API<AnswerToOfferFromMarketplace, Void> api2 = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
+		api2.consumers(author).offers(offer.getUUID()).confirmByMarketplace();
+		api2.call(this, HttpMethod.POST, answerOffer);
 	}
 
 	/**
@@ -878,11 +874,16 @@ public class Marketplace implements Identifiable {
 
 			// Frage verbliebenen Angebote der Reihe nach
 			// nach Ausgleichsmoeglichkeiten
+			System.out.println("Frage insgesamt: " +remainingOffers.size());
 			for (Offer currentOffer : remainingOffers) {
 				// Berechne die Änderung, die angefragt werden soll
 				double[] changeRequested = new double[numSlots];
 				for (int i = 0; i < numSlots; i++) {
-					changeRequested[i] = -deviationAll[i];
+					if (make[i]) {
+						changeRequested[i] = -deviationAll[i];
+					} else {
+						changeRequested[i] = 0;
+					}
 				}
 
 				ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(currentOffer.getUUID(), changeRequested,
@@ -891,7 +892,7 @@ public class Marketplace implements Identifiable {
 
 				// Versende Anfrage an Author
 				API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
-				api.consumers(author).offers(currentOffer.getUUID()).receiveChangeRequestLoadprofile();
+				api.consumers(author).offers(currentOffer.getUUID()).changeRequestMarketplace();
 				api.call(this, HttpMethod.POST, cr);
 
 				// Warte, bis eine Antwort vom Consumer eingetroffen ist
@@ -918,24 +919,42 @@ public class Marketplace implements Identifiable {
 					}
 				}
 				System.out.println("Antwort erhalten");
+				double[] receivedChanges = currentAnswer.getChange();
+				System.out.println("Werte Antwort" + valuesToString(receivedChanges));
 
 				// Berechne die neue Abweichung, wenn die uebergebene
 				// Aenderung beachtet wird.
 				double[] possibleChange = currentAnswer.getChange();
-				double[] possibleChangeDeviation = deviationAll.clone();
 				double sumPossibleChange = 0;
-				double sumPossibleChangeDeviation = 0;
+				double[] possibleChangeDeviation = deviationAll.clone();
 				for (int i = 0; i < numSlots; i++) {
 					possibleChangeDeviation[i] += possibleChange[i];
 					sumPossibleChange += Math.abs(possibleChange[i]);
-					sumPossibleChangeDeviation += Math.abs(possibleChangeDeviation[i]);
 				}
+				System.out.println("Alte Abweichung" + valuesToString(deviationAll));
+				System.out.println("Neue Abweichung" + valuesToString(possibleChangeDeviation));
 
-				// Pruefe, ob der Consumer eine Aenderung vorgenommen hat und
-				// wenn ja, ob diese Aenderung zur Verbesserung beitraegt
-				if (sumPossibleChange > 0 && sumPossibleChangeDeviation < sumDeviationAll) {
+				// Pruefe, für die Viertelstundenwerte, ob eine Änderung
+				// erwünscht war und eine Verbesserung eintritt oder keine
+				// Änderung gewünscht war und auch keine vorgenommen wird
+				boolean goodChanges = sumPossibleChange != 0;
+				for (int i = 0; i < numSlots; i++) {
+					if (make[i]) {
+						goodChanges = goodChanges && Math.abs(possibleChangeDeviation[i]) <= Math.abs(deviationAll[i]);
+					} else {
+						goodChanges = goodChanges && possibleChange[i] == 0;
+					}
+				}
+				System.out.println("goodChanges: " +goodChanges);
+
+				if (goodChanges) {
+					// Zusage fuer ChangeRequest an Consumer
+					API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+					api1.consumers(author).offers(currentOffer.getUUID()).changeRequest().confirm();
+					api1.call(this, HttpMethod.GET, cr);
+
 					// Bestaetige das Angebot zum uebergebenen Preis
-					confirmOffer(currentOffer, currentOffer.getPriceSugg());
+					confirmOffer(currentOffer, currentAnswer.getPrice());
 
 					// Aktualisiere die Gesamtabweichung aller bestaetigter
 					// Angebote
@@ -952,9 +971,10 @@ public class Marketplace implements Identifiable {
 					}
 				} else {
 					// Absage fuer ChangeRequest an Consumer
+					System.out.println("Sende Absage für ChangeRequest an Consumer");
 					API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
 					api1.consumers(author).offers(currentOffer.getUUID()).changeRequest().decline();
-					api1.call(this, HttpMethod.POST, cr);
+					api1.call(this, HttpMethod.GET, cr);
 				}
 			}
 			System.out.println("Abweichung nach Anpassungen: ");
@@ -971,6 +991,14 @@ public class Marketplace implements Identifiable {
 		nextSlot.add(Calendar.HOUR_OF_DAY, 1);
 		System.out.println("NextSlot: " + DateTime.ToString(nextSlot));
 		System.out.println(nextSlot.get(Calendar.HOUR_OF_DAY));
+	}
+
+	private String valuesToString(double[] values) {
+		String s = ": ";
+		for (int i = 0; i < values.length; i++) {
+			s = s + "[" + values[i] + "]";
+		}
+		return s;
 	}
 
 	/**

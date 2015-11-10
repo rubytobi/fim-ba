@@ -169,7 +169,7 @@ public class ConsumerController {
 	}
 
 	/**
-	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils
+	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils vom Marktplatz
 	 * 
 	 * @param uuid
 	 *            Consumer-ID
@@ -177,16 +177,16 @@ public class ConsumerController {
 	 *            Aenderungsaufforderung
 	 * @return leere Antwort
 	 */
-	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/receiveChangeRequestLoadprofile", method = RequestMethod.POST)
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequestMarketplace", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveChangeRequestLoadprofile(@PathVariable UUID uuid,
 			@RequestBody ChangeRequestLoadprofile cr) {
-		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofileFromMarketplace(cr);
 		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 
 	}
 
 	/**
-	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils
+	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils von einem anderen Consumer
 	 * 
 	 * @param uuid
 	 *            Consumer-ID
@@ -194,18 +194,38 @@ public class ConsumerController {
 	 *            Aenderungsaufforderung
 	 * @return Antwort auf CR
 	 */
-	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest", method = RequestMethod.POST)
-	public ResponseEntity<AnswerChangeRequestLoadprofile> receiveChangeRequest(@PathVariable UUID uuid,
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequestConsumer", method = RequestMethod.POST)
+	public void receiveChangeRequest(@PathVariable UUID uuid,
 			@RequestBody ChangeRequestLoadprofile cr) {
-		return ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+	}
+	
+	/**
+	 * Consumer erhält eine Antwort auf eine Aenderungsaufforderung des Lastprofils
+	 * 
+	 * @param uuid
+	 *            Consumer-ID
+	 * @param cr
+	 *            Aenderungsaufforderung
+	 * @return Antwort auf CR
+	 */
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/answerChangeRequest", method = RequestMethod.POST)
+	public ResponseEntity<Void> answerChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
+			@RequestBody AnswerChangeRequestLoadprofile cr) {
+		ConsumerContainer.instance().get(uuid).receiveAnswerChangeLoadprofile(cr, uuidOffer);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
 
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/decline", method = RequestMethod.GET)
-	public ResponseEntity<Void> receiveChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidOffer,
-			@RequestHeader(value = "UUID") UUID identity) {
-		ConsumerContainer.instance().get(uuid).receiveChangeRequestDecline(uuidOffer, identity);
+	public ResponseEntity<Void> receiveChangeRequestDecline(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
+		ConsumerContainer.instance().get(uuid).receiveChangeRequestDecline(uuidOffer);
 		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
-
+	}
+	
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/confirm", method = RequestMethod.GET)
+	public ResponseEntity<Void> receiveChangeRequestConfirmation(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
+		ConsumerContainer.instance().get(uuid).receiveChangeRequestConfirm(uuidOffer);
+		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
 
 	/**

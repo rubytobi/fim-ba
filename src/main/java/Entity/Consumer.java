@@ -54,6 +54,12 @@ public class Consumer implements Identifiable {
 	private ConcurrentHashMap<UUID, Offer> allOffers = new ConcurrentHashMap<UUID, Offer>();
 
 	/**
+	 * Die aktuelle Antwort eines anderen Angebots auf eine Lastprofiländerung
+	 */
+	@JsonView(View.Detail.class)
+	private AnswerChangeRequestLoadprofile currentAnswerChangeLoadprofile;
+
+	/**
 	 * Enhaltene DeltaLastprofile nach Datum, zu welchen es noch kein Angebot
 	 * gibt
 	 */
@@ -271,19 +277,20 @@ public class Consumer implements Identifiable {
 	 *            das bestätigte Angebot
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
-		// TODO bestätige ChangeRequests die durch den Marktplatz vorher
-		// angefragt wurden, möglicherweise müssen diese irgendwo
-		// zwischengelagert werden
-		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " +answerOffer.getPrice());
+		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
+
+		// Hole das Angebot, für das die Bestätigung gilt
 		Offer offer = getOfferIntern(answerOffer.getOffer());
 
+		// Prüfe, ob das Angebot vorhanden ist
 		if (offer == null) {
 			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist?!");
 			return;
 		}
 
+		// Schicke Bestätigung aller beteiligten Lastprofile an das Device
 		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
-			if (lp.isDelta()) {
+			if (!lp.isDelta()) {
 				// Schicke Bestätigung zu Loadprofile an Device
 				API<Void, Void> api2 = new API<Void, Void>(Void.class);
 				api2.devices(device).confirmLoadprofile().toString();
@@ -291,6 +298,28 @@ public class Consumer implements Identifiable {
 			}
 		}
 
+		// Prüfe, ob Autor von Angebot
+		if (uuid == offer.getAuthor()) {
+			HashMap<UUID, HashMap<UUID, Loadprofile>> loadprofiles = offer.getAllLoadprofiles();
+			Set<UUID> set = loadprofiles.keySet();
+			System.out.println("Consumer ist Autor des Angebots und informiert alle " + set.size() + " Teilnehmer");
+			if (set != null) {
+				for (UUID current : set) {
+					// An sich selbst wird keine Bestätigung gesendet
+					if (current == uuid) {
+						System.out.println("Consumer ist Autor.");
+						continue;
+					}
+					// Alle anderen Teilnehmer werden informiert
+					API<AnswerToOfferFromMarketplace, Void> api2 = new API<AnswerToOfferFromMarketplace, Void>(
+							Void.class);
+					api2.consumers(current).offers(offer.getUUID()).confirmByMarketplace();
+					api2.call(this, HttpMethod.POST, answerOffer);
+				}
+			}
+		}
+
+		System.out.println("Consumer war nicht Autor des Angebots");
 		removeOffer(offer.getUUID());
 	}
 
@@ -639,39 +668,133 @@ public class Consumer implements Identifiable {
 		api.call(negotiationWhole, HttpMethod.POST, answer);
 	}
 
-	public void receiveChangeRequestDecline(UUID uuidOffer, UUID author) {
-		if (!allOffers.containsKey(uuidOffer) || !allOffers.get(uuidOffer).isAuthor(author)) {
+	/**
+	 * Ändert die Variable currentAnswerChangeLoadprofile, sobald eine Antwort
+	 * von einem anderen Consumer auf eine Änderungsanfrage eingetroffen ist und
+	 * informiert über die Akualisierung
+	 * 
+	 * @param answer
+	 *            Eingetroffene Antwort, die in currentAnswerChange Loadprofile
+	 *            hinterlegt wird
+	 */
+	public void receiveAnswerChangeLoadprofile(AnswerChangeRequestLoadprofile answer, UUID offer) {
+		currentAnswerChangeLoadprofile = answer;
+		System.out.println("Antwort Werte" +valuesToString(answer.getLoadprofile().getValues()));
+		/*try {
+			currentAnswerChangeLoadprofile.notify();
+		}
+		catch (IllegalMonitorStateException e) {
+			System.out.println("IllegalMonitorStateException: " +e);
+		}*/
+		return;
+		
+	}
+
+	public void receiveChangeRequestDecline(UUID uuidOffer) {
+		System.out.println("Consumer erhält Absage für Änderungen");
+		if (!allOffers.containsKey(uuidOffer)) {
 			Log.e(uuid, "receiveChangeRequestDecline abbrechen");
 			return;
 		}
+		// Hole das betroffene Angebo
+		Offer offer = allOffers.get(uuidOffer);
 
+		// Erstelle einen ChangeRequestLoadprofile-Dummy nur mit der UUID des
+		// Angebots
+		ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(uuidOffer, null, null);
+
+		// Wenn dieses Gerät Autor des Angebot, informiere alle weiteren
+		// Teilnehmer über Absage
+		if (uuid == offer.getAuthor()) {
+			HashMap<UUID, HashMap<UUID, Loadprofile>> map = offer.getAllLoadprofiles();
+			Set<UUID> uuidsConsumer = map.keySet();
+			System.out.println("Consumer ist Autor und informiert alle " + uuidsConsumer.size() + " Teilnehmer");
+			if (uuidsConsumer.size() != 0) {
+				for (UUID current : uuidsConsumer) {
+					if (current == uuid) {
+						continue;
+					}
+					// Absage für ChangeRequest an Consumer
+					API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+					api1.consumers(current).offers(uuidOffer).changeRequest().decline();
+					api1.call(this, HttpMethod.POST, cr);
+				}
+			}
+		}
+
+		// Consumer informiert sein eigenes Gerät über Absage der Änderungen
 		API<Void, Void> api2 = new API<Void, Void>(Void.class);
 		api2.devices(device).changeRequest().decline();
 		api2.call(this, HttpMethod.GET, null);
 	}
 
-	public ResponseEntity<AnswerChangeRequestLoadprofile> receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+	public void receiveChangeRequestConfirm(UUID uuidOffer) {
+		System.out.println("Consumer erhält Zusage für Änderungen");
+		if (!allOffers.containsKey(uuidOffer)) {
+			Log.e(uuid, "receiveChangeRequestConfirm abbrechen");
+			return;
+		}
+		// Hole das betroffene Angebo
+		Offer offer = allOffers.get(uuidOffer);
+
+		// Erstelle einen ChangeRequestLoadprofile-Dummy nur mit der UUID des
+		// Angebots
+		ChangeRequestLoadprofile cr = new ChangeRequestLoadprofile(uuidOffer, null, null);
+
+		// Wenn dieses Gerät Autor des Angebot, informiere alle weiteren
+		// Teilnehmer über Absage
+		if (uuid == offer.getAuthor()) {
+			HashMap<UUID, HashMap<UUID, Loadprofile>> map = offer.getAllLoadprofiles();
+			Set<UUID> uuidsConsumer = map.keySet();
+			System.out.println("Consumer ist Autor und informiert alle " + uuidsConsumer.size() + " Teilnehmer");
+			for (UUID current : uuidsConsumer) {
+				if (current == uuid) {
+					continue;
+				}
+				// Absage für ChangeRequest an Consumer
+				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+				api1.consumers(current).offers(uuidOffer).changeRequest().confirm();
+				api1.call(this, HttpMethod.POST, cr);
+			}
+		}
+
+		// Consumer informiert sein eigenes Gerät über Zusage
+		API<Void, Void> api2 = new API<Void, Void>(Void.class);
+		api2.devices(device).changeRequest().confirm();
+		api2.call(this, HttpMethod.GET, null);
+	}
+
+	public void receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+		System.out.println("Änderungsanfrage vom Autor erhalten.");
+
+		// Hole das betroffene Angebot aus der Hashmap aller Angebote
 		Offer affectedOffer = allOffers.get(cr.getOffer());
 
 		if (affectedOffer == null) {
 			Log.e(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
-			return null;
+			return;
 		}
+
+		UUID author = affectedOffer.getAuthor();
+		UUID uuidOffer = affectedOffer.getUUID();
+		AnswerChangeRequestLoadprofile answerNoChange = new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 
 		if (cr.getTime().before(DateTime.nextTimeSlot())) {
 			System.out.println("NextTimeSlot: " + DateTime.ToString(DateTime.nextTimeSlot()));
 			System.out.println("Time CR: " + DateTime.ToString(cr.getTime()));
 			Log.e(uuid, "Anfrage für den aktuellen Zeitslot nicht möglich.");
-			return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
-					.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), new Loadprofile(
-							new double[] { 0.0, 0.0, 0.0, 0.0 }, cr.getTime(), Loadprofile.Type.CHANGE_REQUEST)))
-					.build();
+
+			// Informiere Autor darüber, dass keine Änderung möglich
+			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
+			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
+			api1.call(this, HttpMethod.POST, answerNoChange);
 		}
+
 		System.out.println("Zeit passt");
 		System.out.println("Frage Devices nach Änderung");
 
 		// Frage eigenes Device nach Änderung
-		// ( und passe noch benötigte Änderung an )
+		// (und passe noch benötigte Änderung an)
 		AnswerChangeRequestSchedule answer = askDeviceForChange(
 				new ChangeRequestSchedule(cr.getTime(), cr.getChange()));
 
@@ -684,8 +807,12 @@ public class Consumer implements Identifiable {
 		// berechne dessen Summe
 		if (initialLoadprofile == null) {
 			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");
-			//Wirklich return null??
-			return null;
+
+			// Informiere Autor darüber, dass keine Änderung möglich
+			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
+			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
+			api1.call(this, HttpMethod.POST, answerNoChange);
+
 		}
 		double sumInitialLoadprofile = 0;
 		for (int i = 0; i < numSlots; i++) {
@@ -727,10 +854,120 @@ public class Consumer implements Identifiable {
 			newPriceSugg = newMax;
 		}
 
+		// Erstelle Antwort auf Change Request
 		Loadprofile changedLoadprofile = new Loadprofile(answer.getChanges(), initialLoadprofile.getDate(),
 				newPriceSugg, newMin, newMax, Loadprofile.Type.CHANGE_REQUEST);
-		return new ResponseBuilder<AnswerChangeRequestLoadprofile>(this)
-				.body(new AnswerChangeRequestLoadprofile(cr.getOffer(), changedLoadprofile)).build();
+		AnswerChangeRequestLoadprofile answerOfChange = new AnswerChangeRequestLoadprofile(cr.getOffer(),
+				changedLoadprofile);
+
+		// Informiere Autor über mögliche Änderungen
+		API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
+		api1.consumers(author).offers(uuidOffer).answerChangeRequest();
+		System.out.println(api1.toString());
+		api1.call(this, HttpMethod.POST, answerOfChange);
+	}
+
+	public void receiveChangeRequestLoadprofileFromMarketplace(ChangeRequestLoadprofile cr) {
+		System.out.println("Änderungsanfrage vom Marktplatz erhalten");
+
+		// Hole das betroffene Angebot aus der Hashmap aller Angebote
+		Offer affectedOffer = allOffers.get(cr.getOffer());
+		if (affectedOffer == null) {
+			Log.e(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
+			return;
+		}
+		double currentMinPrice = affectedOffer.getMinPrice();
+		double currentMaxPrice = affectedOffer.getMaxPrice();
+		double currentPriceSugg = affectedOffer.getPriceSugg();
+
+		// Hole die Informationen der erhaltenen ChangeRequest
+		double[] requestedChanges = cr.getChange();
+
+		// Speichere alle bereits vorgenommenen Änderungen
+		double[] allChanges = { 0, 0, 0, 0 };
+
+		// Holle die UUIDs aller beteiligten Consmer am Angebot und frage sie
+		// nach Anpassung
+		HashMap<UUID, HashMap<UUID, Loadprofile>> allLP = affectedOffer.getAllLoadprofiles();
+		Set<UUID> uuidConsumers = allLP.keySet();
+		System.out.println("Es werden alle " +uuidConsumers.size()+ " Teilnehmer des Angebots informiert");
+		for (UUID current : uuidConsumers) {
+			// Schicke Anfrage an den aktuellen Consumer
+			System.out.println("Sende Anfrage");
+			API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
+			api.consumers(current).offers(cr.getOffer()).changeRequestConsumer();
+			api.call(this, HttpMethod.POST, cr);
+
+			// Warte auf eine Antwort des Consumers
+			/*UUID testUUID = UUID.randomUUID();
+			AnswerChangeRequestLoadprofile test = new AnswerChangeRequestLoadprofile(testUUID, null);
+			currentAnswerChangeLoadprofile = test;
+			synchronized (currentAnswerChangeLoadprofile) {
+				if (currentAnswerChangeLoadprofile.getUUIDOffer() == test.getUUIDOffer()) {
+					System.out.println("Noch keine Antwort erhalten");
+				}
+				while (currentAnswerChangeLoadprofile.getUUIDOffer() == test.getUUIDOffer()) {
+					try {
+						currentAnswerChangeLoadprofile.wait();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}*/
+
+			// Prüfe, dass Antwort auch zu passendem Angebot ist
+			if (!currentAnswerChangeLoadprofile.getUUIDOffer().equals(cr.getOffer())) {
+				continue;
+			}
+
+			// Hole die Änderungen und die dafür verlangten Preise in answerLP
+			Loadprofile answerLP = currentAnswerChangeLoadprofile.getLoadprofile();
+			
+			// Wenn kein Lastprofil übergeben wurde, fahre mit dem nächsten Consumer fort
+			if (answerLP == null) {
+				continue;
+			}
+			double answerPrice = answerLP.getPriceSugg();
+			double[] answerChanges = answerLP.getValues();
+
+			// Prüfe, ob die Preisgrenzen passen
+			double answerMin = answerLP.getMinPrice();
+			double answerMax = answerLP.getMaxPrice();
+			if (answerMin > currentMaxPrice || answerMax < currentMinPrice) {
+				System.out.println("Absage an Consumer für Änderungen wegen Preis");
+				// Absage für ChangeRequest an Consumer
+				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+				api1.consumers(current).offers(current).changeRequest().decline();
+				api1.call(this, HttpMethod.POST, cr);
+
+			} else {
+				currentMaxPrice = answerMax;
+				currentMinPrice = answerMin;
+				currentPriceSugg = (answerPrice + currentPriceSugg) / 2;
+			}
+			if (currentPriceSugg < currentMinPrice) {
+				currentPriceSugg = currentMinPrice;
+			}
+			if (currentPriceSugg > currentMaxPrice) {
+				currentPriceSugg = currentMaxPrice;
+			}
+
+			// Passe noch benötigte und bereits vorgenommene Änderungen an
+			for (int i = 0; i < numSlots; i++) {
+				requestedChanges[i] = requestedChanges[i] - answerChanges[i];
+				allChanges[i] += answerChanges[i];
+			}
+
+			// Passe noch benötigte Änderungen in ChangeRequest an
+			cr.setChange(requestedChanges);
+		}
+
+		// Sende Antwort an Marketplace
+		ChangeRequestLoadprofile answerToMarketplace = new ChangeRequestLoadprofile(cr.getOffer(), allChanges,
+				cr.getTime(), currentPriceSugg);
+		API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
+		api.marketplace().receiveAnswerChangeRequestLoadprofile();
+		api.call(this, HttpMethod.POST, answerToMarketplace);
 	}
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
@@ -904,5 +1141,13 @@ public class Consumer implements Identifiable {
 
 	public void setDevice(UUID uuid) {
 		device = uuid;
+	}
+	
+	private String valuesToString(double[] values) {
+		String s = ": ";
+		for (int i = 0; i < values.length; i++) {
+			s = s + "[" + values[i] + "]";
+		}
+		return s;
 	}
 }

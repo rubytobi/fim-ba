@@ -1,22 +1,24 @@
 package Packet;
 
-import java.util.Arrays;
-import java.util.GregorianCalendar;
 import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 
 import Entity.Loadprofile;
+import Util.View;
 
 public class AnswerChangeRequestLoadprofile {
 	/**
-	 * UUID des ChangeRequests
+	 * UUID des Angebots
 	 */
-	private UUID uuid;
+	@JsonView(View.Detail.class)
+	private UUID uuidoffer;
 
 	/**
 	 * Lastprofil, das alle Änderungen und deren Grenzen enthält
 	 */
+	@JsonView(View.Detail.class)
 	private Loadprofile loadprofile;
 
 	public AnswerChangeRequestLoadprofile() {
@@ -34,7 +36,7 @@ public class AnswerChangeRequestLoadprofile {
 	 *            Preisänderungsfaktor
 	 */
 	public AnswerChangeRequestLoadprofile(UUID uuid, Loadprofile loadprofile) {
-		this.uuid = uuid;
+		this.uuidoffer = uuid;
 		this.loadprofile = loadprofile;
 	}
 
@@ -52,8 +54,9 @@ public class AnswerChangeRequestLoadprofile {
 	 * 
 	 * @return UUID des ChangeRequests
 	 */
-	public UUID getUUID() {
-		return uuid;
+	@JsonView(View.Detail.class)
+	public UUID getUUIDOffer() {
+		return uuidoffer;
 	}
 
 	/**

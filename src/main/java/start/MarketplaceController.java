@@ -92,7 +92,7 @@ public class MarketplaceController {
 		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
 
-	@RequestMapping(value = "/marketplace/offer/{uuid}/receiveAnswerChangeRequestLoadprofile", method = RequestMethod.GET)
+	@RequestMapping(value = "/marketplace/receiveAnswerChangeRequestLoadprofile", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveAnswerChangeRequestLoadprofile(@RequestBody ChangeRequestLoadprofile cr) {
 		Marketplace.instance().receiveAnswerChangeRequestLoadprofile(cr);
 		return ResponseBuilder.returnVoid(Marketplace.instance());

@@ -453,4 +453,12 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public void generateAuthKey() {
 		authKey = UUID.randomUUID();
 	}
+	
+	public void setMinPrice(double newMinPrice) {
+		this.minPrice = newMinPrice;
+	}
+	
+	public void setMaxPrice(double newMaxPrice) {
+		this.maxPrice = newMaxPrice;
+	}
 }

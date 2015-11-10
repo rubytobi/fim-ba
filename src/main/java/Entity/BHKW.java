@@ -558,6 +558,7 @@ public class BHKW implements Device {
 		double powerPlanned = 0, powerScaled;
 		int minute = currentTime.get(Calendar.MINUTE);
 		currentTime.set(Calendar.MINUTE, 0);
+		System.out.println("Zeit: " +DateTime.ToString(currentTime));
 		powerPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1][minute];
 		powerScaled = simulation.getPower(currentTime);
 

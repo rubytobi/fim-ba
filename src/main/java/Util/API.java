@@ -120,6 +120,16 @@ public class API<Request, Response> {
 		uri += "/changeRequests/" + uuid;
 		return this;
 	}
+	
+	public API<Request, Response> changeRequestConsumer() {
+		uri += "/changeRequestConsumer";
+		return this;
+	}
+	
+	public API<Request, Response> answerChangeRequest() {
+		uri += "/answerChangeRequest";
+		return this;
+	}
 
 	public API<Request, Response> receiveAnswerChangeRequestLoadprofile() {
 		uri += "/receiveAnswerChangeRequestLoadprofile";
@@ -202,8 +212,8 @@ public class API<Request, Response> {
 		return responseUUID;
 	}
 
-	public API<Request, Response> receiveChangeRequestLoadprofile() {
-		uri += "/receiveChangeRequestLoadprofile";
+	public API<Request, Response> changeRequestMarketplace() {
+		uri += "/changeRequestMarketplace";
 		return this;
 	}
 
@@ -238,7 +248,7 @@ public class API<Request, Response> {
 	}
 	
 	public API<Request, Response> answerToPriceChangeRequest(UUID uuid) {
-		uri += uuid+ "/answerToPriceChangeRequest";
+		uri += uuid+ "/answerChangeRequest";
 		return this;
 	}
 

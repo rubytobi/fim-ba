@@ -17,6 +17,7 @@ public class ChangeRequestLoadprofile {
 	private UUID offer;
 	private double[] change;
 	private GregorianCalendar time;
+	private double price;
 
 	protected ChangeRequestLoadprofile() {
 		// dummy
@@ -36,6 +37,22 @@ public class ChangeRequestLoadprofile {
 		this.change = change;
 		this.time = time;
 	}
+	
+	/**
+	 * Anlegen einer Anfrage für eine Änderung. Übergeben werden die Angebots-ID
+	 * des betroffenen Angebots und die gewünschte Änderung
+	 * 
+	 * @param offer
+	 *            Angebots-ID
+	 * @param change
+	 *            Änderung
+	 */
+	public ChangeRequestLoadprofile(UUID offer, double[] change, GregorianCalendar time, double price) {
+		this.offer = offer;
+		this.change = change;
+		this.time = time;
+		this.price = price;
+	}
 
 	public UUID getOffer() {
 		return offer;
@@ -43,6 +60,10 @@ public class ChangeRequestLoadprofile {
 
 	public double[] getChange() {
 		return change;
+	}
+	
+	public double getPrice() {
+		return price;
 	}
 
 	@JsonIgnore
@@ -72,5 +93,9 @@ public class ChangeRequestLoadprofile {
 
 	public GregorianCalendar getTime() {
 		return time;
+	}
+	
+	public void setChange(double[] newChanges) {
+		this.change = newChanges;
 	}
 }
