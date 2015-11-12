@@ -22,6 +22,12 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 */
 	@JsonView(View.Summary.class)
 	private Loadprofile aggLoadprofile;
+	
+	/**
+	 * Speichert die vom Marktplatz bestätigten Anpassungen des Angebots
+	 */
+	@JsonIgnore
+	private double[] confirmedChanges = new double[4];
 
 	/**
 	 * Gesamtsumme aller Lastprofile
@@ -453,12 +459,35 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public void generateAuthKey() {
 		authKey = UUID.randomUUID();
 	}
-	
+
 	public void setMinPrice(double newMinPrice) {
 		this.minPrice = newMinPrice;
 	}
-	
+
 	public void setMaxPrice(double newMaxPrice) {
 		this.maxPrice = newMaxPrice;
+	}
+	
+	public void setChanges(double[] changes) {
+		if (confirmedChanges == null) {
+			confirmedChanges = new double[changes.length];
+			for (int i=0; i<changes.length; i++) {
+				confirmedChanges[i] = 0;
+			}
+		}
+		else { 
+			if (confirmedChanges.length != changes.length) {
+				Log.e(uuid, "Änderungen haben nicht die richtige Anzahl an Werten.");
+				return;
+			}
+		}
+		
+		for (int i=0; i<changes.length; i++) {
+			confirmedChanges[i] += changes[i];
+		}
+	}
+	
+	public double[] getChanges() {
+		return confirmedChanges;
 	}
 }

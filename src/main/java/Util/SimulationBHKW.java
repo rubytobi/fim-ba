@@ -2,6 +2,7 @@ package Util;
 
 import java.util.GregorianCalendar;
 import java.util.TreeMap;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -16,12 +17,16 @@ public class SimulationBHKW {
 
 	@JsonIgnore
 	private int numSlots = 4;
+	
+	@JsonIgnore
+	private GregorianCalendar firstStart;
 
 	public SimulationBHKW(double maxLoad) {
 		GregorianCalendar now = DateTime.now();
 		now.set(Calendar.MINUTE, 0);
 		now.set(Calendar.SECOND, 0);
 		now.set(Calendar.MILLISECOND, 0);
+		firstStart = now;
 
 		double[][] schedule1 = new double[2][numSlots * 15];
 		double[][] schedule2 = new double[2][numSlots * 15];
@@ -49,12 +54,27 @@ public class SimulationBHKW {
 
 		}
 		allSchedules.put(DateTime.ToString(now), schedule1);
-		now.add(Calendar.HOUR_OF_DAY, 1);
-		allSchedules.put(DateTime.ToString(now), schedule2);
+		for (int i=0; i<24; i++) {
+			now.add(Calendar.HOUR_OF_DAY, 1);
+			allSchedules.put(DateTime.ToString(now), schedule2);
+		}
 	}
 
 	public double[][] getNewSchedule(GregorianCalendar start) {
-		return allSchedules.get(DateTime.ToString(start));
+		double[][] getSchedule =  allSchedules.get(DateTime.ToString(start));
+		if (getSchedule == null) {
+			GregorianCalendar help = (GregorianCalendar) firstStart.clone();
+			help.set(Calendar.HOUR_OF_DAY, start.get(Calendar.HOUR_OF_DAY));
+			getSchedule = allSchedules.get(DateTime.ToString(help));
+		}
+		if (getSchedule == null) {
+			Set<String> set = allSchedules.keySet();
+			for (String date: set) {
+				getSchedule = allSchedules.get(date);
+				break;
+			}
+		}
+		return getSchedule;
 	}
 
 	public double getPower(GregorianCalendar time) {

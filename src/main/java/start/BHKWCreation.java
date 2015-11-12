@@ -16,7 +16,7 @@ public class BHKWCreation {
 		this.priceFuel = priceFuel;
 		this.consFuelPerKWh = consFuelPerKWh;
 		this.sizeHeatReservoir = ((int) (Math.random() * 10)) * (10 - 5) + 50;
-		this.maxLoad = ((int) (Math.random() * (10 - 5))) + 5;
+		this.maxLoad = ((int) (Math.random() * (10 - 8))) + 5;
 	}
 
 	public double getChpCoefficient() {

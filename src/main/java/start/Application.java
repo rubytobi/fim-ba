@@ -35,7 +35,7 @@ public class Application {
 		public static final int maxDevices = 5;
 
 		// Jedes x-te Gerät ist ein BHKW
-		public static final int bhkwQuota = 3;
+		public static final int bhkwQuota = 2;
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
@@ -92,7 +92,7 @@ public class Application {
 
 		if (DeviceContainer.instance().size() % Params.bhkwQuota == 0) {
 			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
-			BHKWCreation bhkwCreation = new BHKWCreation(1, 5, 1);
+			BHKWCreation bhkwCreation = new BHKWCreation(1, 3, 0.3);
 			api.devices().bhkw();
 			api.call(root, HttpMethod.POST, bhkwCreation);
 

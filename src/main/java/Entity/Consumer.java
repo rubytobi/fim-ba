@@ -195,21 +195,6 @@ public class Consumer implements Identifiable {
 		return valuesLoadprofile;
 	}
 
-	private void confirmDeltaLoadprofiles(Offer respondedOffer) {
-		// Lastprofil muss beim Gerät bestätigt werden, Deltalastprofile nicht
-		HashMap<UUID, HashMap<UUID, Loadprofile>> allLoadprofiles = respondedOffer.getAllLoadprofiles();
-		if (allLoadprofiles == null) {
-			return;
-		}
-		for (Loadprofile lp : allLoadprofiles.get(uuid).values()) {
-			if (!lp.isDelta()) {
-				// TODO
-			} else {
-				// TODO
-			}
-		}
-	}
-
 	/**
 	 * Ein Consumer möchte ein Angbeot dieses Consumers bestätigen. Er übergibt
 	 * hierzu den AuthKey des Angebots. Das Vorgängerangebot muss nun
@@ -287,16 +272,11 @@ public class Consumer implements Identifiable {
 			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist?!");
 			return;
 		}
-
-		// Schicke Bestätigung aller beteiligten Lastprofile an das Device
-		for (Loadprofile lp : offer.getAllLoadprofiles().get(uuid).values()) {
-			if (!lp.isDelta()) {
-				// Schicke Bestätigung zu Loadprofile an Device
-				API<Void, Void> api2 = new API<Void, Void>(Void.class);
-				api2.devices(device).confirmLoadprofile().toString();
-				api2.call(this, HttpMethod.POST, null);
-			}
-		}
+		
+		// Schicke Bestätigung an Device
+		API<String, Void> api2 = new API<String, Void>(Void.class);
+		api2.devices(device).confirm(offer.getDate());
+		api2.call(this, HttpMethod.POST, DateTime.ToString(offer.getDate()));
 
 		// Prüfe, ob Autor von Angebot
 		if (uuid == offer.getAuthor()) {
@@ -311,10 +291,10 @@ public class Consumer implements Identifiable {
 						continue;
 					}
 					// Alle anderen Teilnehmer werden informiert
-					API<AnswerToOfferFromMarketplace, Void> api2 = new API<AnswerToOfferFromMarketplace, Void>(
+					API<AnswerToOfferFromMarketplace, Void> api1 = new API<AnswerToOfferFromMarketplace, Void>(
 							Void.class);
-					api2.consumers(current).offers(offer.getUUID()).confirmByMarketplace();
-					api2.call(this, HttpMethod.POST, answerOffer);
+					api1.consumers(current).offers(offer.getUUID()).confirmByMarketplace();
+					api1.call(this, HttpMethod.POST, answerOffer);
 				}
 			}
 		}
@@ -493,7 +473,7 @@ public class Consumer implements Identifiable {
 
 		// neue abweichung des erweiterten angebots gegenüber dem
 		// marktplatzangebot berechnen
-		// TODO logik prüfen!
+		// TODO Logik prüfen!
 		Offer newMerge = null;
 		Score newScore = null;
 
@@ -723,9 +703,9 @@ public class Consumer implements Identifiable {
 		}
 
 		// Consumer informiert sein eigenes Gerät über Absage der Änderungen
-		API<Void, Void> api2 = new API<Void, Void>(Void.class);
+		API<Boolean, Void> api2 = new API<Boolean, Void>(Void.class);
 		api2.devices(device).changeRequest().decline();
-		api2.call(this, HttpMethod.GET, null);
+		api2.call(this, HttpMethod.GET, false);
 	}
 
 	public void receiveChangeRequestConfirm(UUID uuidOffer) {
@@ -753,15 +733,15 @@ public class Consumer implements Identifiable {
 				}
 				// Absage für ChangeRequest an Consumer
 				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
-				api1.consumers(current).offers(uuidOffer).changeRequest().confirm();
+				api1.consumers(current).offers(uuidOffer).changeRequest().decline();
 				api1.call(this, HttpMethod.POST, cr);
 			}
 		}
 
-		// Consumer informiert sein eigenes Gerät über Zusage
-		API<Void, Void> api2 = new API<Void, Void>(Void.class);
+		// Consumer informiert sein eigenes Gerät über Zusage der Änderung
+		API<Boolean, Void> api2 = new API<Boolean, Void>(Void.class);
 		api2.devices(device).changeRequest().confirm();
-		api2.call(this, HttpMethod.GET, null);
+		api2.call(this, HttpMethod.GET, true);
 	}
 
 	public void receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
@@ -779,7 +759,7 @@ public class Consumer implements Identifiable {
 		UUID uuidOffer = affectedOffer.getUUID();
 		AnswerChangeRequestLoadprofile answerNoChange = new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 
-		if (cr.getTime().before(DateTime.nextTimeSlot())) {
+		/*if (cr.getTime().before(DateTime.nextTimeSlot())) {
 			System.out.println("NextTimeSlot: " + DateTime.ToString(DateTime.nextTimeSlot()));
 			System.out.println("Time CR: " + DateTime.ToString(cr.getTime()));
 			Log.e(uuid, "Anfrage für den aktuellen Zeitslot nicht möglich.");
@@ -788,7 +768,7 @@ public class Consumer implements Identifiable {
 			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
 			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
 			api1.call(this, HttpMethod.POST, answerNoChange);
-		}
+		}*/
 
 		System.out.println("Zeit passt");
 		System.out.println("Frage Devices nach Änderung");

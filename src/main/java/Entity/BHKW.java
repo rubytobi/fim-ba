@@ -485,9 +485,11 @@ public class BHKW implements Device {
 	 * @param time
 	 *            Zeit, fuer die Lastprofil und Fahrplan bestaetigt werden
 	 */
-	public void confirmLoadprofile(GregorianCalendar time) {
-		if (DateTime.ToString(timeFixed).equals(DateTime.ToString(time))) {
+	public void confirmLoadprofile(String time) {
+		System.out.println("Das Gerät erhält die Bestätigung des Angebots");
+		if (DateTime.ToString(timeFixed).equals(time)) {
 			saveSchedule(scheduleMinutes, timeFixed);
+			System.out.println("scheduleFixed gespeichert für: " +DateTime.ToString(timeFixed));
 			sendNewLoadprofile();
 		}
 	}
@@ -559,7 +561,15 @@ public class BHKW implements Device {
 		int minute = currentTime.get(Calendar.MINUTE);
 		currentTime.set(Calendar.MINUTE, 0);
 		System.out.println("Zeit: " +DateTime.ToString(currentTime));
-		powerPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1][minute];
+		
+		double[][] plan = schedulesFixed.get(DateTime.ToString(currentTime));
+		if (plan == null) {
+			System.out.println("Es liegt kein schedulesFixed für " +DateTime.ToString(currentTime)+ " vor.");
+			System.out.println("ScheduleMintues gilt ab: " + DateTime.ToString(timeFixed));
+			return;
+		}
+		powerPlanned = plan[1][minute];
+		
 		powerScaled = simulation.getPower(currentTime);
 
 		if (powerPlanned != powerScaled) {
@@ -703,6 +713,7 @@ public class BHKW implements Device {
 		}
 		// Zaehle timeFixed um eine Stunde hoch
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
+		System.out.println("Neuer scheduleMinutes wird geholt für: " +DateTime.ToString(timeFixed));
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
 

@@ -20,6 +20,7 @@ import Entity.Fridge;
 import Packet.AnswerChangeRequestSchedule;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
+import Util.DateTime;
 import Util.ResponseBuilder;
 import Util.View;
 
@@ -140,8 +141,8 @@ public class DeviceController {
 	 *            Device-ID
 	 * @return Leere Antwort
 	 */
-	@RequestMapping(value = "/devices/{uuid}/confirm/{time}", method = RequestMethod.GET)
-	public ResponseEntity<Void> receiveChangeRequest(@RequestBody GregorianCalendar time, @PathVariable UUID uuid) {
+	@RequestMapping(value = "/devices/{uuid}/confirm/{time}", method = RequestMethod.POST)
+	public ResponseEntity<Void> receiveChangeRequest(@PathVariable String time, @PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).confirmLoadprofile(time);
 		return ResponseBuilder.returnVoid(DeviceContainer.instance().get(uuid));
 

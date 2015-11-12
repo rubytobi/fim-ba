@@ -3,6 +3,7 @@ package Util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.GregorianCalendar;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -80,6 +81,12 @@ public class API<Request, Response> {
 		uri += "/confirm/" + key;
 		return this;
 	}
+	
+	public API<Request, Response> confirm(GregorianCalendar date) {
+		uri += "/confirm/" + DateTime.ToString(date);
+		System.out.println(uri);
+		return this;
+	}
 
 	public API<Request, Response> marketplace() {
 		uri += "/marketplace";
@@ -142,7 +149,7 @@ public class API<Request, Response> {
 	}
 
 	public void call(Identifiable who, HttpMethod how, Request what) {
-		// Log.d(who.getUUID(), uri + " body: " + what);
+		Log.d(who.getUUID(), uri + " body: " + what);
 
 		RestTemplate rest = new RestTemplate();
 

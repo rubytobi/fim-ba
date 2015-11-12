@@ -879,8 +879,11 @@ public class Fridge implements Device {
 		return valuesLoadprofile;
 	}
 
-	public void confirmLoadprofile(GregorianCalendar time) {
-		if (DateTime.ToString(timeFixed).equals(DateTime.ToString(time))) {
+	public void confirmLoadprofile(String time) {
+		System.out.println("Lastprofil soll bestätigt werden für: " +time);
+		System.out.println("timeFixed: " +DateTime.ToString(timeFixed));
+		if (DateTime.ToString(timeFixed).equals(time)) {
+			System.out.println("Zeit passt.");
 			saveSchedule(scheduleMinutes, timeFixed);
 			sendNewLoadprofile();
 		}
@@ -1224,7 +1227,14 @@ public class Fridge implements Device {
 		currentTime.set(Calendar.MILLISECOND, 0);
 
 		double tempPlanned, tempScaled;
-		tempPlanned = schedulesFixed.get(DateTime.ToString(currentTime))[1];
+		
+		double[] temps = schedulesFixed.get(DateTime.ToString(currentTime));
+		if (temps == null) {
+			System.out.println("Es liegt kein schedulesFixed für " +DateTime.ToString(currentTime)+ " vor.");
+			System.out.println("ScheduleMintues gilt ab: " + DateTime.ToString(timeFixed));
+			return;
+		}
+		tempPlanned = temps[1];
 		// tempScaled = simulationFridge.getTemperature(currentTime);
 		tempScaled = 7.5;
 
