@@ -1,6 +1,5 @@
 package start;
 
-import java.util.GregorianCalendar;
 import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
@@ -20,7 +19,6 @@ import Entity.Fridge;
 import Packet.AnswerChangeRequestSchedule;
 import Packet.ChangeRequestSchedule;
 import Packet.FridgeCreation;
-import Util.DateTime;
 import Util.ResponseBuilder;
 import Util.View;
 

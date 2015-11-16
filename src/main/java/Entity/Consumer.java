@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
@@ -18,7 +17,6 @@ import Packet.AnswerChangeRequestSchedule;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 import Packet.ChangeRequestSchedule;
-import Packet.EndOfNegotiation;
 import Packet.AnswerToPriceChangeRequest;
 import Util.Score;
 import Util.Scorecard;
@@ -273,15 +271,25 @@ public class Consumer implements Identifiable {
 			return;
 		}
 		
-		// Schicke Bestätigung an Device
-		API<String, Void> api2 = new API<String, Void>(Void.class);
-		api2.devices(device).confirm(offer.getDate());
-		api2.call(this, HttpMethod.POST, DateTime.ToString(offer.getDate()));
+		Map<UUID, Loadprofile> loadprofiles = offer.getAllLoadprofiles().get(uuid);
+		Set<UUID> setLP = loadprofiles.keySet();
+		for (UUID uuidLP : setLP) {
+			Loadprofile lp = loadprofiles.get(uuidLP);
+			if (! lp.isDelta()) {
+				System.out.println("Lastprofil ist kein Deltalastprofil.");
+				
+				// Schicke Bestätigung an Device
+				API<String, Void> api2 = new API<String, Void>(Void.class);
+				api2.devices(device).confirm(offer.getDate());
+				api2.call(this, HttpMethod.POST, DateTime.ToString(offer.getDate()));
+				break;
+			}
+			System.out.println("Lastprofil ist Deltalastprofil.");
+		}		
 
 		// Prüfe, ob Autor von Angebot
 		if (uuid == offer.getAuthor()) {
-			HashMap<UUID, HashMap<UUID, Loadprofile>> loadprofiles = offer.getAllLoadprofiles();
-			Set<UUID> set = loadprofiles.keySet();
+			Set<UUID> set = offer.getAllLoadprofiles().keySet();
 			System.out.println("Consumer ist Autor des Angebots und informiert alle " + set.size() + " Teilnehmer");
 			if (set != null) {
 				for (UUID current : set) {
@@ -298,8 +306,11 @@ public class Consumer implements Identifiable {
 				}
 			}
 		}
+		else {
+			System.out.println("Consumer war nicht Autor des Angebots");
 
-		System.out.println("Consumer war nicht Autor des Angebots");
+		}
+
 		removeOffer(offer.getUUID());
 	}
 

@@ -589,6 +589,7 @@ public class BHKW implements Device {
 	 *            abgelehnt (false) wird
 	 */
 	public void receiveAnswerChangeRequest(boolean acceptChange) {
+		System.out.println("Device enthält Zusage für Laständerungen");
 		if (acceptChange) {
 			scheduleMinutes = scheduleCurrentChangeRequest;
 		}
@@ -688,6 +689,7 @@ public class BHKW implements Device {
 	 * Lastprofil wird an den Consumer geschickt.
 	 */
 	public void sendNewLoadprofile() {
+		System.out.println("BHKW " +uuid+ " sendet neues Lastprofil.");
 		double[] valuesLoadprofile;
 
 		/*
@@ -713,6 +715,7 @@ public class BHKW implements Device {
 		}
 		// Zaehle timeFixed um eine Stunde hoch
 		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
+		
 		System.out.println("Neuer scheduleMinutes wird geholt für: " +DateTime.ToString(timeFixed));
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
