@@ -28,6 +28,7 @@ import Util.Negotiation;
 import Util.sortOfferPriceSupplyLowToHigh;
 import start.Application;
 import Util.sortOfferPriceDemandHighToLow;
+import Util.FrameResults;
 
 /**
  * Marktplatz, auf welchem alle Angebote eintreffen und zusammengefuehrt werden
@@ -178,8 +179,8 @@ public class Marketplace implements Identifiable {
 		}
 		System.out.println("Slot: " + slot);
 
-		// Bestätige die Angebote zum Einheitspreis, die jetzt fällig sind
-		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot, false);
+		// Bestätige die Angebote zum Einheitspreis, die im nächsten Slot beginnen
+		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot+1, false);
 
 		System.out.println(minute + " Minuten >= " + minuteOfSecondPhase + ": " + (minute >= minuteOfSecondPhase));
 
@@ -1098,132 +1099,27 @@ public class Marketplace implements Identifiable {
 		}
 
 		// Ausgabe der Ergebnisse
-		System.out.println("Ausgabe der Ergebnisse für " + DateTime.ToString(nextSlot));
+		System.out.println("\nAusgabe der Ergebnisse für " + DateTime.ToString(nextSlot));
 
-		// Gib alle bestätigten Angebote und alle Zusammenführungen
+		// Hole alle bestätigten Angebote und alle Zusammenführungen
 		ArrayList<ConfirmedOffer> justConfirmed = confirmedOffers.get(DateTime.ToString(nextSlot));
-		ArrayList<MatchedOffers> justMatched = matchedOffers.get(DateTime.ToString(nextSlot));
-
-		// Gebe alle Informationen für den Vorher-Nacher-Vergleich der
-		// Abweichung vor bzw. nach den Zusammenführungen aus
-		System.out.println("-----Informationen für Kriterium 1-1 (MP1)-----");
-		if (justMatched == null) {
-			System.out.println("Keine zusammengeführten Angebote für diesen Slot");
-		} else {
-			int countAll = justMatched.size();
-			int countSmaller = 0;
-			int countOk = 0;
-			for (MatchedOffers matched : justMatched) {
-				double before = matched.getDeviationBefore();
-				double after = matched.getDeviationAfter();
-				boolean smaller = after < before;
-				if (smaller) {
-					countSmaller++;
-					System.out.println("Abweichung geringer. (Abweichung davor: " + matched.getDeviationBefore()
-							+ ", danach: " + matched.getDeviationAfter() + ")");
-				} else {
-					boolean ok = after < before + maxDeviation;
-					if (ok) {
-						countOk++;
-						System.out.println("Abweichung ok.       (Abweichung davor: " + matched.getDeviationBefore()
-								+ ", danach: " + matched.getDeviationAfter() + ")");
-					} else {
-						System.out.println("Abweichung höher.    (Abweichung davor: " + matched.getDeviationBefore()
-								+ ", danach: " + matched.getDeviationAfter() + ")");
-					}
-				}
-			}
-
-			// Gib prozentuales Ergebnis aus
-			System.out.println("\n" + countSmaller / countAll + " % der Zusammenführungen: Geringere Abweichung");
-			System.out.println(countOk / countAll + " % der Zusammenführungen: Leicht höhere Abweichung");
-			System.out.println(
-					(countAll - countSmaller - countOk) / countAll + " % der Zusammenführungen: Höhere Abweichung");
-
-		}
-		System.out.println("-----------------------------------------------");
-
-		// Gebe alle Informationen für die Überprüfung der Gesamtsumme der
-		// Zusammenführungen aus
-		System.out.println("-----Informationen für Kriterium 1-2 (MP1)-----");
-		if (justMatched == null) {
-			System.out.println("Keine zusammengeführten Angebote für diesen Slot");
-		} else {
-			double countAll = justMatched.size();
-			double countGood = 0;
-			for (MatchedOffers matched : justMatched) {
-				// Hole die Gesamtpreise
-				double allRoundPrice1 = matched.getAllRoundPrice1();
-				double allRoundPrice2 = matched.getAllRoundPrice2();
-
-				// Prüfe, ob Summe der Gesamtpreise = 0
-				double sum = allRoundPrice1 + allRoundPrice2;
-
-				// Gib das Ergebnis aus
-				if (sum == 0) {
-					countGood++;
-					System.out.println("Gesamtpreise passen     : Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2);
-				} else {
-					System.out.println("Geamtpreise passen nicht: Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2);
-				}
-				System.out.println("Gesamtpreise passen");
-			}
-
-			// Gib prozentuales Ergebnis aus
-			System.out.println("\n" +countGood / countAll + " % der Gesamtpreise haben zusammengepasst");
-			System.out.println((countAll-countGood)/countAll + " % der Gesamtpreise haben nicht zusammengepasst");
-		}
-		System.out.println("-----------------------------------------------");
-
-		// Gebe alle Informationen für die Überprüfung aus, dass alle
-		// Angebote vor deren Beginn bestätigt wurden
-		System.out.println("-----Informationen für Kriterium 2-1 (MP2)-----");
 		if (justConfirmed == null) {
-			System.out.println("Keine bestätigten Angebote für diesen Slot");
-		} else {
-			int countAll = justConfirmed.size();
-			int countGood = 0;
-			for (ConfirmedOffer confirmed : justConfirmed) {
-				// Hole, wann das Angebot bestätigt wurde und wann es beginnt
-				GregorianCalendar timeConfirmed = confirmed.getTimeConfirmed();
-				GregorianCalendar timeRealStart = confirmed.getRealStartOffer();
-
-				// Prüfe, ob Angebot vor Start bestätigt wurde
-				boolean good = timeConfirmed.before(timeRealStart);
-				if (good) {
-					countGood++;
-					System.out.println("Bestätigung vor Start  (Bestätigung: " + DateTime.ToString(timeConfirmed)
-							+ ", Start: " + DateTime.ToString(timeRealStart) + ")");
-				}
-				else {
-					System.out.println("Bestätigung nach Start (Bestätigung: " + DateTime.ToString(timeConfirmed)
-					+ ", Start: " + DateTime.ToString(timeRealStart) + ")");
-				}
-			}
-			
-			// Gib prozentuales Ergebnis aus
-			System.out.println("\n" + countGood/countAll+ " % der Bestätigungen waren rechtzeitig");
-			System.out.println((countAll-countGood)/countAll + " % der Bestätigungen waren zu spät");
+			justConfirmed = new ArrayList<ConfirmedOffer>();
 		}
-		System.out.println("-----------------------------------------------");
-
-		// Gebe alle Informationen für den Vorher-Nacher-Vergleich der
-		// Abweichung mit bzw. ohne Anpassung aus
-		System.out.println("------Informationen für Kriterium 3-1 (MP3)------");
-		if (changes) {
-			System.out.println("Anzahl an Verbliebenen Angeboten: " + countRemainingOffers);
-			System.out.println("Abweichung vor Anpassungen:    " + valuesToString(deviationWithoutChange));
-			System.out.println("Abweichungen nach Anpassungen: " + valuesToString(deviationWithChange));
-			System.out.println("Alle " + allChanges.size() + " Änderungen:");
-			for (double[] currentChanges : allChanges) {
-				System.out.println(valuesToString(currentChanges));
-			}
-		} else {
-			System.out.println("Es gab keine Anpassungen in diesen Slot");
+		GregorianCalendar lastSlot = (GregorianCalendar) nextSlot.clone();
+		lastSlot.add(Calendar.HOUR_OF_DAY, -1);
+		ArrayList<ConfirmedOffer> lastConfirmed = confirmedOffers.get(DateTime.ToString(lastSlot));
+		if (lastConfirmed == null) {
+			lastConfirmed = new ArrayList<ConfirmedOffer>();
 		}
-		System.out.println("-----------------------------------------------");
+		ArrayList<MatchedOffers> justMatched = matchedOffers.get(DateTime.ToString(nextSlot));
+		if (justMatched == null) {
+			justMatched = new ArrayList<MatchedOffers>();
+		}
+
+		// Öffne Fenster mit Ergebnissen
+		FrameResults results = new FrameResults(nextSlot, justMatched, justConfirmed, lastConfirmed, maxDeviation, changes,
+				countRemainingOffers, deviationWithoutChange, deviationWithChange, allChanges);
 
 		// Zaehle Variable nextSlot um eins hoch
 		nextSlot.add(Calendar.HOUR_OF_DAY, 1);
