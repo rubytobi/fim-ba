@@ -271,11 +271,16 @@ public class Loadprofile {
 	 */
 	public double chargeDeviationOtherProfile(Loadprofile otherProfile) {
 		double deviationOtherProfile = 0;
+		
+		if (otherProfile == null || values == null) {
+			deviationOtherProfile = Double.POSITIVE_INFINITY;
+			return deviationOtherProfile;
+		}
 
-		deviationOtherProfile = deviationOtherProfile + Math.abs((values[0] - otherProfile.getValues()[0]));
-		deviationOtherProfile = deviationOtherProfile + Math.abs((values[1] - otherProfile.getValues()[1]));
-		deviationOtherProfile = deviationOtherProfile + Math.abs((values[2] - otherProfile.getValues()[2]));
-		deviationOtherProfile = deviationOtherProfile + Math.abs((values[3] - otherProfile.getValues()[3]));
+		deviationOtherProfile += Math.abs((values[0] - otherProfile.getValues()[0]));
+		deviationOtherProfile += Math.abs((values[1] - otherProfile.getValues()[1]));
+		deviationOtherProfile += Math.abs((values[2] - otherProfile.getValues()[2]));
+		deviationOtherProfile += Math.abs((values[3] - otherProfile.getValues()[3]));
 
 		return deviationOtherProfile;
 	}

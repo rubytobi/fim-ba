@@ -32,16 +32,16 @@ import Util.API;
 public class Application {
 	public class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 5;
+		public static final int maxDevices = 20;
 
 		// Jedes x-te Gerät ist ein BHKW
-		public static final int bhkwQuota = 2;
+		public static final int bhkwQuota = 10;
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
 		// Beachte, dass bei einer sehr schnellen Simulationszeit die
 		// Ping-Zeiten angepasst werden müssen!
-		public static final double timeFactor = 20;
+		public static final double timeFactor = 1;
 
 		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
 		// starten soll
@@ -92,7 +92,7 @@ public class Application {
 
 		if (DeviceContainer.instance().size() % Params.bhkwQuota == 0) {
 			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
-			BHKWCreation bhkwCreation = new BHKWCreation(1, 3, 0.3);
+			BHKWCreation bhkwCreation = new BHKWCreation(1, 1.02, 0.05);
 			api.devices().bhkw();
 			api.call(root, HttpMethod.POST, bhkwCreation);
 

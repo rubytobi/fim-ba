@@ -880,7 +880,6 @@ public class Fridge implements Device {
 	}
 
 	public void confirmLoadprofile(String time) {
-		System.out.println("Lastprofil soll bestätigt werden für: " +time);
 		System.out.println("timeFixed: " +DateTime.ToString(timeFixed));
 		if (DateTime.ToString(timeFixed).equals(time)) {
 			System.out.println("Zeit passt.");
@@ -1155,6 +1154,7 @@ public class Fridge implements Device {
 
 			if (oldValues == null) {
 				Log.e(this.uuid, DateTime.ToString(startLoadprofile) + " - " + loadprofilesFixed.keySet());
+				return;
 			}
 
 			change = false;

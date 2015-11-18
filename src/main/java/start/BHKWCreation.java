@@ -15,8 +15,10 @@ public class BHKWCreation {
 		this.chpCoefficient = chpCoefficient;
 		this.priceFuel = priceFuel;
 		this.consFuelPerKWh = consFuelPerKWh;
-		this.sizeHeatReservoir = ((int) (Math.random() * 10)) * (10 - 5) + 50;
-		this.maxLoad = ((int) (Math.random() * (10 - 8))) + 5;
+		this.sizeHeatReservoir = Math.round(100.00 * (((double) (Math.random() * 10)) + 5)) / 100.00;
+		this.maxLoad = Math.round(100.00 * ((double) (Math.random() * 1) +0.1)) / 100.00;
+		System.out.println("New BHKW: Koeffizient: " +chpCoefficient+ " priceFuel: " +priceFuel+ " consFuelPerKWH: " +
+				consFuelPerKWh+ " Größe Speicher: " +sizeHeatReservoir+ " maxLoad: " +maxLoad);
 	}
 
 	public double getChpCoefficient() {

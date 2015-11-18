@@ -179,8 +179,9 @@ public class Marketplace implements Identifiable {
 		}
 		System.out.println("Slot: " + slot);
 
-		// Bestätige die Angebote zum Einheitspreis, die im nächsten Slot beginnen
-		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot+1, false);
+		// Bestätige die Angebote zum Einheitspreis, die im nächsten Slot
+		// beginnen
+		confirmAllRemainingOffersWithOnePrice(slotLastMatched, slot + 1, false);
 
 		System.out.println(minute + " Minuten >= " + minuteOfSecondPhase + ": " + (minute >= minuteOfSecondPhase));
 
@@ -284,13 +285,8 @@ public class Marketplace implements Identifiable {
 		for (String currentDate : allDates) {
 			GregorianCalendar current = DateTime.stringToCalendar(currentDate);
 			if (current.before(date)) {
-				if (demand.get(current).size() == 0) {
-					System.out.println("Entferne Zeit: " + current);
-					demand.remove(current);
-				} else {
-					System.out.println("Es liegen noch ältere Angebote für " + currentDate + " vor.");
-					confirmAllRemainingOffersWithOnePrice(current, numSlots - 1, false);
-				}
+				System.out.println("Es liegen noch ältere Angebote für " + currentDate + " vor.");
+				confirmAllRemainingOffersWithOnePrice(current, numSlots - 1, false);
 			}
 		}
 
@@ -449,7 +445,7 @@ public class Marketplace implements Identifiable {
 		System.out.println("[" + valuesLP[0] + "][" + valuesLP[1] + "][" + valuesLP[2] + "][" + valuesLP[3] + "]");
 
 		// Speichere Angebot unter confirmedOffers
-		ArrayList<ConfirmedOffer> confirmedAtDate = confirmedOffers.get(DateTime.ToString(offer.getDate()));
+		ArrayList<ConfirmedOffer> confirmedAtDate = confirmedOffers.get(DateTime.ToString(nextSlot));
 		if (confirmedAtDate == null) {
 			confirmedAtDate = new ArrayList<ConfirmedOffer>();
 		}
@@ -476,7 +472,7 @@ public class Marketplace implements Identifiable {
 			// Anpassung vorgenommen wurde
 			double[] oldAllValues = sumLoadprofilesAllOffers.get(DateTime.ToString(offer.getDate()));
 			if (oldAllValues == null) {
-				Log.e(uuid, "Es lag keine Sumem aller Lastprofile vor");
+				Log.d(uuid, "Es lag keine Summe aller Lastprofile vor");
 			} else {
 				for (int i = 0; i < numSlots; i++) {
 					oldAllValues[i] += changes[i];
@@ -1098,17 +1094,43 @@ public class Marketplace implements Identifiable {
 			confirmAllRemainingOffersWithOnePrice(nextSlot, 4, true);
 		}
 
-		// Ausgabe der Ergebnisse
-		System.out.println("\nAusgabe der Ergebnisse für " + DateTime.ToString(nextSlot));
+		// Entferne Zeiten aus Demand und Supply, für die keine Angebote
+		// vorliegen
+		Set<String> demandSet = demand.keySet();
+		ArrayList<String> toRemove = new ArrayList<String>();
+		if (demandSet.size() != 0) {
+			for (String date : demandSet) {
+				ArrayList<Offer> offersAtDate = demand.get(date);
+				if (offersAtDate.size() == 0) {
+					toRemove.add(date);
+				}
+			}
+		}
+		if (toRemove.size() != 0) {
+			for (String date : toRemove) {
+				demand.remove(date);
+			}
+		}
+		Set<String> supplySet = supply.keySet();
+		ArrayList<String> toRemoveS = new ArrayList<String>();
+		if (supplySet.size() != 0) {
+			for (String date : supplySet) {
+				ArrayList<Offer> offersAtDate = supply.get(date);
+				if (offersAtDate.size() == 0) {
+					toRemoveS.add(date);
+				}
+			}
+		}
+		if (toRemoveS.size() != 0) {
+			for (String date : toRemoveS) {
+				supply.remove(date);
+			}
+		}
 
 		// Hole alle bestätigten Angebote und alle Zusammenführungen
-		ArrayList<ConfirmedOffer> justConfirmed = confirmedOffers.get(DateTime.ToString(nextSlot));
-		if (justConfirmed == null) {
-			justConfirmed = new ArrayList<ConfirmedOffer>();
-		}
-		GregorianCalendar lastSlot = (GregorianCalendar) nextSlot.clone();
-		lastSlot.add(Calendar.HOUR_OF_DAY, -1);
-		ArrayList<ConfirmedOffer> lastConfirmed = confirmedOffers.get(DateTime.ToString(lastSlot));
+		//GregorianCalendar lastSlot = (GregorianCalendar) nextSlot.clone();
+		//lastSlot.add(Calendar.HOUR_OF_DAY, -1);
+		ArrayList<ConfirmedOffer> lastConfirmed = confirmedOffers.get(DateTime.ToString(nextSlot));
 		if (lastConfirmed == null) {
 			lastConfirmed = new ArrayList<ConfirmedOffer>();
 		}
@@ -1118,8 +1140,8 @@ public class Marketplace implements Identifiable {
 		}
 
 		// Öffne Fenster mit Ergebnissen
-		FrameResults results = new FrameResults(nextSlot, justMatched, justConfirmed, lastConfirmed, maxDeviation, changes,
-				countRemainingOffers, deviationWithoutChange, deviationWithChange, allChanges);
+		FrameResults results = new FrameResults(nextSlot, justMatched, lastConfirmed, maxDeviation, changes,
+				countRemainingOffers, deviationWithoutChange, deviationWithChange, allChanges, demand, supply);
 
 		// Zaehle Variable nextSlot um eins hoch
 		nextSlot.add(Calendar.HOUR_OF_DAY, 1);
@@ -1400,6 +1422,7 @@ public class Marketplace implements Identifiable {
 			System.out.println("Size Demands nach Entfernen: " + demands.size());
 			demand.put(date, demands);
 		}
+		System.out.println("Angebot konnte entfernt werden.");
 
 		// Entferne Angebote aus listPossibleMatches
 		removeFromPossibleMatches(removeOffer);
