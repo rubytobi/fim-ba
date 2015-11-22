@@ -32,7 +32,7 @@ import Util.API;
 public class Application {
 	public class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 20;
+		public static final int maxDevices = 30;
 
 		// Jedes x-te Gerät ist ein BHKW
 		public static final int bhkwQuota = 10;

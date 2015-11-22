@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
+import com.sun.research.ws.wadl.Application;
 
 import Packet.OfferNotification;
 import Packet.SearchParams;
@@ -260,6 +261,7 @@ public class Consumer implements Identifiable {
 	 *            das bestätigte Angebot
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
+		Log.d(uuid, "Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
 		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
 
 		// Hole das Angebot, für das die Bestätigung gilt
@@ -270,14 +272,14 @@ public class Consumer implements Identifiable {
 			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist?!");
 			return;
 		}
-		
+
 		Map<UUID, Loadprofile> loadprofiles = offer.getAllLoadprofiles().get(uuid);
 		Set<UUID> setLP = loadprofiles.keySet();
 		for (UUID uuidLP : setLP) {
 			Loadprofile lp = loadprofiles.get(uuidLP);
-			if (! lp.isDelta()) {
+			if (!lp.isDelta()) {
 				System.out.println("Lastprofil ist kein Deltalastprofil.");
-				
+
 				// Schicke Bestätigung an Device
 				API<String, Void> api2 = new API<String, Void>(Void.class);
 				api2.devices(device).confirm(offer.getDate());
@@ -285,7 +287,7 @@ public class Consumer implements Identifiable {
 				break;
 			}
 			System.out.println("Lastprofil ist Deltalastprofil.");
-		}		
+		}
 
 		// Prüfe, ob Autor von Angebot
 		if (uuid == offer.getAuthor()) {
@@ -305,10 +307,9 @@ public class Consumer implements Identifiable {
 					api1.call(this, HttpMethod.POST, answerOffer);
 				}
 			}
-		}
-		else {
+		} else {
 			System.out.println("Consumer war nicht Autor des Angebots");
-
+			return;
 		}
 
 		removeOffer(offer.getUUID());
@@ -558,8 +559,10 @@ public class Consumer implements Identifiable {
 		Offer[] offerWithPrivileges = getOfferWithPrivileges(receivedOffer.getDate());
 
 		if (offerWithPrivileges.length == 0) {
-			Log.d(uuid, "Consumer ist nicht Autor in einem seiner Angebote und kann daher nicht verhandeln: "
-					+ this.allOffers);
+			Log.d(uuid,
+					"Consumer ist nicht Autor in einem seiner Angebote für den Zeitraum "
+							+ DateTime.ToString(receivedOffer.getDate()) + " und kann daher nicht verhandeln: "
+							+ this.allOffers);
 			return;
 		}
 
@@ -596,13 +599,14 @@ public class Consumer implements Identifiable {
 			HashMap<UUID, AnswerChangeRequestLoadprofile> contributions = improveOwnOffer(scorecard.first().getOwn(),
 					receivedOffer, scorecard.first());
 
-			if (contributions == null) {
-				Log.d(uuid, "Es konnte keine Verbesserung erreicht werden.");
-				return;
-			} else {
-				newOffer = new Offer(scorecard.first().getMerge(), contributions);
-				allOfferContributions.put(newOffer.getUUID(), contributions);
-			}
+			// TODO anpassung der logik im falle keiner verbesserung
+			// if (contributions == null) {
+			// Log.d(uuid, "Es konnte keine Verbesserung erreicht werden.");
+			// return;
+			// } else {
+			newOffer = new Offer(scorecard.first().getMerge(), contributions);
+			allOfferContributions.put(newOffer.getUUID(), contributions);
+			// }
 		}
 
 		newOffer.generateAuthKey();
@@ -670,15 +674,14 @@ public class Consumer implements Identifiable {
 	 */
 	public void receiveAnswerChangeLoadprofile(AnswerChangeRequestLoadprofile answer, UUID offer) {
 		currentAnswerChangeLoadprofile = answer;
-		System.out.println("Antwort Werte" +valuesToString(answer.getLoadprofile().getValues()));
-		/*try {
-			currentAnswerChangeLoadprofile.notify();
-		}
-		catch (IllegalMonitorStateException e) {
-			System.out.println("IllegalMonitorStateException: " +e);
-		}*/
+		System.out.println("Antwort Werte" + valuesToString(answer.getLoadprofile().getValues()));
+		/*
+		 * try { currentAnswerChangeLoadprofile.notify(); } catch
+		 * (IllegalMonitorStateException e) { System.out.println(
+		 * "IllegalMonitorStateException: " +e); }
+		 */
 		return;
-		
+
 	}
 
 	public void receiveChangeRequestDecline(UUID uuidOffer) {
@@ -770,16 +773,19 @@ public class Consumer implements Identifiable {
 		UUID uuidOffer = affectedOffer.getUUID();
 		AnswerChangeRequestLoadprofile answerNoChange = new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 
-		/*if (cr.getTime().before(DateTime.nextTimeSlot())) {
-			System.out.println("NextTimeSlot: " + DateTime.ToString(DateTime.nextTimeSlot()));
-			System.out.println("Time CR: " + DateTime.ToString(cr.getTime()));
-			Log.e(uuid, "Anfrage für den aktuellen Zeitslot nicht möglich.");
-
-			// Informiere Autor darüber, dass keine Änderung möglich
-			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
-			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
-			api1.call(this, HttpMethod.POST, answerNoChange);
-		}*/
+		/*
+		 * if (cr.getTime().before(DateTime.nextTimeSlot())) {
+		 * System.out.println("NextTimeSlot: " +
+		 * DateTime.ToString(DateTime.nextTimeSlot())); System.out.println(
+		 * "Time CR: " + DateTime.ToString(cr.getTime())); Log.e(uuid,
+		 * "Anfrage für den aktuellen Zeitslot nicht möglich.");
+		 * 
+		 * // Informiere Autor darüber, dass keine Änderung möglich
+		 * API<AnswerChangeRequestLoadprofile, Void> api1 = new
+		 * API<AnswerChangeRequestLoadprofile, Void>(Void.class);
+		 * api1.consumers(author).offers(uuidOffer).answerChangeRequest();
+		 * api1.call(this, HttpMethod.POST, answerNoChange); }
+		 */
 
 		System.out.println("Zeit passt");
 		System.out.println("Frage Devices nach Änderung");
@@ -881,7 +887,7 @@ public class Consumer implements Identifiable {
 		// nach Anpassung
 		HashMap<UUID, HashMap<UUID, Loadprofile>> allLP = affectedOffer.getAllLoadprofiles();
 		Set<UUID> uuidConsumers = allLP.keySet();
-		System.out.println("Es werden alle " +uuidConsumers.size()+ " Teilnehmer des Angebots informiert");
+		System.out.println("Es werden alle " + uuidConsumers.size() + " Teilnehmer des Angebots informiert");
 		for (UUID current : uuidConsumers) {
 			// Schicke Anfrage an den aktuellen Consumer
 			System.out.println("Sende Anfrage");
@@ -890,21 +896,19 @@ public class Consumer implements Identifiable {
 			api.call(this, HttpMethod.POST, cr);
 
 			// Warte auf eine Antwort des Consumers
-			/*UUID testUUID = UUID.randomUUID();
-			AnswerChangeRequestLoadprofile test = new AnswerChangeRequestLoadprofile(testUUID, null);
-			currentAnswerChangeLoadprofile = test;
-			synchronized (currentAnswerChangeLoadprofile) {
-				if (currentAnswerChangeLoadprofile.getUUIDOffer() == test.getUUIDOffer()) {
-					System.out.println("Noch keine Antwort erhalten");
-				}
-				while (currentAnswerChangeLoadprofile.getUUIDOffer() == test.getUUIDOffer()) {
-					try {
-						currentAnswerChangeLoadprofile.wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}*/
+			/*
+			 * UUID testUUID = UUID.randomUUID(); AnswerChangeRequestLoadprofile
+			 * test = new AnswerChangeRequestLoadprofile(testUUID, null);
+			 * currentAnswerChangeLoadprofile = test; synchronized
+			 * (currentAnswerChangeLoadprofile) { if
+			 * (currentAnswerChangeLoadprofile.getUUIDOffer() ==
+			 * test.getUUIDOffer()) { System.out.println(
+			 * "Noch keine Antwort erhalten"); } while
+			 * (currentAnswerChangeLoadprofile.getUUIDOffer() ==
+			 * test.getUUIDOffer()) { try {
+			 * currentAnswerChangeLoadprofile.wait(); } catch
+			 * (InterruptedException e) { e.printStackTrace(); } } }
+			 */
 
 			// Prüfe, dass Antwort auch zu passendem Angebot ist
 			if (!currentAnswerChangeLoadprofile.getUUIDOffer().equals(cr.getOffer())) {
@@ -913,8 +917,9 @@ public class Consumer implements Identifiable {
 
 			// Hole die Änderungen und die dafür verlangten Preise in answerLP
 			Loadprofile answerLP = currentAnswerChangeLoadprofile.getLoadprofile();
-			
-			// Wenn kein Lastprofil übergeben wurde, fahre mit dem nächsten Consumer fort
+
+			// Wenn kein Lastprofil übergeben wurde, fahre mit dem nächsten
+			// Consumer fort
 			if (answerLP == null) {
 				continue;
 			}
@@ -1095,6 +1100,8 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
+		Log.d(uuid, "Ersetze Angebot [" + uuidOldOffer + "] durch das neue Angebot [" + uuidNewOffer + "]");
+
 		// altes Angebot entfernen
 		removeOffer(uuidOldOffer);
 
@@ -1133,7 +1140,7 @@ public class Consumer implements Identifiable {
 	public void setDevice(UUID uuid) {
 		device = uuid;
 	}
-	
+
 	private String valuesToString(double[] values) {
 		String s = ": ";
 		for (int i = 0; i < values.length; i++) {

@@ -20,7 +20,7 @@ public class NetworkGraph {
 	private String loadprofileStyle = "fill-color: red;";
 	private String deltaLoadprofileStyle = "fill-color: red; shape: box;";
 	private String title = "TRuby - Graph";
-	private int graphVersion = 1;
+	private int graphVersion = 3;
 
 	public static NetworkGraph instance() {
 		if (instance == null) {
@@ -63,6 +63,9 @@ public class NetworkGraph {
 			break;
 		case 2:
 			v2();
+			break;
+		case 3:
+			v3();
 		default:
 			break;
 		}
@@ -112,4 +115,25 @@ public class NetworkGraph {
 		}
 
 	}
+
+	private void v3() {
+		graph.clear();
+
+		Collection<Offer> collectionOffers = GeneralController.getAllOffers().values();
+		Offer[] allOffers = collectionOffers.toArray(new Offer[collectionOffers.size()]);
+
+		for (Offer o : allOffers) {
+			if (!o.getDate().equals(DateTime.nextTimeSlot())) {
+				continue;
+			}
+
+			Node offer = graph.addNode(o.getUUID().toString());
+			offer.addAttribute("ui.style", offerStyle);
+
+			for (UUID c : o.getAllLoadprofiles().keySet()) {
+				graph.addEdge(UUID.randomUUID().toString(), o.getUUID().toString(), c.toString());
+			}
+		}
+	}
+
 }

@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Implementation-Title: fim-ba
 Implementation-Version: 0.1.0
-Built-By: Admin
+Built-By: Tobias
 Implementation-Vendor-Id: org.springframework
 Build-Jdk: 1.8.0_65
 Created-By: Maven Integration for Eclipse
