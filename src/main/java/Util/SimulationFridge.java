@@ -5,6 +5,7 @@ import java.util.Hashtable;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
+import com.sun.research.ws.wadl.Application;
 
 public class SimulationFridge {
 	@JsonView(View.Summary.class)
@@ -43,13 +44,17 @@ public class SimulationFridge {
 	// geplanten Wert zurück
 	@JsonIgnoreProperties
 	public double getTemperature(GregorianCalendar time) {
-		double change = 0;
-		openDoor();
-		if (doorOpen) {
-			change = Math.random();
+		if (start.Application.Params.enableDeltaLoadprofiles) {
+			double change = 0;
+			openDoor();
+			if (doorOpen) {
+				change = Math.random();
+			}
+			closeDoor();
+			return schedule.get(DateTime.ToString(time))[1] + change;
+		} else {
+			return schedule.get(DateTime.ToString(time))[1];
 		}
-		closeDoor();
-		return schedule.get(DateTime.ToString(time))[1] + change;
 	}
 
 	// Gibt den Wert mit Abweichung change vom Plan zurück

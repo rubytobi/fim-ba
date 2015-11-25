@@ -169,7 +169,8 @@ public class ConsumerController {
 	}
 
 	/**
-	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils vom Marktplatz
+	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils vom
+	 * Marktplatz
 	 * 
 	 * @param uuid
 	 *            Consumer-ID
@@ -186,7 +187,8 @@ public class ConsumerController {
 	}
 
 	/**
-	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils von einem anderen Consumer
+	 * Consumer erhaelt eine Aenderungsaufforderung des Lastprofils von einem
+	 * anderen Consumer
 	 * 
 	 * @param uuid
 	 *            Consumer-ID
@@ -195,13 +197,17 @@ public class ConsumerController {
 	 * @return Antwort auf CR
 	 */
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequestConsumer", method = RequestMethod.POST)
-	public void receiveChangeRequest(@PathVariable UUID uuid,
+	public ResponseEntity<AnswerChangeRequestLoadprofile> receiveChangeRequest(@PathVariable UUID uuid,
 			@RequestBody ChangeRequestLoadprofile cr) {
-		ConsumerContainer.instance().get(uuid).receiveChangeRequestLoadprofile(cr);
+		AnswerChangeRequestLoadprofile answer = ConsumerContainer.instance().get(uuid)
+				.receiveChangeRequestLoadprofile(cr);
+		return new ResponseBuilder<AnswerChangeRequestLoadprofile>(ConsumerContainer.instance().get(uuid)).body(answer)
+				.build();
 	}
-	
+
 	/**
-	 * Consumer erhält eine Antwort auf eine Aenderungsaufforderung des Lastprofils
+	 * Consumer erhält eine Antwort auf eine Aenderungsaufforderung des
+	 * Lastprofils
 	 * 
 	 * @param uuid
 	 *            Consumer-ID
@@ -221,9 +227,10 @@ public class ConsumerController {
 		ConsumerContainer.instance().get(uuid).receiveChangeRequestDecline(uuidOffer);
 		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
-	
+
 	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/confirm", method = RequestMethod.GET)
-	public ResponseEntity<Void> receiveChangeRequestConfirmation(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
+	public ResponseEntity<Void> receiveChangeRequestConfirmation(@PathVariable UUID uuid,
+			@PathVariable UUID uuidOffer) {
 		ConsumerContainer.instance().get(uuid).receiveChangeRequestConfirm(uuidOffer);
 		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}

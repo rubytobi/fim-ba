@@ -81,7 +81,7 @@ public class API<Request, Response> {
 		uri += "/confirm/" + key;
 		return this;
 	}
-	
+
 	public API<Request, Response> confirm(GregorianCalendar date) {
 		uri += "/confirm/" + DateTime.ToString(date);
 		System.out.println(uri);
@@ -127,12 +127,17 @@ public class API<Request, Response> {
 		uri += "/changeRequests/" + uuid;
 		return this;
 	}
-	
+
 	public API<Request, Response> changeRequestConsumer() {
 		uri += "/changeRequestConsumer";
 		return this;
 	}
-	
+
+	public API<Request, Response> changeRequest() {
+		uri += "/changeRequest";
+		return this;
+	}
+
 	public API<Request, Response> answerChangeRequest() {
 		uri += "/answerChangeRequest";
 		return this;
@@ -195,11 +200,6 @@ public class API<Request, Response> {
 		return headers;
 	}
 
-	public API<Request, Response> changeRequest() {
-		uri += "/changeRequest";
-		return this;
-	}
-
 	public void clear() {
 		uri = "http://localhost:8080";
 		response = null;
@@ -248,14 +248,14 @@ public class API<Request, Response> {
 		uri += "/bhkw";
 		return this;
 	}
-	
+
 	public API<Request, Response> negotiation() {
 		uri += "/negotiation";
 		return this;
 	}
-	
+
 	public API<Request, Response> answerToPriceChangeRequest(UUID uuid) {
-		uri += uuid+ "/answerChangeRequest";
+		uri += uuid + "/answerChangeRequest";
 		return this;
 	}
 

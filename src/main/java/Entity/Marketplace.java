@@ -128,17 +128,12 @@ public class Marketplace implements Identifiable {
 	 */
 	private Marketplace() {
 		// Lege den Startzeitpunkt fest
-		GregorianCalendar now = DateTime.now();
-		now.set(Calendar.MINUTE, 0);
-		now.set(Calendar.SECOND, 0);
-		now.set(Calendar.MILLISECOND, 0);
-		now.add(Calendar.HOUR_OF_DAY, 1);
-		this.nextSlot = now;
+		nextSlot = DateTime.nextTimeSlot();
 
-		System.out.println("Now: " + DateTime.ToString(now));
+		System.out.println("Now: " + DateTime.ToString(nextSlot));
 
 		// Setzt die Vorhersage fuer die naechsten 24h = 0
-		GregorianCalendar count = (GregorianCalendar) now.clone();
+		GregorianCalendar count = (GregorianCalendar) nextSlot.clone();
 		double[] zeroValues = { 0, 0, 0, 0 };
 		for (int i = 0; i < 24; i++) {
 			prediction.put(DateTime.ToString(count), zeroValues);
@@ -1128,8 +1123,8 @@ public class Marketplace implements Identifiable {
 		}
 
 		// Hole alle bestätigten Angebote und alle Zusammenführungen
-		//GregorianCalendar lastSlot = (GregorianCalendar) nextSlot.clone();
-		//lastSlot.add(Calendar.HOUR_OF_DAY, -1);
+		// GregorianCalendar lastSlot = (GregorianCalendar) nextSlot.clone();
+		// lastSlot.add(Calendar.HOUR_OF_DAY, -1);
 		ArrayList<ConfirmedOffer> lastConfirmed = confirmedOffers.get(DateTime.ToString(nextSlot));
 		if (lastConfirmed == null) {
 			lastConfirmed = new ArrayList<ConfirmedOffer>();
@@ -1243,6 +1238,7 @@ public class Marketplace implements Identifiable {
 	 */
 	public void receiveOffer(Offer offer) {
 		System.out.println("Angebot trifft auf Marktplatz ein.");
+		Log.d(uuid, "Angebot trifft auf Marktplatz ein.");
 		GregorianCalendar dateGreg = offer.getDate();
 		String date = DateTime.ToString(dateGreg);
 

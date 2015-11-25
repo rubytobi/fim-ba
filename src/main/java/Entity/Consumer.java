@@ -156,7 +156,7 @@ public class Consumer implements Identifiable {
 			ChangeRequestLoadprofile changeRequestLoadprofile) {
 		API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile> api2 = new API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile>(
 				AnswerChangeRequestLoadprofile.class);
-		api2.consumers(uuidConsumer).offers(uuidOffer).changeRequest();
+		api2.consumers(uuidConsumer).offers(uuidOffer).changeRequestConsumer();
 		api2.call(this, HttpMethod.POST, changeRequestLoadprofile);
 		return api2.getResponse();
 	}
@@ -416,8 +416,14 @@ public class Consumer implements Identifiable {
 		ArrayList<Offer> list = new ArrayList<Offer>();
 
 		for (Offer o : allOffers.values()) {
-			if (o.isAuthor(uuid) && o.getDate().equals(date)) {
+			String a = DateTime.ToString(o.getDate());
+			String b = DateTime.ToString(date);
+
+			if (o.isAuthor(uuid) && a.equals(b)) {
 				list.add(o);
+			} else {
+				Log.d(uuid, "Author mismatch (" + o.getAuthor() + ") or date mismatch (" + a + " " + b + ")");
+				continue;
 			}
 		}
 
@@ -572,7 +578,11 @@ public class Consumer implements Identifiable {
 			Log.d(uuid, "Keine Angebote am Marktplatz vorrätig. Nutze die Vorhersage zur Optimierung.");
 			Offer marketplace = getMarketplacePrediction();
 			for (Offer own : offerWithPrivileges) {
-				scorecard.add(new Score(own, marketplace, own, null, null));
+				try {
+					scorecard.add(new Score(new Offer(own, receivedOffer), marketplace, own, receivedOffer, null));
+				} catch (OffersPriceborderException e) {
+					Log.d(uuid, "Preisgrenzen stimmen nicht überein.");
+				}
 			}
 		}
 
@@ -590,7 +600,8 @@ public class Consumer implements Identifiable {
 			newOffer = scorecard.first().getMerge();
 		} else if (scorecard.size() == 1) {
 			Log.d(uuid, "Keine Angebote als Vergleich vorhanden.");
-			newOffer = scorecard.first().getMerge();
+			return;
+			// newOffer = scorecard.first().getMerge();
 		} else if (scorecard.first().getOwn().getDate().before(DateTime.nextTimeSlot())) {
 			Log.d(uuid, "Angebot liegt in der aktuellen Stunde. Keine Verbesserung durch CRs möglich.");
 			newOffer = scorecard.first().getMerge();
@@ -758,7 +769,8 @@ public class Consumer implements Identifiable {
 		api2.call(this, HttpMethod.GET, true);
 	}
 
-	public void receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+	public AnswerChangeRequestLoadprofile receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+		Log.d(uuid, "Änderungsanfrage vom Autor erhalten.");
 		System.out.println("Änderungsanfrage vom Autor erhalten.");
 
 		// Hole das betroffene Angebot aus der Hashmap aller Angebote
@@ -766,7 +778,7 @@ public class Consumer implements Identifiable {
 
 		if (affectedOffer == null) {
 			Log.e(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
-			return;
+			return new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 		}
 
 		UUID author = affectedOffer.getAuthor();
@@ -789,6 +801,8 @@ public class Consumer implements Identifiable {
 
 		System.out.println("Zeit passt");
 		System.out.println("Frage Devices nach Änderung");
+		Log.d(uuid, "Zeit passt");
+		Log.d(uuid, "Frage Devices nach Änderung");
 
 		// Frage eigenes Device nach Änderung
 		// (und passe noch benötigte Änderung an)
@@ -806,11 +820,9 @@ public class Consumer implements Identifiable {
 			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");
 
 			// Informiere Autor darüber, dass keine Änderung möglich
-			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
-			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
-			api1.call(this, HttpMethod.POST, answerNoChange);
-
+			return answerNoChange;
 		}
+
 		double sumInitialLoadprofile = 0;
 		for (int i = 0; i < numSlots; i++) {
 			sumInitialLoadprofile += initialLoadprofile.getValues()[i];
@@ -858,14 +870,12 @@ public class Consumer implements Identifiable {
 				changedLoadprofile);
 
 		// Informiere Autor über mögliche Änderungen
-		API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
-		api1.consumers(author).offers(uuidOffer).answerChangeRequest();
-		System.out.println(api1.toString());
-		api1.call(this, HttpMethod.POST, answerOfChange);
+		return answerOfChange;
 	}
 
 	public void receiveChangeRequestLoadprofileFromMarketplace(ChangeRequestLoadprofile cr) {
 		System.out.println("Änderungsanfrage vom Marktplatz erhalten");
+		Log.d(uuid, "Änderungsanfrage vom Marktplatz erhalten");
 
 		// Hole das betroffene Angebot aus der Hashmap aller Angebote
 		Offer affectedOffer = allOffers.get(cr.getOffer());
@@ -891,7 +901,8 @@ public class Consumer implements Identifiable {
 		for (UUID current : uuidConsumers) {
 			// Schicke Anfrage an den aktuellen Consumer
 			System.out.println("Sende Anfrage");
-			API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
+			API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile> api = new API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile>(
+					AnswerChangeRequestLoadprofile.class);
 			api.consumers(current).offers(cr.getOffer()).changeRequestConsumer();
 			api.call(this, HttpMethod.POST, cr);
 
@@ -911,12 +922,14 @@ public class Consumer implements Identifiable {
 			 */
 
 			// Prüfe, dass Antwort auch zu passendem Angebot ist
-			if (!currentAnswerChangeLoadprofile.getUUIDOffer().equals(cr.getOffer())) {
-				continue;
-			}
+			// if
+			// (!currentAnswerChangeLoadprofile.getUUIDOffer().equals(cr.getOffer()))
+			// {
+			// continue;
+			// }
 
 			// Hole die Änderungen und die dafür verlangten Preise in answerLP
-			Loadprofile answerLP = currentAnswerChangeLoadprofile.getLoadprofile();
+			Loadprofile answerLP = api.getResponse().getLoadprofile();
 
 			// Wenn kein Lastprofil übergeben wurde, fahre mit dem nächsten
 			// Consumer fort
@@ -931,11 +944,11 @@ public class Consumer implements Identifiable {
 			double answerMax = answerLP.getMaxPrice();
 			if (answerMin > currentMaxPrice || answerMax < currentMinPrice) {
 				System.out.println("Absage an Consumer für Änderungen wegen Preis");
+				Log.d(uuid, "Absage an Consumer für Änderungen wegen Preis");
 				// Absage für ChangeRequest an Consumer
 				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
 				api1.consumers(current).offers(current).changeRequest().decline();
 				api1.call(this, HttpMethod.POST, cr);
-
 			} else {
 				currentMaxPrice = answerMax;
 				currentMinPrice = answerMin;
