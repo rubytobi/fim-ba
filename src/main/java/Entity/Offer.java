@@ -275,7 +275,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 */
 	public String toString() {
 		return "{uuid=" + uuid + ",datetime=" + DateTime.ToString(getDate()) + ",author=" + author + ",partners="
-				+ allLoadprofiles.keySet() + "countPartner=" + allLoadprofiles.size() + "}";
+				+ allLoadprofiles.keySet() + ",countPartner=" + allLoadprofiles.size() + "}";
 	}
 
 	/**

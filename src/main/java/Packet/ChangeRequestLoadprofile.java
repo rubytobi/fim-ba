@@ -69,7 +69,7 @@ public class ChangeRequestLoadprofile {
 	@JsonIgnore
 	public boolean isZero() {
 		for (double d : change) {
-			if (d != 0) {
+			if (d > 0) {
 				return false;
 			}
 		}

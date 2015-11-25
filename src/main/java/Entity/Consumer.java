@@ -610,24 +610,39 @@ public class Consumer implements Identifiable {
 			HashMap<UUID, AnswerChangeRequestLoadprofile> contributions = improveOwnOffer(scorecard.first().getOwn(),
 					receivedOffer, scorecard.first());
 
-			// TODO anpassung der logik im falle keiner verbesserung
-			// if (contributions == null) {
-			// Log.d(uuid, "Es konnte keine Verbesserung erreicht werden.");
-			// return;
-			// } else {
-			newOffer = new Offer(scorecard.first().getMerge(), contributions);
-			allOfferContributions.put(newOffer.getUUID(), contributions);
-			// }
+			if (contributions == null) {
+				Log.d(uuid, "Optimierung nicht möglich.");
+				return;
+			}
+
+			newOffer = null;
+
+			try {
+				Offer own = scorecard.first().getOwn();
+				Offer merge = new Offer(own, receivedOffer);
+
+				Log.d(uuid, "Erzeuge neues Angebot basierend auf merge [" + merge + "] und contributions ["
+						+ contributions + "]");
+				newOffer = new Offer(merge, contributions);
+				allOfferContributions.put(newOffer.getUUID(), contributions);
+			} catch (OffersPriceborderException e) {
+				Log.d(uuid, "OffersPriceborderException");
+			}
 		}
 
 		newOffer.generateAuthKey();
 
-		Log.d(uuid, "Neues Angebot erreicht: " + newOffer);
+		Log.d(uuid, "Neues Angebot [" + newOffer.getUUID() + "] erreicht: " + newOffer);
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), scorecard.first().getOwn());
 
 		OfferNotification newNotification = new OfferNotification(newOffer.getAuthor(), newOffer.getUUID());
 		Log.d(uuid, "Antworte auf das eingetroffene Angebot. " + newNotification);
+
+		if (!newOffer.getAllLoadprofiles().keySet().containsAll(receivedOffer.getAllLoadprofiles().keySet())) {
+			// Log.e(uuid, "Lastprofile verloren.");
+			// return;
+		}
 
 		API<OfferNotification, Void> api2 = new API<OfferNotification, Void>(Void.class);
 		api2.consumers(receivedOffer.getAuthor()).offers(receivedOffer.getUUID()).answer();
@@ -720,9 +735,9 @@ public class Consumer implements Identifiable {
 						continue;
 					}
 					// Absage für ChangeRequest an Consumer
-					API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+					API<Void, Void> api1 = new API<Void, Void>(Void.class);
 					api1.consumers(current).offers(uuidOffer).changeRequest().decline();
-					api1.call(this, HttpMethod.POST, cr);
+					api1.call(this, HttpMethod.POST, null);
 				}
 			}
 		}

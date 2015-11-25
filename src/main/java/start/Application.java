@@ -32,10 +32,10 @@ import Util.API;
 public class Application {
 	public static class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 4;
+		public static final int maxDevices = 6;
 
 		// Jedes x-te Gerät ist ein BHKW
-		public static final int bhkwQuota = 5;
+		public static final int bhkwQuota = 2;
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
@@ -99,7 +99,7 @@ public class Application {
 
 		UUID uuid = null;
 
-		if (DeviceContainer.instance().size() % Params.bhkwQuota == 0) {
+		if (DeviceContainer.instance().size() > 0 && DeviceContainer.instance().size() % Params.bhkwQuota == 0) {
 			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
 			BHKWCreation bhkwCreation = new BHKWCreation(1, 1.02, 0.05);
 			api.devices().bhkw();
