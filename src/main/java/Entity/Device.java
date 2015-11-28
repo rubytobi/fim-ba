@@ -42,7 +42,7 @@ public interface Device extends Identifiable {
 	 * @param valueChanged
 	 *            Wert, der gemessen wurde
 	 */
-	public void sendDeltaLoadprofile(GregorianCalendar timeChanged, double valueChanged);
+	public void sendDeltaLoadprofile(String timeChanged, double valueChanged);
 
 	/**
 	 * Liefert die uuid des Devices

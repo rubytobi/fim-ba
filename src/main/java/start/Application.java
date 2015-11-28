@@ -1,24 +1,27 @@
 package start;
 
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.ResponseEntity;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
+
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 import java.util.UUID;
 
-import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-
 import Container.DeviceContainer;
 import Entity.Consumer;
 import Entity.Device;
@@ -27,15 +30,19 @@ import Entity.Identifiable;
 import Packet.FridgeCreation;
 import Util.API;
 
+@Configuration
+@EnableAutoConfiguration
 @SpringBootApplication
 @EnableScheduling
+@EnableSwagger2
+@ComponentScan(basePackageClasses = { GeneralController.class })
 public class Application {
 	public static class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 6;
+		public static final int maxDevices = 30;
 
 		// Jedes x-te Gerät ist ein BHKW
-		public static final int bhkwQuota = 2;
+		public static final int bhkwQuota = 5;
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
@@ -48,9 +55,11 @@ public class Application {
 		public static final int marketplaceMinuteOfSecondPhase = 55;
 
 		// Lege fest, ob mit DeltaLastprofilen gearbeitet werden soll
-		public static final boolean enableDeltaLoadprofiles = false;
+		public static final boolean enableDeltaLoadprofiles = true;
 
-		public static final String BASE_URI = "http://localhost:8080";
+		public static final String URL = "http://localhost:8080";
+		public static final String VERSION = "";
+		public static final String BASE_URI = URL + VERSION;
 
 		public final static DateFormat myDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 

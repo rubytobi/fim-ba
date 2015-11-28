@@ -99,7 +99,7 @@ public class BHKW implements Device {
 	 * Zeitpunkt, ab dem scheduleMinutes gilt
 	 */
 	@JsonView(View.Summary.class)
-	private GregorianCalendar timeFixed;
+	private String timeFixed;
 
 	/**
 	 * UUID des BHKW
@@ -168,8 +168,8 @@ public class BHKW implements Device {
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
 		System.out.println("Device erhält Änderungsanfrage");
 		double[] changesKWH = cr.getChangesLoadprofile();
-		String dateCR = DateTime.ToString(cr.getStartLoadprofile());
-		String dateCurrent = DateTime.ToString(timeFixed);
+		String dateCR = cr.getStartLoadprofile();
+		String dateCurrent = timeFixed;
 		if (!dateCR.equals(dateCurrent)) {
 			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
 			// timeFixed angefragt werden. Sende daher Antwort ohne Änderungen
@@ -527,9 +527,9 @@ public class BHKW implements Device {
 	 */
 	public void confirmLoadprofile(String time) {
 		System.out.println("Das Gerät erhält die Bestätigung des Angebots");
-		if (DateTime.ToString(timeFixed).equals(time)) {
+		if (timeFixed.equals(time)) {
 			saveSchedule(scheduleMinutes, timeFixed);
-			System.out.println("scheduleFixed gespeichert für: " + DateTime.ToString(timeFixed));
+			System.out.println("scheduleFixed gespeichert für: " + timeFixed);
 			sendNewLoadprofile();
 		}
 	}
@@ -605,7 +605,7 @@ public class BHKW implements Device {
 		double[][] plan = schedulesFixed.get(DateTime.ToString(currentTime));
 		if (plan == null) {
 			System.out.println("Es liegt kein schedulesFixed für " + DateTime.ToString(currentTime) + " vor.");
-			System.out.println("ScheduleMintues gilt ab: " + DateTime.ToString(timeFixed));
+			System.out.println("ScheduleMintues gilt ab: " + timeFixed);
 			return;
 		}
 		powerPlanned = plan[1][minute];
@@ -614,7 +614,7 @@ public class BHKW implements Device {
 
 		if (powerPlanned != powerScaled) {
 			// Schicke DeltaLastprofil, falls weitere aenderungen
-			sendDeltaLoadprofile(currentTime, powerScaled);
+			sendDeltaLoadprofile(DateTime.ToString(currentTime), powerScaled);
 		}
 	}
 
@@ -666,8 +666,8 @@ public class BHKW implements Device {
 	 * @param start
 	 *            Zeitpunkt, zu dem schedule startet
 	 */
-	public void saveSchedule(double[][] schedule, GregorianCalendar start) {
-		schedulesFixed.put(DateTime.ToString(start), schedule);
+	public void saveSchedule(double[][] schedule, String start) {
+		schedulesFixed.put(start, schedule);
 	}
 
 	/**
@@ -680,11 +680,12 @@ public class BHKW implements Device {
 	 * @param valueChanged
 	 *            Wert, der gemessen wurde
 	 */
-	public void sendDeltaLoadprofile(GregorianCalendar start, double valueChanged) {
-		int minute = start.get(Calendar.MINUTE);
-		start.set(Calendar.MINUTE, 0);
+	public void sendDeltaLoadprofile(String start, double valueChanged) {
+		GregorianCalendar startGC = DateTime.parse(start);
+		int minute = startGC.get(Calendar.MINUTE);
+		startGC.set(Calendar.MINUTE, 0);
 
-		double[] oldPlan = schedulesFixed.get(DateTime.ToString(start))[1];
+		double[] oldPlan = schedulesFixed.get(start)[1];
 		double[] newPlan = simulation.getNewSchedule(start)[1];
 
 		newPlan[minute] = oldPlan[minute];
@@ -696,7 +697,7 @@ public class BHKW implements Device {
 			Log.d(uuid,
 					"Alter und neuer Lastplan unterscheiden sich. Prüfen ob Deltalastprofil verschickt werden kann.");
 
-			if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed)) && waitForAnswerCR) {
+			if (start.equals(timeFixed) && waitForAnswerCR) {
 				waitToChargeDeltaLoadprofile = true;
 				Log.d(uuid, "Warten mit Versenden des Deltalastprofils auf die Antwort der Änderungsanfrage.");
 			} else {
@@ -741,22 +742,22 @@ public class BHKW implements Device {
 			 * Wenn noch nicht gesetzt, erstelle initialen Fahrplan fuer bis zur
 			 * naechsten Stunde
 			 */
-			timeFixed = DateTime.now();
-			timeFixed.set(Calendar.MINUTE, 0);
-			timeFixed.set(Calendar.SECOND, 0);
-			timeFixed.set(Calendar.MILLISECOND, 0);
+			timeFixed = DateTime.ToString(DateTime.now());
+			timeFixed = DateTime.set(Calendar.MINUTE, 0, timeFixed);
+			timeFixed = DateTime.set(Calendar.SECOND, 0, timeFixed);
+			timeFixed = DateTime.set(Calendar.MILLISECOND, 0, timeFixed);
 
 			scheduleMinutes = simulation.getNewSchedule(timeFixed);
 			valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
 
-			timeFixed.set(Calendar.MINUTE, 0);
+			timeFixed = DateTime.set(Calendar.MINUTE, 0, timeFixed);
 
 			saveSchedule(scheduleMinutes, timeFixed);
 		}
 		// Zaehle timeFixed um eine Stunde hoch
-		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
+		timeFixed = DateTime.add(Calendar.HOUR_OF_DAY, 1, timeFixed);
 
-		System.out.println("Neuer scheduleMinutes wird geholt für: " + DateTime.ToString(timeFixed));
+		System.out.println("Neuer scheduleMinutes wird geholt für: " + timeFixed);
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
 

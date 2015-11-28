@@ -23,6 +23,7 @@ import Util.ResponseBuilder;
 import Util.View;
 
 @RestController
+@RequestMapping(value = Application.Params.VERSION)
 public class DeviceController {
 
 	/**

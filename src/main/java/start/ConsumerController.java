@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonView;
+import com.wordnik.swagger.annotations.ApiOperation;
 
 import Container.ConsumerContainer;
 import Entity.Consumer;
@@ -25,6 +26,7 @@ import Packet.AnswerToOfferFromMarketplace;
 import Packet.ChangeRequestLoadprofile;
 
 @RestController
+@RequestMapping(value = Application.Params.VERSION)
 public class ConsumerController {
 
 	/**
@@ -32,6 +34,7 @@ public class ConsumerController {
 	 * 
 	 * @return Consumer[] alle angelegten Consumer
 	 */
+	@ApiOperation(value = "Gibt ale Consumer zurück")
 	@JsonView(View.Summary.class)
 	@RequestMapping(value = "/consumers", method = RequestMethod.GET)
 	public ResponseEntity<Consumer[]> getAllConsumers() {

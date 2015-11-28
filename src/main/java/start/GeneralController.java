@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.wordnik.swagger.annotations.ApiOperation;
+
 import Container.ConsumerContainer;
 import Entity.Consumer;
 import Entity.Offer;
@@ -19,6 +21,7 @@ import Util.DateTime;
 import Util.NetworkGraph;
 
 @RestController
+@RequestMapping(value = Application.Params.VERSION)
 public class GeneralController {
 
 	public static HashMap<UUID, Offer> getAllOffers() {
@@ -33,6 +36,7 @@ public class GeneralController {
 		return map;
 	}
 
+	@ApiOperation(value = "Get all the currently available offers", notes = "timeindependent")
 	@RequestMapping("/index")
 	public List<Offer> index() {
 		Collection<Offer> offers = getAllOffers().values();

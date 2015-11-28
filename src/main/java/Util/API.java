@@ -15,6 +15,7 @@ import org.springframework.web.client.RestTemplate;
 import com.sun.research.ws.wadl.Response;
 
 import Entity.Identifiable;
+import start.Application;
 
 @SuppressWarnings("hiding")
 public class API<Request, Response> {
@@ -101,7 +102,7 @@ public class API<Request, Response> {
 	}
 
 	public void clear() {
-		uri = "http://localhost:8080";
+		uri = Application.Params.BASE_URI;
 		response = null;
 	}
 
@@ -110,8 +111,8 @@ public class API<Request, Response> {
 		return this;
 	}
 
-	public API<Request, Response> confirm(GregorianCalendar date) {
-		uri += "/confirm/" + DateTime.ToString(date);
+	public API<Request, Response> confirm(String date) {
+		uri += "/confirm/" + date;
 		System.out.println(uri);
 		return this;
 	}

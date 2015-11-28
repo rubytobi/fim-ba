@@ -70,7 +70,7 @@ public class NetworkGraph {
 		Offer[] allOffers = collectionOffers.toArray(new Offer[collectionOffers.size()]);
 
 		for (Offer o : allOffers) {
-			String a = DateTime.ToString(o.getDate());
+			String a = o.getDate();
 			String b = DateTime.ToString(DateTime.nextTimeSlot());
 
 			if (a.equals(b)) {

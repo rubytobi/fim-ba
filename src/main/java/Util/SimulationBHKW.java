@@ -53,7 +53,7 @@ public class SimulationBHKW {
 		}
 	}
 
-	public double[][] getNewSchedule(GregorianCalendar start) {
+	public double[][] getNewSchedule(String start) {
 		return schedule;
 	}
 

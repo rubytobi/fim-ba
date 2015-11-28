@@ -274,7 +274,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 */
 	public String toString() {
-		return "{uuid=" + uuid + ",datetime=" + DateTime.ToString(getDate()) + ",author=" + author + ",partners="
+		return "{uuid=" + uuid + ",datetime=" + getDate() + ",author=" + author + ",partners="
 				+ allLoadprofiles.keySet() + ",countPartner=" + allLoadprofiles.size() + "}";
 	}
 
@@ -425,7 +425,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * @return Startzeitpunkt des Angebots als GregorianCalendar
 	 */
 	@JsonIgnore
-	public GregorianCalendar getDate() {
+	public String getDate() {
 		return getAggLoadprofile().getDate();
 	}
 

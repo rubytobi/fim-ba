@@ -39,7 +39,7 @@ public class MatchedOffers {
 	/**
 	 * Der Startzeitpunkt der beiden Angebote
 	 */
-	private GregorianCalendar time;
+	private String time;
 
 	/**
 	 * UUID der Zusammenführung
@@ -170,7 +170,7 @@ public class MatchedOffers {
 	 * @return Startzeit der beiden zusammengefuehrten Angebote als
 	 *         GregorianCalendar
 	 */
-	public GregorianCalendar getTime() {
+	public String getTime() {
 		return time;
 	}
 
@@ -197,7 +197,7 @@ public class MatchedOffers {
 			o1 = o1 + "[" + values1[i] + "]";
 			o2 = o2 + "[" + values2[i] + "]";
 		}
-		String s = "UUID: " + uuid + " time: " + DateTime.ToString(time);
+		String s = "UUID: " + uuid + " time: " + time;
 		s = s + o1 + " Preis 1: " + price1;
 		s = s + "\n" + o2 + " Preis 2: " + price2;
 		return s;

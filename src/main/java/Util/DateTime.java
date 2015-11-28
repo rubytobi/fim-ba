@@ -2,7 +2,6 @@ package Util;
 
 import java.util.Date;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
@@ -114,5 +113,17 @@ public class DateTime {
 		GregorianCalendar currentTimeSlot = currentTimeSlot();
 		currentTimeSlot.add(Calendar.HOUR_OF_DAY, 1);
 		return currentTimeSlot;
+	}
+
+	public static String set(int what, int count, String time) {
+		GregorianCalendar gc = parse(time);
+		gc.set(what, count);
+		return ToString(gc);
+	}
+
+	public static String add(int hourOfDay, int i, String time) {
+		GregorianCalendar gc = parse(time);
+		gc.add(hourOfDay, i);
+		return ToString(gc);
 	}
 }

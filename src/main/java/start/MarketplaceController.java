@@ -20,6 +20,7 @@ import Util.ResponseBuilder;
 import Packet.ChangeRequestLoadprofile;
 
 @RestController
+@RequestMapping(value = Application.Params.VERSION)
 public class MarketplaceController {
 	@RequestMapping(value = "/marketplace/status", method = RequestMethod.GET)
 	public Map<String, Object> status() {
@@ -45,14 +46,14 @@ public class MarketplaceController {
 
 	@RequestMapping(value = "/marketplace/search/now", method = RequestMethod.GET)
 	public ResponseEntity<Offer[]> searchOffersNow() {
-		SearchParams params = new SearchParams(DateTime.currentTimeSlot(), Double.NEGATIVE_INFINITY,
+		SearchParams params = new SearchParams(DateTime.ToString(DateTime.currentTimeSlot()), Double.NEGATIVE_INFINITY,
 				Double.POSITIVE_INFINITY);
 		return Marketplace.instance().search(params);
 	}
 
 	@RequestMapping(value = "/marketplace/search/next", method = RequestMethod.GET)
 	public ResponseEntity<Offer[]> searchOffersNextHour() {
-		SearchParams params = new SearchParams(DateTime.nextTimeSlot(), Double.NEGATIVE_INFINITY,
+		SearchParams params = new SearchParams(DateTime.ToString(DateTime.nextTimeSlot()), Double.NEGATIVE_INFINITY,
 				Double.POSITIVE_INFINITY);
 		return Marketplace.instance().search(params);
 	}
@@ -68,8 +69,7 @@ public class MarketplaceController {
 		Offer supply = Marketplace.instance().getOfferSupply(uuid);
 		if (supply != null) {
 			return supply;
-		}
-		else {
+		} else {
 			return Marketplace.instance().getOfferDemand(uuid);
 		}
 	}

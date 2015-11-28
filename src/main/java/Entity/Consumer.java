@@ -283,7 +283,7 @@ public class Consumer implements Identifiable {
 				// Schicke Bestätigung an Device
 				API<String, Void> api2 = new API<String, Void>(Void.class);
 				api2.devices(device).confirm(offer.getDate());
-				api2.call(this, HttpMethod.POST, DateTime.ToString(offer.getDate()));
+				api2.call(this, HttpMethod.POST, offer.getDate());
 				break;
 			}
 			System.out.println("Lastprofil ist Deltalastprofil.");
@@ -379,7 +379,8 @@ public class Consumer implements Identifiable {
 		api2.call(this, HttpMethod.GET, null);
 
 		double[] prediction = api2.getResponse();
-		Loadprofile lp = new Loadprofile(prediction, DateTime.currentTimeSlot(), Loadprofile.Type.MIXED);
+		Loadprofile lp = new Loadprofile(prediction, DateTime.ToString(DateTime.currentTimeSlot()),
+				Loadprofile.Type.MIXED);
 		Offer marketplace = new Offer(api2.getSenderUUID(), lp);
 		return marketplace;
 	}
@@ -412,12 +413,12 @@ public class Consumer implements Identifiable {
 	 *            entsprechender Zeitslot
 	 * @return Angebot
 	 */
-	public Offer[] getOfferWithPrivileges(GregorianCalendar date) {
+	public Offer[] getOfferWithPrivileges(String date) {
 		ArrayList<Offer> list = new ArrayList<Offer>();
 
 		for (Offer o : allOffers.values()) {
-			String a = DateTime.ToString(o.getDate());
-			String b = DateTime.ToString(date);
+			String a = o.getDate();
+			String b = date;
 
 			if (o.isAuthor(uuid) && a.equals(b)) {
 				list.add(o);
@@ -441,7 +442,7 @@ public class Consumer implements Identifiable {
 		// besserung zu erreichen
 		Log.d(uuid, "Das eigene Angebot muss verbessert werden.");
 
-		if (ownOffer.getDate().before(DateTime.nextTimeSlot())) {
+		if (ownOffer.getDate().compareTo(DateTime.ToString(DateTime.nextTimeSlot())) == -1) {
 			Log.d(uuid, "Kann Angbeote der aktuellen Stunde nicht verbessern.");
 			return null;
 		}
@@ -533,7 +534,7 @@ public class Consumer implements Identifiable {
 		if (notification == null) {
 			Log.d(uuid, "Keine Benachrichtigungen in der Warteschlange.");
 
-			Offer[] offerList = getOfferWithPrivileges(DateTime.currentTimeSlot());
+			Offer[] offerList = getOfferWithPrivileges(DateTime.ToString(DateTime.currentTimeSlot()));
 
 			if (offerList.length == 0) {
 				Log.d(uuid, "Kein Angebot als Autor für aktuellen Zeitslot.");
@@ -565,10 +566,8 @@ public class Consumer implements Identifiable {
 		Offer[] offerWithPrivileges = getOfferWithPrivileges(receivedOffer.getDate());
 
 		if (offerWithPrivileges.length == 0) {
-			Log.d(uuid,
-					"Consumer ist nicht Autor in einem seiner Angebote für den Zeitraum "
-							+ DateTime.ToString(receivedOffer.getDate()) + " und kann daher nicht verhandeln: "
-							+ this.allOffers);
+			Log.d(uuid, "Consumer ist nicht Autor in einem seiner Angebote für den Zeitraum " + receivedOffer.getDate()
+					+ " und kann daher nicht verhandeln: " + this.allOffers);
 			return;
 		}
 
@@ -602,7 +601,7 @@ public class Consumer implements Identifiable {
 			Log.d(uuid, "Keine Angebote als Vergleich vorhanden.");
 			return;
 			// newOffer = scorecard.first().getMerge();
-		} else if (scorecard.first().getOwn().getDate().before(DateTime.nextTimeSlot())) {
+		} else if (scorecard.first().getOwn().getDate().compareTo(DateTime.ToString(DateTime.nextTimeSlot())) == -1) {
 			Log.d(uuid, "Angebot liegt in der aktuellen Stunde. Keine Verbesserung durch CRs möglich.");
 			newOffer = scorecard.first().getMerge();
 		} else {
@@ -996,16 +995,17 @@ public class Consumer implements Identifiable {
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
 		Log.d(this.uuid, "Deltalastprofil erhalten: " + deltaLoadprofile);
-		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
-		GregorianCalendar timeCurrent = DateTime.now();
+		String timeLoadprofile = deltaLoadprofile.getDate();
+		String timeCurrent = DateTime.ToString(DateTime.now());
 		double[] valuesNew = deltaLoadprofile.getValues();
 
 		// Prüfe, ob deltaLoadprofile Änderungen für die aktuelle Stunde hat
-		boolean currentHour = timeLoadprofile.get(Calendar.HOUR_OF_DAY) == timeCurrent.get(Calendar.HOUR_OF_DAY);
+		boolean currentHour = DateTime.parse(timeLoadprofile).get(Calendar.HOUR_OF_DAY) == DateTime.parse(timeCurrent)
+				.get(Calendar.HOUR_OF_DAY);
 		if (currentHour) {
 			// Prüfe, ob deltaLoadprofile Änderungen für die noch kommenden
 			// Slots beinhaltet
-			int minuteCurrent = timeCurrent.get(Calendar.MINUTE);
+			int minuteCurrent = DateTime.parse(timeCurrent).get(Calendar.MINUTE);
 			int slot = (int) Math.floor(minuteCurrent / 15) + 1;
 			double sum = 0;
 			for (int i = slot; i < numSlots; i++) {
@@ -1022,7 +1022,7 @@ public class Consumer implements Identifiable {
 
 		// Prüfe, welche Werte für die Stunde von deltaLoadprofile bereits in
 		// deltaLoadprofiles hinterlegt sind
-		double[] valuesOld = deltaLoadprofiles.get(DateTime.ToString(timeLoadprofile));
+		double[] valuesOld = deltaLoadprofiles.get(timeLoadprofile);
 		double sum = 0;
 
 		// Erstelle Summe aus valuesOld und den valuesNew vom deltaLoaprofile
@@ -1049,7 +1049,7 @@ public class Consumer implements Identifiable {
 		}
 		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
 		else {
-			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
+			deltaLoadprofiles.put(timeLoadprofile, valuesNew);
 		}
 	}
 
