@@ -77,7 +77,7 @@ public class FrameResults {
 		tab1 = new JPanel();
 		tab1.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
-		c.fill = GridBagConstraints.BOTH;
+		//c.fill = GridBagConstraints.BOTH;
 
 		// Lege Schrift für Kriterien und Ergebnisse fest
 		Font fontHead = new Font("Verdana", Font.BOLD, 14);
@@ -149,7 +149,7 @@ public class FrameResults {
 		// Füge alle Panels zum 1. Tab hinzu
 		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
-		c.weighty = 1;
+		c.weighty = 0.2;
 		// Kriterium 11
 		c.gridx = 0;
 		c.gridy = 0;
@@ -158,7 +158,9 @@ public class FrameResults {
 		c.gridx = 0;
 		c.gridy = 1;
 		tab1.add(kriteria12, c);
+		c.fill = GridBagConstraints.BOTH;
 		// Kriterium 2
+		c.weighty = 1;
 		c.gridx = 0;
 		c.gridy = 2;
 		tab1.add(kriteria2, c);
@@ -237,7 +239,8 @@ public class FrameResults {
 				}
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					offersDemand.append("\n	Price: " + offer.getPriceSugg() + " Values: " + valuesToString(values));
+					double price = Math.round(100.00 * offer.getPriceSugg()) / 100.00;
+					offersDemand.append("\n	Price: " + price + "	Values: " + valuesToString(values));
 				}
 				offersDemand.append("\n");
 			}
@@ -258,7 +261,8 @@ public class FrameResults {
 				}
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
-					offersSupply.append("\n	Price: " + offer.getPriceSugg() + " Values: " + valuesToString(values));
+					double price = Math.round(100.00 * offer.getPriceSugg()) / 100.00;
+					offersSupply.append("\n	Price: " + price + "	Values: " + valuesToString(values));
 				}
 				offersSupply.append("\n");
 			}
@@ -311,35 +315,35 @@ public class FrameResults {
 		testResult3 = new JTextArea();
 		if (changes) {
 			testResult3.append("Anzahl an Verbliebenen Angeboten: " + countRemainingOffers);
-			testResult3.append("\nAbweichung vor Anpassungen:\n" + valuesToString(deviationWithoutChange));
-			testResult3.append("\nAbweichungen nach Anpassungen:\n" + valuesToString(deviationWithChange));
-			testResult3.append("\nAlle " + allChanges.size() + " Änderungen:");
+			testResult3.append("\nAbweichung vor Anpassungen:\n	" + valuesToString(deviationWithoutChange));
+			testResult3.append("\nAbweichungen nach Anpassungen:\n	" + valuesToString(deviationWithChange));
+			testResult3.append("\nAlle " + allChanges.size() + " Anpassungen:");
 			for (double[] currentChanges : allChanges) {
-				testResult3.append("\n" + valuesToString(currentChanges));
+				testResult3.append("\n	" + valuesToString(currentChanges));
 			}
+			// Verringerung in Prozent
+			testResult3.append("\nVerringerung in Prozent: ");
+			double less1 = Math
+					.round(100.00 * (deviationWithoutChange[0] - deviationWithChange[0]) / deviationWithoutChange[0]);
+			double less2 = Math
+					.round(100.00 * (deviationWithoutChange[1] - deviationWithChange[1]) / deviationWithoutChange[1]);
+			double less3 = Math
+					.round(100.00 * (deviationWithoutChange[2] - deviationWithChange[2]) / deviationWithoutChange[2]);
+			double less4 = Math
+					.round(100.00 * (deviationWithoutChange[3] - deviationWithChange[3]) / deviationWithoutChange[3]);
+			testResult3.append("\n	Slot1: " + less1 + " %");
+			testResult3.append("\n	Slot2: " + less2 + " %");
+			testResult3.append("\n	Slot3: " + less3 + " %");
+			testResult3.append("\n	Slot4: " + less4 + " %");
+			double deviationWithSum = deviationWithChange[0] + deviationWithChange[1] + deviationWithChange[2]
+					+ deviationWithChange[3];
+			double deviationWithoutSum = deviationWithoutChange[0] + deviationWithoutChange[1] + deviationWithoutChange[2]
+					+ deviationWithoutChange[3];
+			testResult3.append("\n	Gesamt: "
+					+ Math.round(100.00 * ((deviationWithoutSum - deviationWithSum) / deviationWithoutSum)) + " %");
 		} else {
 			testResult3.append("Es gab keine Anpassungen in diesem Slot (" + calendarToString(time, false));
 		}
-		// Verringerung in Prozent
-		testResult3.append("\nVerringerung in Prozent: ");
-		double less1 = Math
-				.round(100.00 * (deviationWithoutChange[0] - deviationWithChange[0]) / deviationWithoutChange[0]);
-		double less2 = Math
-				.round(100.00 * (deviationWithoutChange[1] - deviationWithChange[1]) / deviationWithoutChange[1]);
-		double less3 = Math
-				.round(100.00 * (deviationWithoutChange[2] - deviationWithChange[2]) / deviationWithoutChange[2]);
-		double less4 = Math
-				.round(100.00 * (deviationWithoutChange[3] - deviationWithChange[3]) / deviationWithoutChange[3]);
-		testResult3.append("\n	Slot1: " + less1 + " %");
-		testResult3.append("\n	Slot2: " + less2 + " %");
-		testResult3.append("\n	Slot3: " + less3 + " %");
-		testResult3.append("\n	Slot4: " + less4 + " %");
-		double deviationWithSum = deviationWithChange[0] + deviationWithChange[1] + deviationWithChange[2]
-				+ deviationWithChange[3];
-		double deviationWithoutSum = deviationWithoutChange[0] + deviationWithoutChange[1] + deviationWithoutChange[2]
-				+ deviationWithoutChange[3];
-		testResult3.append("\n	Gesamt: "
-				+ Math.round(100.00 * ((deviationWithoutSum - deviationWithSum) / deviationWithoutSum)) + " %");
 	}
 
 	private void setTextAreaKriteria2() {
@@ -360,18 +364,19 @@ public class FrameResults {
 				boolean good = timeConfirmed.before(timeRealStart);
 				if (good) {
 					countGood++;
-					testResult2.append("Bestätigung vor Start  (Bestätigung: " + calendarToString(timeConfirmed, false)
-							+ ", Start: " + calendarToString(timeRealStart, false) + ")\n");
+					testResult2.append("Bestätigung vor Start: JA   (Bestätigung: " + calendarToString(timeConfirmed, false)
+							+ ", Start: " + calendarToString(timeRealStart, false) + ") " +confirmed.getTypeString() + "\n");
 				} else {
-					testResult2.append("Bestätigung nach Start (Bestätigung: " + calendarToString(timeConfirmed, false)
-							+ ", Start: " + calendarToString(timeRealStart, false) + ")\n");
-					int differenceInSeconds = (int) (timeRealStart.getTimeInMillis() - timeConfirmed.getTimeInMillis());
-					countSecondsTooLate += differenceInSeconds;
+					testResult2.append("Bestätigung vor Start: NEIN (Bestätigung: " + calendarToString(timeConfirmed, false)
+							+ ", Start: " + calendarToString(timeRealStart, false) + ") " +confirmed.getTypeString() + "\n");
+					int differenceInMilliSeconds = (int) (timeConfirmed.getTimeInMillis() - timeRealStart.getTimeInMillis());
+					countSecondsTooLate += Math.round(100.00 * (differenceInMilliSeconds*0.001)) / 100.00 + 1;
 				}
 			}
 
 			// Gib prozentuales Ergebnis aus
 			double percentageGood = Math.round(100.00 * (countGood / countAll));
+			testResult2.append("\nVon den " + lastConfirmed.size()+ " Bestätigungen waren " +countGood+ " rechtzeitig.");
 			testResult2.append("\n" + percentageGood + " % der Bestätigungen waren rechtzeitig\n");
 			testResult2.append((100 - percentageGood) + " % der Bestätigungen waren zu spät");
 
@@ -451,7 +456,7 @@ public class FrameResults {
 	}
 
 	private String valuesToString(double[] values) {
-		String s = "	";
+		String s = "";
 		for (int i = 0; i < values.length; i++) {
 			s = s + "[" + values[i] + "]";
 		}

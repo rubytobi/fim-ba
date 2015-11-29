@@ -25,7 +25,7 @@ public class SimulationFridge {
 
 	@JsonIgnoreProperties
 	private void openDoor() {
-		int zufall = (int) (Math.random() * 60);
+		int zufall = (int) (Math.random() * 120);
 		if (zufall == 30) {
 			doorOpen = true;
 		}
@@ -33,8 +33,8 @@ public class SimulationFridge {
 
 	@JsonIgnoreProperties
 	private void closeDoor() {
-		int zufall = (int) (Math.random() * 3);
-		if (zufall == 1) {
+		int zufall = (int) (Math.random() * 2);
+		if (zufall >=1 && zufall < 1.2) {
 			doorOpen = false;
 		}
 	}
@@ -46,6 +46,7 @@ public class SimulationFridge {
 		double change = 0;
 		openDoor();
 		if (doorOpen) {
+			System.out.println("Tür ist offen");
 			change = Math.random();
 		}
 		closeDoor();

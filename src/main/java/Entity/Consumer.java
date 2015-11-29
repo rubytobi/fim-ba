@@ -558,8 +558,8 @@ public class Consumer implements Identifiable {
 		Offer[] offerWithPrivileges = getOfferWithPrivileges(receivedOffer.getDate());
 
 		if (offerWithPrivileges.length == 0) {
-			Log.d(uuid, "Consumer ist nicht Autor in einem seiner Angebote und kann daher nicht verhandeln: "
-					+ this.allOffers);
+			//Log.d(uuid, "Consumer ist nicht Autor in einem seiner Angebote und kann daher nicht verhandeln: "
+			//		+ this.allOffers);
 			return;
 		}
 
@@ -962,6 +962,7 @@ public class Consumer implements Identifiable {
 	}
 
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
+		System.out.println("Gerät: " +device);
 		Log.d(this.uuid, "Deltalastprofil erhalten: " + deltaLoadprofile);
 		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
 		GregorianCalendar timeCurrent = DateTime.now();
@@ -1016,6 +1017,7 @@ public class Consumer implements Identifiable {
 		}
 		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
 		else {
+			System.out.println("Sammel Deltalastprofil");
 			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
 		}
 	}
@@ -1030,6 +1032,7 @@ public class Consumer implements Identifiable {
 	 *            Lastprofil des Gerätes
 	 */
 	public void receiveLoadprofile(Loadprofile loadprofile) {
+		System.out.println("Consumer erhält Lastprofil");
 		if (loadprofile.isDelta()) {
 			receiveDeltaLoadprofile(loadprofile);
 			return;
@@ -1054,7 +1057,7 @@ public class Consumer implements Identifiable {
 	 *            Benachrichtigung
 	 */
 	public void receiveOfferNotification(OfferNotification offerNotification) {
-		Log.d(this.uuid, offerNotification.toString());
+		//Log.d(this.uuid, offerNotification.toString());
 		notificationQueue.add(offerNotification);
 	}
 

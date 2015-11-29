@@ -41,7 +41,7 @@ public class Application {
 		// langsamer (<1) als die reale Zeit vergeht
 		// Beachte, dass bei einer sehr schnellen Simulationszeit die
 		// Ping-Zeiten angepasst werden müssen!
-		public static final double timeFactor = 1;
+		public static final double timeFactor = 20;
 
 		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
 		// starten soll
