@@ -38,6 +38,7 @@ public class Scorecard {
 			try {
 				merged = new Offer(own, receivedOffer);
 			} catch (OffersPriceborderException e) {
+				Log.d(c.getUUID(), "Preisgrenzen stimmen nicht überein.");
 				continue;
 			}
 

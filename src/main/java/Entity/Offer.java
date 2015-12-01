@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.AnswerChangeRequestLoadprofile;
 import Util.API;
+import Util.DateTime;
 import Util.Log;
 import Util.View;
 import Event.OffersPriceborderException;
@@ -22,7 +23,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 */
 	@JsonView(View.Summary.class)
 	private Loadprofile aggLoadprofile;
-	
+
 	/**
 	 * Speichert die vom Marktplatz bestätigten Anpassungen des Angebots
 	 */
@@ -273,8 +274,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * 
 	 */
 	public String toString() {
-		return "{uuid=" + uuid + ",author=" + author + ",partners=" + allLoadprofiles.keySet() + "countPartner="
-				+ allLoadprofiles.size() + "}";
+		return "{uuid=" + uuid + ",datetime=" + getDate() + ",author=" + author + ",partners="
+				+ allLoadprofiles.keySet() + ",countPartner=" + allLoadprofiles.size() + "}";
 	}
 
 	/**
@@ -424,7 +425,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * @return Startzeitpunkt des Angebots als GregorianCalendar
 	 */
 	@JsonIgnore
-	public GregorianCalendar getDate() {
+	public String getDate() {
 		return getAggLoadprofile().getDate();
 	}
 
@@ -467,26 +468,25 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	public void setMaxPrice(double newMaxPrice) {
 		this.maxPrice = newMaxPrice;
 	}
-	
+
 	public void setChanges(double[] changes) {
 		if (confirmedChanges == null) {
 			confirmedChanges = new double[changes.length];
-			for (int i=0; i<changes.length; i++) {
+			for (int i = 0; i < changes.length; i++) {
 				confirmedChanges[i] = 0;
 			}
-		}
-		else { 
+		} else {
 			if (confirmedChanges.length != changes.length) {
 				Log.e(uuid, "Änderungen haben nicht die richtige Anzahl an Werten.");
 				return;
 			}
 		}
-		
-		for (int i=0; i<changes.length; i++) {
+
+		for (int i = 0; i < changes.length; i++) {
 			confirmedChanges[i] += changes[i];
 		}
 	}
-	
+
 	public double[] getChanges() {
 		return confirmedChanges;
 	}

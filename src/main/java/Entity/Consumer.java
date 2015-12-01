@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
+import com.sun.research.ws.wadl.Application;
 
 import Packet.OfferNotification;
 import Packet.SearchParams;
@@ -155,7 +156,7 @@ public class Consumer implements Identifiable {
 			ChangeRequestLoadprofile changeRequestLoadprofile) {
 		API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile> api2 = new API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile>(
 				AnswerChangeRequestLoadprofile.class);
-		api2.consumers(uuidConsumer).offers(uuidOffer).changeRequest();
+		api2.consumers(uuidConsumer).offers(uuidOffer).changeRequestConsumer();
 		api2.call(this, HttpMethod.POST, changeRequestLoadprofile);
 		return api2.getResponse();
 	}
@@ -260,6 +261,7 @@ public class Consumer implements Identifiable {
 	 *            das bestätigte Angebot
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
+		Log.d(uuid, "Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
 		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
 
 		// Hole das Angebot, für das die Bestätigung gilt
@@ -270,22 +272,22 @@ public class Consumer implements Identifiable {
 			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist?!");
 			return;
 		}
-		
+
 		Map<UUID, Loadprofile> loadprofiles = offer.getAllLoadprofiles().get(uuid);
 		Set<UUID> setLP = loadprofiles.keySet();
 		for (UUID uuidLP : setLP) {
 			Loadprofile lp = loadprofiles.get(uuidLP);
-			if (! lp.isDelta()) {
+			if (!lp.isDelta()) {
 				System.out.println("Lastprofil ist kein Deltalastprofil.");
-				
+
 				// Schicke Bestätigung an Device
 				API<String, Void> api2 = new API<String, Void>(Void.class);
 				api2.devices(device).confirm(offer.getDate());
-				api2.call(this, HttpMethod.POST, DateTime.ToString(offer.getDate()));
+				api2.call(this, HttpMethod.POST, offer.getDate());
 				break;
 			}
 			System.out.println("Lastprofil ist Deltalastprofil.");
-		}		
+		}
 
 		// Prüfe, ob Autor von Angebot
 		if (uuid == offer.getAuthor()) {
@@ -305,10 +307,9 @@ public class Consumer implements Identifiable {
 					api1.call(this, HttpMethod.POST, answerOffer);
 				}
 			}
-		}
-		else {
+		} else {
 			System.out.println("Consumer war nicht Autor des Angebots");
-
+			return;
 		}
 
 		removeOffer(offer.getUUID());
@@ -378,7 +379,8 @@ public class Consumer implements Identifiable {
 		api2.call(this, HttpMethod.GET, null);
 
 		double[] prediction = api2.getResponse();
-		Loadprofile lp = new Loadprofile(prediction, DateTime.currentTimeSlot(), Loadprofile.Type.MIXED);
+		Loadprofile lp = new Loadprofile(prediction, DateTime.ToString(DateTime.currentTimeSlot()),
+				Loadprofile.Type.MIXED);
 		Offer marketplace = new Offer(api2.getSenderUUID(), lp);
 		return marketplace;
 	}
@@ -411,12 +413,18 @@ public class Consumer implements Identifiable {
 	 *            entsprechender Zeitslot
 	 * @return Angebot
 	 */
-	public Offer[] getOfferWithPrivileges(GregorianCalendar date) {
+	public Offer[] getOfferWithPrivileges(String date) {
 		ArrayList<Offer> list = new ArrayList<Offer>();
 
 		for (Offer o : allOffers.values()) {
-			if (o.isAuthor(uuid) && o.getDate().equals(date)) {
+			String a = o.getDate();
+			String b = date;
+
+			if (o.isAuthor(uuid) && a.equals(b)) {
 				list.add(o);
+			} else {
+				Log.d(uuid, "Author mismatch (" + o.getAuthor() + ") or date mismatch (" + a + " " + b + ")");
+				continue;
 			}
 		}
 
@@ -434,7 +442,7 @@ public class Consumer implements Identifiable {
 		// besserung zu erreichen
 		Log.d(uuid, "Das eigene Angebot muss verbessert werden.");
 
-		if (ownOffer.getDate().before(DateTime.nextTimeSlot())) {
+		if (ownOffer.getDate().compareTo(DateTime.ToString(DateTime.nextTimeSlot())) == -1) {
 			Log.d(uuid, "Kann Angbeote der aktuellen Stunde nicht verbessern.");
 			return null;
 		}
@@ -526,7 +534,7 @@ public class Consumer implements Identifiable {
 		if (notification == null) {
 			Log.d(uuid, "Keine Benachrichtigungen in der Warteschlange.");
 
-			Offer[] offerList = getOfferWithPrivileges(DateTime.currentTimeSlot());
+			Offer[] offerList = getOfferWithPrivileges(DateTime.ToString(DateTime.currentTimeSlot()));
 
 			if (offerList.length == 0) {
 				Log.d(uuid, "Kein Angebot als Autor für aktuellen Zeitslot.");
@@ -558,8 +566,6 @@ public class Consumer implements Identifiable {
 		Offer[] offerWithPrivileges = getOfferWithPrivileges(receivedOffer.getDate());
 
 		if (offerWithPrivileges.length == 0) {
-			//Log.d(uuid, "Consumer ist nicht Autor in einem seiner Angebote und kann daher nicht verhandeln: "
-			//		+ this.allOffers);
 			return;
 		}
 
@@ -569,7 +575,11 @@ public class Consumer implements Identifiable {
 			Log.d(uuid, "Keine Angebote am Marktplatz vorrätig. Nutze die Vorhersage zur Optimierung.");
 			Offer marketplace = getMarketplacePrediction();
 			for (Offer own : offerWithPrivileges) {
-				scorecard.add(new Score(own, marketplace, own, null, null));
+				try {
+					scorecard.add(new Score(new Offer(own, receivedOffer), marketplace, own, receivedOffer, null));
+				} catch (OffersPriceborderException e) {
+					Log.d(uuid, "Preisgrenzen stimmen nicht überein.");
+				}
 			}
 		}
 
@@ -587,8 +597,9 @@ public class Consumer implements Identifiable {
 			newOffer = scorecard.first().getMerge();
 		} else if (scorecard.size() == 1) {
 			Log.d(uuid, "Keine Angebote als Vergleich vorhanden.");
-			newOffer = scorecard.first().getMerge();
-		} else if (scorecard.first().getOwn().getDate().before(DateTime.nextTimeSlot())) {
+			return;
+			// newOffer = scorecard.first().getMerge();
+		} else if (scorecard.first().getOwn().getDate().compareTo(DateTime.ToString(DateTime.nextTimeSlot())) == -1) {
 			Log.d(uuid, "Angebot liegt in der aktuellen Stunde. Keine Verbesserung durch CRs möglich.");
 			newOffer = scorecard.first().getMerge();
 		} else {
@@ -597,22 +608,38 @@ public class Consumer implements Identifiable {
 					receivedOffer, scorecard.first());
 
 			if (contributions == null) {
-				Log.d(uuid, "Es konnte keine Verbesserung erreicht werden.");
+				Log.d(uuid, "Optimierung nicht möglich.");
 				return;
-			} else {
-				newOffer = new Offer(scorecard.first().getMerge(), contributions);
+			}
+
+			newOffer = null;
+
+			try {
+				Offer own = scorecard.first().getOwn();
+				Offer merge = new Offer(own, receivedOffer);
+
+				Log.d(uuid, "Erzeuge neues Angebot basierend auf merge [" + merge + "] und contributions ["
+						+ contributions + "]");
+				newOffer = new Offer(merge, contributions);
 				allOfferContributions.put(newOffer.getUUID(), contributions);
+			} catch (OffersPriceborderException e) {
+				Log.d(uuid, "OffersPriceborderException");
 			}
 		}
 
 		newOffer.generateAuthKey();
 
-		Log.d(uuid, "Neues Angebot erreicht: " + newOffer);
+		Log.d(uuid, "Neues Angebot [" + newOffer.getUUID() + "] erreicht: " + newOffer);
 		addOffer(newOffer);
 		allOfferMerges.put(newOffer.getUUID(), scorecard.first().getOwn());
 
 		OfferNotification newNotification = new OfferNotification(newOffer.getAuthor(), newOffer.getUUID());
 		Log.d(uuid, "Antworte auf das eingetroffene Angebot. " + newNotification);
+
+		if (!newOffer.getAllLoadprofiles().keySet().containsAll(receivedOffer.getAllLoadprofiles().keySet())) {
+			// Log.e(uuid, "Lastprofile verloren.");
+			// return;
+		}
 
 		API<OfferNotification, Void> api2 = new API<OfferNotification, Void>(Void.class);
 		api2.consumers(receivedOffer.getAuthor()).offers(receivedOffer.getUUID()).answer();
@@ -670,15 +697,14 @@ public class Consumer implements Identifiable {
 	 */
 	public void receiveAnswerChangeLoadprofile(AnswerChangeRequestLoadprofile answer, UUID offer) {
 		currentAnswerChangeLoadprofile = answer;
-		System.out.println("Antwort Werte" +valuesToString(answer.getLoadprofile().getValues()));
-		/*try {
-			currentAnswerChangeLoadprofile.notify();
-		}
-		catch (IllegalMonitorStateException e) {
-			System.out.println("IllegalMonitorStateException: " +e);
-		}*/
+		System.out.println("Antwort Werte" + valuesToString(answer.getLoadprofile().getValues()));
+		/*
+		 * try { currentAnswerChangeLoadprofile.notify(); } catch
+		 * (IllegalMonitorStateException e) { System.out.println(
+		 * "IllegalMonitorStateException: " +e); }
+		 */
 		return;
-		
+
 	}
 
 	public void receiveChangeRequestDecline(UUID uuidOffer) {
@@ -706,9 +732,9 @@ public class Consumer implements Identifiable {
 						continue;
 					}
 					// Absage für ChangeRequest an Consumer
-					API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+					API<Void, Void> api1 = new API<Void, Void>(Void.class);
 					api1.consumers(current).offers(uuidOffer).changeRequest().decline();
-					api1.call(this, HttpMethod.POST, cr);
+					api1.call(this, HttpMethod.POST, null);
 				}
 			}
 		}
@@ -755,7 +781,8 @@ public class Consumer implements Identifiable {
 		api2.call(this, HttpMethod.GET, true);
 	}
 
-	public void receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+	public AnswerChangeRequestLoadprofile receiveChangeRequestLoadprofile(ChangeRequestLoadprofile cr) {
+		Log.d(uuid, "Änderungsanfrage vom Autor erhalten.");
 		System.out.println("Änderungsanfrage vom Autor erhalten.");
 
 		// Hole das betroffene Angebot aus der Hashmap aller Angebote
@@ -763,26 +790,31 @@ public class Consumer implements Identifiable {
 
 		if (affectedOffer == null) {
 			Log.e(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
-			return;
+			return new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 		}
 
 		UUID author = affectedOffer.getAuthor();
 		UUID uuidOffer = affectedOffer.getUUID();
 		AnswerChangeRequestLoadprofile answerNoChange = new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 
-		/*if (cr.getTime().before(DateTime.nextTimeSlot())) {
-			System.out.println("NextTimeSlot: " + DateTime.ToString(DateTime.nextTimeSlot()));
-			System.out.println("Time CR: " + DateTime.ToString(cr.getTime()));
-			Log.e(uuid, "Anfrage für den aktuellen Zeitslot nicht möglich.");
-
-			// Informiere Autor darüber, dass keine Änderung möglich
-			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
-			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
-			api1.call(this, HttpMethod.POST, answerNoChange);
-		}*/
+		/*
+		 * if (cr.getTime().before(DateTime.nextTimeSlot())) {
+		 * System.out.println("NextTimeSlot: " +
+		 * DateTime.ToString(DateTime.nextTimeSlot())); System.out.println(
+		 * "Time CR: " + DateTime.ToString(cr.getTime())); Log.e(uuid,
+		 * "Anfrage für den aktuellen Zeitslot nicht möglich.");
+		 * 
+		 * // Informiere Autor darüber, dass keine Änderung möglich
+		 * API<AnswerChangeRequestLoadprofile, Void> api1 = new
+		 * API<AnswerChangeRequestLoadprofile, Void>(Void.class);
+		 * api1.consumers(author).offers(uuidOffer).answerChangeRequest();
+		 * api1.call(this, HttpMethod.POST, answerNoChange); }
+		 */
 
 		System.out.println("Zeit passt");
 		System.out.println("Frage Devices nach Änderung");
+		Log.d(uuid, "Zeit passt");
+		Log.d(uuid, "Frage Devices nach Änderung");
 
 		// Frage eigenes Device nach Änderung
 		// (und passe noch benötigte Änderung an)
@@ -800,11 +832,9 @@ public class Consumer implements Identifiable {
 			Log.e(uuid, "Kein initiales Lastprofil zu der übergebenen Änderung vorhanden.");
 
 			// Informiere Autor darüber, dass keine Änderung möglich
-			API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
-			api1.consumers(author).offers(uuidOffer).answerChangeRequest();
-			api1.call(this, HttpMethod.POST, answerNoChange);
-
+			return answerNoChange;
 		}
+
 		double sumInitialLoadprofile = 0;
 		for (int i = 0; i < numSlots; i++) {
 			sumInitialLoadprofile += initialLoadprofile.getValues()[i];
@@ -852,14 +882,12 @@ public class Consumer implements Identifiable {
 				changedLoadprofile);
 
 		// Informiere Autor über mögliche Änderungen
-		API<AnswerChangeRequestLoadprofile, Void> api1 = new API<AnswerChangeRequestLoadprofile, Void>(Void.class);
-		api1.consumers(author).offers(uuidOffer).answerChangeRequest();
-		System.out.println(api1.toString());
-		api1.call(this, HttpMethod.POST, answerOfChange);
+		return answerOfChange;
 	}
 
 	public void receiveChangeRequestLoadprofileFromMarketplace(ChangeRequestLoadprofile cr) {
 		System.out.println("Änderungsanfrage vom Marktplatz erhalten");
+		Log.d(uuid, "Änderungsanfrage vom Marktplatz erhalten");
 
 		// Hole das betroffene Angebot aus der Hashmap aller Angebote
 		Offer affectedOffer = allOffers.get(cr.getOffer());
@@ -881,40 +909,42 @@ public class Consumer implements Identifiable {
 		// nach Anpassung
 		HashMap<UUID, HashMap<UUID, Loadprofile>> allLP = affectedOffer.getAllLoadprofiles();
 		Set<UUID> uuidConsumers = allLP.keySet();
-		System.out.println("Es werden alle " +uuidConsumers.size()+ " Teilnehmer des Angebots informiert");
+		System.out.println("Es werden alle " + uuidConsumers.size() + " Teilnehmer des Angebots informiert");
 		for (UUID current : uuidConsumers) {
 			// Schicke Anfrage an den aktuellen Consumer
 			System.out.println("Sende Anfrage");
-			API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
+			API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile> api = new API<ChangeRequestLoadprofile, AnswerChangeRequestLoadprofile>(
+					AnswerChangeRequestLoadprofile.class);
 			api.consumers(current).offers(cr.getOffer()).changeRequestConsumer();
 			api.call(this, HttpMethod.POST, cr);
 
 			// Warte auf eine Antwort des Consumers
-			/*UUID testUUID = UUID.randomUUID();
-			AnswerChangeRequestLoadprofile test = new AnswerChangeRequestLoadprofile(testUUID, null);
-			currentAnswerChangeLoadprofile = test;
-			synchronized (currentAnswerChangeLoadprofile) {
-				if (currentAnswerChangeLoadprofile.getUUIDOffer() == test.getUUIDOffer()) {
-					System.out.println("Noch keine Antwort erhalten");
-				}
-				while (currentAnswerChangeLoadprofile.getUUIDOffer() == test.getUUIDOffer()) {
-					try {
-						currentAnswerChangeLoadprofile.wait();
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}*/
+			/*
+			 * UUID testUUID = UUID.randomUUID(); AnswerChangeRequestLoadprofile
+			 * test = new AnswerChangeRequestLoadprofile(testUUID, null);
+			 * currentAnswerChangeLoadprofile = test; synchronized
+			 * (currentAnswerChangeLoadprofile) { if
+			 * (currentAnswerChangeLoadprofile.getUUIDOffer() ==
+			 * test.getUUIDOffer()) { System.out.println(
+			 * "Noch keine Antwort erhalten"); } while
+			 * (currentAnswerChangeLoadprofile.getUUIDOffer() ==
+			 * test.getUUIDOffer()) { try {
+			 * currentAnswerChangeLoadprofile.wait(); } catch
+			 * (InterruptedException e) { e.printStackTrace(); } } }
+			 */
 
 			// Prüfe, dass Antwort auch zu passendem Angebot ist
-			if (!currentAnswerChangeLoadprofile.getUUIDOffer().equals(cr.getOffer())) {
-				continue;
-			}
+			// if
+			// (!currentAnswerChangeLoadprofile.getUUIDOffer().equals(cr.getOffer()))
+			// {
+			// continue;
+			// }
 
 			// Hole die Änderungen und die dafür verlangten Preise in answerLP
-			Loadprofile answerLP = currentAnswerChangeLoadprofile.getLoadprofile();
-			
-			// Wenn kein Lastprofil übergeben wurde, fahre mit dem nächsten Consumer fort
+			Loadprofile answerLP = api.getResponse().getLoadprofile();
+
+			// Wenn kein Lastprofil übergeben wurde, fahre mit dem nächsten
+			// Consumer fort
 			if (answerLP == null) {
 				continue;
 			}
@@ -926,11 +956,11 @@ public class Consumer implements Identifiable {
 			double answerMax = answerLP.getMaxPrice();
 			if (answerMin > currentMaxPrice || answerMax < currentMinPrice) {
 				System.out.println("Absage an Consumer für Änderungen wegen Preis");
+				Log.d(uuid, "Absage an Consumer für Änderungen wegen Preis");
 				// Absage für ChangeRequest an Consumer
 				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
 				api1.consumers(current).offers(current).changeRequest().decline();
 				api1.call(this, HttpMethod.POST, cr);
-
 			} else {
 				currentMaxPrice = answerMax;
 				currentMinPrice = answerMin;
@@ -964,16 +994,17 @@ public class Consumer implements Identifiable {
 	public void receiveDeltaLoadprofile(Loadprofile deltaLoadprofile) {
 		System.out.println("Gerät: " +device);
 		Log.d(this.uuid, "Deltalastprofil erhalten: " + deltaLoadprofile);
-		GregorianCalendar timeLoadprofile = deltaLoadprofile.getDate();
-		GregorianCalendar timeCurrent = DateTime.now();
+		String timeLoadprofile = deltaLoadprofile.getDate();
+		String timeCurrent = DateTime.ToString(DateTime.now());
 		double[] valuesNew = deltaLoadprofile.getValues();
 
 		// Prüfe, ob deltaLoadprofile Änderungen für die aktuelle Stunde hat
-		boolean currentHour = timeLoadprofile.get(Calendar.HOUR_OF_DAY) == timeCurrent.get(Calendar.HOUR_OF_DAY);
+		boolean currentHour = DateTime.parse(timeLoadprofile).get(Calendar.HOUR_OF_DAY) == DateTime.parse(timeCurrent)
+				.get(Calendar.HOUR_OF_DAY);
 		if (currentHour) {
 			// Prüfe, ob deltaLoadprofile Änderungen für die noch kommenden
 			// Slots beinhaltet
-			int minuteCurrent = timeCurrent.get(Calendar.MINUTE);
+			int minuteCurrent = DateTime.parse(timeCurrent).get(Calendar.MINUTE);
 			int slot = (int) Math.floor(minuteCurrent / 15) + 1;
 			double sum = 0;
 			for (int i = slot; i < numSlots; i++) {
@@ -990,7 +1021,7 @@ public class Consumer implements Identifiable {
 
 		// Prüfe, welche Werte für die Stunde von deltaLoadprofile bereits in
 		// deltaLoadprofiles hinterlegt sind
-		double[] valuesOld = deltaLoadprofiles.get(DateTime.ToString(timeLoadprofile));
+		double[] valuesOld = deltaLoadprofiles.get(timeLoadprofile);
 		double sum = 0;
 
 		// Erstelle Summe aus valuesOld und den valuesNew vom deltaLoaprofile
@@ -1017,8 +1048,7 @@ public class Consumer implements Identifiable {
 		}
 		// Sammle Deltalastprofile mit Summe<5 für die nächsten Stunden
 		else {
-			System.out.println("Sammel Deltalastprofil");
-			deltaLoadprofiles.put(DateTime.ToString(timeLoadprofile), valuesNew);
+			deltaLoadprofiles.put(timeLoadprofile, valuesNew);
 		}
 	}
 
@@ -1098,6 +1128,8 @@ public class Consumer implements Identifiable {
 			return;
 		}
 
+		Log.d(uuid, "Ersetze Angebot [" + uuidOldOffer + "] durch das neue Angebot [" + uuidNewOffer + "]");
+
 		// altes Angebot entfernen
 		removeOffer(uuidOldOffer);
 
@@ -1136,7 +1168,7 @@ public class Consumer implements Identifiable {
 	public void setDevice(UUID uuid) {
 		device = uuid;
 	}
-	
+
 	private String valuesToString(double[] values) {
 		String s = ": ";
 		for (int i = 0; i < values.length; i++) {

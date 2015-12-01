@@ -2,7 +2,6 @@ package Util;
 
 import java.util.Date;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
@@ -11,12 +10,10 @@ import start.Application;
 import java.util.Calendar;
 
 public class DateTime {
-	private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
-
 	private static GregorianCalendar programStart = null;
 
 	public static String timestamp() {
-		return simpleDateFormat.format(now().getTime());
+		return Application.Params.myDateFormat.format(now().getTime());
 	}
 
 	/**
@@ -27,7 +24,7 @@ public class DateTime {
 	 * @return calendar als String
 	 */
 	public static String ToString(GregorianCalendar calendar) {
-		return simpleDateFormat.format(calendar.getTime());
+		return Application.Params.myDateFormat.format(calendar.getTime());
 	}
 
 	/**
@@ -38,7 +35,7 @@ public class DateTime {
 	 * @return Die aktuelle Zeit der Simulation als GregorianCalendar
 	 */
 	public static GregorianCalendar now() {
-		GregorianCalendar realTime = new GregorianCalendar(TimeZone.getTimeZone("America/Los Angeles"));
+		GregorianCalendar realTime = new GregorianCalendar(TimeZone.getTimeZone("Europe/Berlin"));
 
 		if (programStart == null) {
 			programStart = realTime;
@@ -64,7 +61,7 @@ public class DateTime {
 		GregorianCalendar gc = new GregorianCalendar();
 		Date date = null;
 		try {
-			date = simpleDateFormat.parse(calendar);
+			date = Application.Params.myDateFormat.parse(calendar);
 		} catch (ParseException e) {
 			throw new IllegalArgumentException();
 		}
@@ -113,13 +110,20 @@ public class DateTime {
 	 * @return Anfangszeit der nächsten Stunde als GregorianCalendar
 	 */
 	public static GregorianCalendar nextTimeSlot() {
-		GregorianCalendar now = now();
+		GregorianCalendar currentTimeSlot = currentTimeSlot();
+		currentTimeSlot.add(Calendar.HOUR_OF_DAY, 1);
+		return currentTimeSlot;
+	}
 
-		//now.add(Calendar.HOUR_OF_DAY, 1);
-		now.set(Calendar.MINUTE, 0);
-		now.set(Calendar.SECOND, 0);
-		now.set(Calendar.MILLISECOND, 0);
+	public static String set(int what, int count, String time) {
+		GregorianCalendar gc = parse(time);
+		gc.set(what, count);
+		return ToString(gc);
+	}
 
-		return now;
+	public static String add(int hourOfDay, int i, String time) {
+		GregorianCalendar gc = parse(time);
+		gc.add(hourOfDay, i);
+		return ToString(gc);
 	}
 }

@@ -29,7 +29,7 @@ public class Fridge implements Device {
 	 * Zeitpunkt, ab dem scheduleMinutes gilt
 	 */
 	@JsonView(View.Summary.class)
-	private GregorianCalendar timeFixed;
+	private String timeFixed;
 
 	/**
 	 * Fahrpläne, die schon ausgehandelt sind und fest stehen
@@ -191,7 +191,7 @@ public class Fridge implements Device {
 	 *            soll
 	 */
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
-		if (!DateTime.ToString(cr.getStartLoadprofile()).equals(DateTime.ToString(timeFixed))) {
+		if (!cr.getStartLoadprofile().equals(timeFixed)) {
 			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
 			// timeFixed angefragt werden. Sende daher Antwort ohne Änderungen
 			Log.e(uuid, "Änderungen sind für diesen Zeitslot nicht möglich.");
@@ -718,12 +718,12 @@ public class Fridge implements Device {
 	 *            Temperaturabweichung beeinflusst
 	 * @return Array mit Verbrauch[0] und Temperatur[1] des neuen Fahrplans
 	 */
-	private double[][] chargeDeltaSchedule(GregorianCalendar aenderung, double newTemperature, boolean firstSchedule) {
+	private double[][] chargeDeltaSchedule(String aenderung, double newTemperature, boolean firstSchedule) {
 		int change = 0;
-		int minuteChange = aenderung.get(Calendar.MINUTE);
+		int minuteChange = DateTime.parse(aenderung).get(Calendar.MINUTE);
 		double[][] deltaSchedule = new double[2][15 * numSlots];
 
-		GregorianCalendar start = (GregorianCalendar) aenderung.clone();
+		GregorianCalendar start = (GregorianCalendar) DateTime.parse(aenderung);
 		start.set(Calendar.MINUTE, 0);
 
 		// Lade aktuellen Plan für die Stunde ab start
@@ -778,7 +778,7 @@ public class Fridge implements Device {
 		// (1) pro Minute
 		scheduleMinutes = new double[2][15 * numSlots];
 
-		int startMinute = timeFixed.get(Calendar.MINUTE);
+		int startMinute = DateTime.parse(timeFixed).get(Calendar.MINUTE);
 
 		// Setze alle Werte der Stunde vor timeFixed = 0
 		for (int i = 0; i < startMinute; i++) {
@@ -881,8 +881,7 @@ public class Fridge implements Device {
 	}
 
 	public void confirmLoadprofile(String time) {
-		Log.d(uuid,  "Fridge hat bestätigung für Lastprofil erhalten; Start Lastprofil: " +time);
-		if (DateTime.ToString(timeFixed).equals(time)) {
+		if (timeFixed.equals(time)) {
 			saveSchedule(scheduleMinutes, timeFixed);
 			sendNewLoadprofile();
 		}
@@ -910,7 +909,7 @@ public class Fridge implements Device {
 		 * Wenn start timeFixed entspricht, ergibt sich die Änderung für
 		 * scheduleMinutes
 		 */
-		if (DateTime.ToString(start).equals(DateTime.ToString(timeFixed))) {
+		if (DateTime.ToString(start).equals(timeFixed)) {
 			for (int i = 0; i < 15 * numSlots; i++) {
 				double cons = scheduleMinutes[0][i];
 				double temp = scheduleMinutes[1][i];
@@ -971,7 +970,7 @@ public class Fridge implements Device {
 		// Erstelle das aktuelle Deltalastprofil, wenn während des Wartens auf
 		// die Antwort eine Temperaturänderung war
 		if (waitToChargeDeltaLoadprofile) {
-			GregorianCalendar date = (GregorianCalendar) timeFixed.clone();
+			GregorianCalendar date = (GregorianCalendar) DateTime.parse(timeFixed);
 			date.add(Calendar.HOUR_OF_DAY, 1);
 			double newTemperature = schedulesFixed.get(date)[15 * numSlots - 1];
 
@@ -993,7 +992,7 @@ public class Fridge implements Device {
 				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils
-				loadprofilesFixed.put(DateTime.ToString(timeFixed), newValues);
+				loadprofilesFixed.put(timeFixed, newValues);
 			} else {
 				// keine änderung
 			}
@@ -1025,19 +1024,19 @@ public class Fridge implements Device {
 	 * @param start
 	 *            Zeitpunkt, zu dem schedule startet
 	 */
-	private void saveSchedule(double[][] schedule, GregorianCalendar start) {
+	private void saveSchedule(double[][] schedule, String start) {
 		int size = 15 * numSlots;
 
 		for (int i = 0; i < size; i++) {
 			double[] values = { schedule[0][i], schedule[1][i] };
-			schedulesFixed.put(DateTime.ToString(start), values);
-			simulationFridge.addNewValues(DateTime.ToString(start), values);
-			start.add(Calendar.MINUTE, 1);
+			schedulesFixed.put(start, values);
+			simulationFridge.addNewValues(start, values);
+			DateTime.add(Calendar.MINUTE, 1, start);
 		}
-		start.add(Calendar.HOUR_OF_DAY, -1);
+		DateTime.add(Calendar.HOUR_OF_DAY, -1, start);
 		
 		double[] valuesLoadprofile = createValuesLoadprofile(schedule[0]);
-		loadprofilesFixed.put(DateTime.ToString(start), valuesLoadprofile);
+		loadprofilesFixed.put(start, valuesLoadprofile);
 	}
 
 	private void sendLoadprofileToConsumer(Loadprofile loadprofile) {
@@ -1062,20 +1061,21 @@ public class Fridge implements Device {
 			 * Wenn noch nicht gesetzt, erstelle initialen Fahrplan für bis zur
 			 * nächsten Stunde
 			 */
-			timeFixed = DateTime.now();
-			timeFixed.set(Calendar.SECOND, 0);
-			timeFixed.set(Calendar.MILLISECOND, 0);
+			timeFixed = DateTime.ToString(DateTime.now());
+			timeFixed = DateTime.set(Calendar.SECOND, 0, timeFixed);
+			timeFixed = DateTime.set(Calendar.MILLISECOND, 0, timeFixed);
 
 			chargeNewSchedule();
 			valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 
-			timeFixed.set(Calendar.MINUTE, 0);
+			timeFixed = DateTime.set(Calendar.MINUTE, 0, timeFixed);
 
 			saveSchedule(scheduleMinutes, timeFixed);
-			//loadprofilesFixed.put(DateTime.ToString(timeFixed), valuesLoadprofile);
+
+			loadprofilesFixed.put(timeFixed, valuesLoadprofile);
 		}
 		// Zähle timeFixed um eine Stunde hoch
-		timeFixed.add(Calendar.HOUR_OF_DAY, 1);
+		timeFixed = DateTime.add(Calendar.HOUR_OF_DAY, 1, timeFixed);
 		chargeNewSchedule();
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[0]);
 		double priceSugg = chargePriceScheduleMinutes();
@@ -1116,10 +1116,10 @@ public class Fridge implements Device {
 	 * @param newTemperature
 	 *            Temperatur, die gemessen wurde
 	 */
-	public void sendDeltaLoadprofile(GregorianCalendar aenderung, double newTemperature) {
-		GregorianCalendar startLoadprofile = (GregorianCalendar) aenderung.clone();
+	public void sendDeltaLoadprofile(String aenderung, double newTemperature) {
+		GregorianCalendar startLoadprofile = (GregorianCalendar) DateTime.parse(aenderung);
 		startLoadprofile.set(Calendar.MINUTE, 0);
-		GregorianCalendar compare = (GregorianCalendar) timeFixed.clone();
+		GregorianCalendar compare = (GregorianCalendar) DateTime.parse(timeFixed);
 		if (!waitForAnswerCR) {
 			compare.add(Calendar.HOUR_OF_DAY, 1);
 		} else {
@@ -1128,8 +1128,8 @@ public class Fridge implements Device {
 		boolean change;
 		boolean firstSchedule = true;
 
-		aenderung.set(Calendar.SECOND, 0);
-		aenderung.set(Calendar.MILLISECOND, 0);
+		aenderung = DateTime.set(Calendar.SECOND, 0, aenderung);
+		aenderung = DateTime.set(Calendar.MILLISECOND, 0, aenderung);
 
 		/*
 		 * Berechne ab Zeitpunkt der Abweichung einschließlich des aktuellen
@@ -1141,15 +1141,16 @@ public class Fridge implements Device {
 			// Berechne neuen Fahrplan
 			double[][] deltaSchedule = chargeDeltaSchedule(aenderung, newTemperature, firstSchedule);
 
-			saveSchedule(deltaSchedule, startLoadprofile);
+			saveSchedule(deltaSchedule, DateTime.ToString(startLoadprofile));
 
 			firstSchedule = false;
 			newTemperature = deltaSchedule[1][15 * numSlots - 1];
 
 			double[] newValues = createValuesLoadprofile(deltaSchedule[0]);
-			aenderung.set(Calendar.MINUTE, 0);
-			double[] oldValues = new double[numSlots];
-			if (DateTime.ToString(startLoadprofile).equals(DateTime.ToString(timeFixed))) {
+			aenderung = DateTime.set(Calendar.MINUTE, 0, aenderung);
+			double[] oldValues;
+			
+			if (DateTime.ToString(startLoadprofile).equals(timeFixed)) {
 				oldValues = createValuesLoadprofile(scheduleMinutes[0]);
 			} else {
 				oldValues = loadprofilesFixed.get(DateTime.ToString(startLoadprofile));
@@ -1173,7 +1174,8 @@ public class Fridge implements Device {
 			if (change) {
 				System.out.println("Versende Delta-LP");
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
-				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, startLoadprofile, Loadprofile.Type.DELTA);
+				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, DateTime.ToString(startLoadprofile),
+						Loadprofile.Type.DELTA);
 				sendLoadprofileToConsumer(deltaLoadprofile);
 
 				// Abspeichern des neuen Lastprofils
@@ -1182,7 +1184,7 @@ public class Fridge implements Device {
 				// keine änderung
 			}
 			startLoadprofile.add(Calendar.HOUR_OF_DAY, 1);
-			aenderung.add(Calendar.HOUR_OF_DAY, 1);
+			aenderung = DateTime.add(Calendar.HOUR_OF_DAY, 1, aenderung);
 		}
 	}
 
@@ -1243,8 +1245,7 @@ public class Fridge implements Device {
 		tempScaled = simulationFridge.getTemperature(currentTime);
 
 		if (tempPlanned != tempScaled) {
-			System.out.println("Deltalastprofil für Fridge " +uuid);
-			sendDeltaLoadprofile(currentTime, tempScaled);
+			sendDeltaLoadprofile(DateTime.ToString(currentTime), tempScaled);
 		}
 	}
 }

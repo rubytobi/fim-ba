@@ -1,4 +1,6 @@
-/META-INF/
-/start/
-/Util/
 /Entity/
+/Event/
+/Packet/
+/Util/
+/start/
+/META-INF/

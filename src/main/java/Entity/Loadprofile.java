@@ -23,7 +23,7 @@ public class Loadprofile {
 	private double[] values;
 
 	// Zeitpunkt, ab wann das Lastprofil gelten soll
-	private GregorianCalendar date;
+	private String date;
 
 	// Preis, den das Device für das Lastprofil vorschlägt
 	@JsonProperty("priceSugg")
@@ -36,7 +36,7 @@ public class Loadprofile {
 	// Minimaler Preis, den das Device für dieses Lastprofil zulässt
 	@JsonProperty("minPrice")
 	private double minPrice;
-	
+
 	private int numSlots = 4;
 
 	// Gibt, an, ob das Lastprofil Preise festsetzt
@@ -65,11 +65,10 @@ public class Loadprofile {
 	 * @param isDelta
 	 *            Gibt an, ob das Lastprofil ein Deltalastprofil ist
 	 */
-	public Loadprofile(double[] values, GregorianCalendar date, double priceSugg, double minPrice, double maxPrice,
-			Type isDelta) {
+	public Loadprofile(double[] values, String date, double priceSugg, double minPrice, double maxPrice, Type isDelta) {
 		this();
 
-		this.values = values;	
+		this.values = values;
 		roundValues();
 		this.date = date;
 		this.type = isDelta;
@@ -97,7 +96,7 @@ public class Loadprofile {
 	 * @param state
 	 *            Lastprofilestatus
 	 */
-	public Loadprofile(double[] values, GregorianCalendar date, Type state) {
+	public Loadprofile(double[] values, String date, Type state) {
 		this();
 
 		this.values = values;
@@ -121,7 +120,7 @@ public class Loadprofile {
 	public Loadprofile(Loadprofile lp1, Loadprofile lp2) {
 		this();
 
-		if (!DateTime.ToString(lp1.getDate()).equals(DateTime.ToString(lp2.getDate()))) {
+		if (!lp1.getDate().equals(lp2.getDate())) {
 			throw new IllegalArgumentException();
 		}
 
@@ -205,16 +204,16 @@ public class Loadprofile {
 	 * 
 	 * @return Startzeitpunkt des Lastprofils als GregorianCalendar
 	 */
-	public GregorianCalendar getDate() {
+	public String getDate() {
 		return date;
 	}
-	
+
 	/**
 	 * Rundet alle Werte des Lastprofils auf zwei Nachkommastellen
 	 */
 	public void roundValues() {
 		if (values != null) {
-			for (int i=0; i<numSlots; i++) {
+			for (int i = 0; i < numSlots; i++) {
 				values[i] = Math.round(100.00 * values[i]) / 100.00;
 			}
 		}
@@ -238,8 +237,8 @@ public class Loadprofile {
 	 *         Lastprofils enthaelt
 	 */
 	public String toString() {
-		return "Loadprofile [values=" + Arrays.toString(values) + ",date=" + DateTime.ToString(date) + ",priceSugg="
-				+ priceSugg + ",minPrice=" + minPrice + ",maxPrice=" + maxPrice + ",isDelta=" + type + "]";
+		return "Loadprofile [values=" + Arrays.toString(values) + ",date=" + date + ",priceSugg=" + priceSugg
+				+ ",minPrice=" + minPrice + ",maxPrice=" + maxPrice + ",isDelta=" + type + "]";
 	}
 
 	/**
@@ -271,7 +270,7 @@ public class Loadprofile {
 	 */
 	public double chargeDeviationOtherProfile(Loadprofile otherProfile) {
 		double deviationOtherProfile = 0;
-		
+
 		if (otherProfile == null || values == null) {
 			deviationOtherProfile = Double.POSITIVE_INFINITY;
 			return deviationOtherProfile;

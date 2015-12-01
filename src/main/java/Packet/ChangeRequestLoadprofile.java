@@ -16,7 +16,7 @@ import Util.DateTime;
 public class ChangeRequestLoadprofile {
 	private UUID offer;
 	private double[] change;
-	private GregorianCalendar time;
+	private String time;
 	private double price;
 
 	protected ChangeRequestLoadprofile() {
@@ -32,12 +32,12 @@ public class ChangeRequestLoadprofile {
 	 * @param change
 	 *            Änderung
 	 */
-	public ChangeRequestLoadprofile(UUID offer, double[] change, GregorianCalendar time) {
+	public ChangeRequestLoadprofile(UUID offer, double[] change, String time) {
 		this.offer = offer;
 		this.change = change;
 		this.time = time;
 	}
-	
+
 	/**
 	 * Anlegen einer Anfrage für eine Änderung. Übergeben werden die Angebots-ID
 	 * des betroffenen Angebots und die gewünschte Änderung
@@ -47,7 +47,7 @@ public class ChangeRequestLoadprofile {
 	 * @param change
 	 *            Änderung
 	 */
-	public ChangeRequestLoadprofile(UUID offer, double[] change, GregorianCalendar time, double price) {
+	public ChangeRequestLoadprofile(UUID offer, double[] change, String time, double price) {
 		this.offer = offer;
 		this.change = change;
 		this.time = time;
@@ -61,7 +61,7 @@ public class ChangeRequestLoadprofile {
 	public double[] getChange() {
 		return change;
 	}
-	
+
 	public double getPrice() {
 		return price;
 	}
@@ -69,7 +69,7 @@ public class ChangeRequestLoadprofile {
 	@JsonIgnore
 	public boolean isZero() {
 		for (double d : change) {
-			if (d != 0) {
+			if (d > 0) {
 				return false;
 			}
 		}
@@ -81,8 +81,8 @@ public class ChangeRequestLoadprofile {
 	}
 
 	public String toString() {
-		return "ChangeRequestLoadprofile [offer=" + offer + ", change=" + Arrays.toString(change) + ", time="
-				+ DateTime.ToString(time) + "]";
+		return "ChangeRequestLoadprofile [offer=" + offer + ", change=" + Arrays.toString(change) + ", time=" + time
+				+ "]";
 	}
 
 	public void sub(AnswerChangeRequestLoadprofile answer) {
@@ -91,10 +91,10 @@ public class ChangeRequestLoadprofile {
 		}
 	}
 
-	public GregorianCalendar getTime() {
+	public String getTime() {
 		return time;
 	}
-	
+
 	public void setChange(double[] newChanges) {
 		this.change = newChanges;
 	}

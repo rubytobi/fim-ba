@@ -7,13 +7,13 @@ import Util.DateTime;
 public class SearchParams implements Cloneable {
 	private double maxPrice;
 	private double minPrice;
-	private GregorianCalendar date;
+	private String date;
 
 	public SearchParams() {
 		// dummy
 	}
 
-	public SearchParams(GregorianCalendar date, double minPrice, double maxPrice) {
+	public SearchParams(String date, double minPrice, double maxPrice) {
 		this.date = date;
 		this.minPrice = minPrice;
 		this.maxPrice = maxPrice;
@@ -27,17 +27,16 @@ public class SearchParams implements Cloneable {
 		return minPrice;
 	}
 
-	public GregorianCalendar getDate() {
+	public String getDate() {
 		return date;
 	}
 
 	public String toString() {
-		return "SearchParams [date=" + DateTime.ToString(date) + ",minPrice=" + minPrice + ",maxPrice=" + maxPrice
-				+ "]";
+		return "SearchParams [date=" + date + ",minPrice=" + minPrice + ",maxPrice=" + maxPrice + "]";
 	}
 
 	public SearchParams clone() {
-		return new SearchParams((GregorianCalendar) date.clone(), minPrice, maxPrice);
+		return new SearchParams(date, minPrice, maxPrice);
 	}
 
 }

@@ -10,9 +10,9 @@ public class ConfirmedOffer implements Comparable<ConfirmedOffer> {
 
 	private int numSlots = 4;
 
-	private GregorianCalendar realStartOffer;
+	private String realStartOffer;
 
-	private GregorianCalendar timeConfirmed;
+	private String timeConfirmed;
 
 	private double priceConfirmed;
 
@@ -39,7 +39,7 @@ public class ConfirmedOffer implements Comparable<ConfirmedOffer> {
 		this.priceConfirmed = price;
 		this.type = type;
 
-		timeConfirmed = DateTime.now();
+		timeConfirmed = DateTime.ToString(DateTime.now());
 		realStartOffer = chargeRealStartOffer();
 	}
 
@@ -49,8 +49,8 @@ public class ConfirmedOffer implements Comparable<ConfirmedOffer> {
 	 * 
 	 * @return Startzeit des ersten Slots, in dem die Werte != 0 sind
 	 */
-	private GregorianCalendar chargeRealStartOffer() {
-		GregorianCalendar start = (GregorianCalendar) offer.getDate().clone();
+	private String chargeRealStartOffer() {
+		GregorianCalendar start = (GregorianCalendar) DateTime.parse(offer.getDate());
 
 		// Prüfe, in welchem Slot die Werte zum Ersten Mal != 0 sind
 		double[] values = offer.getAggLoadprofile().getValues();
@@ -67,7 +67,7 @@ public class ConfirmedOffer implements Comparable<ConfirmedOffer> {
 		int minutes = slot * 15;
 		start.set(Calendar.MINUTE, minutes);
 
-		return start;
+		return DateTime.ToString(start);
 	}
 
 	/**
@@ -111,16 +111,16 @@ public class ConfirmedOffer implements Comparable<ConfirmedOffer> {
 	 * 
 	 * @return Echter Startzeitpunkt
 	 */
-	public GregorianCalendar getRealStartOffer() {
+	public String getRealStartOffer() {
 		return realStartOffer;
 	}
 
 	/**
 	 * Gibt zurück, zu welchem Zeitpunkt das Angebot bestätigt wurde.
 	 * 
-	 * @return	Zeitpunkt, zu dem das Angebot bestätigt wurde
+	 * @return Zeitpunkt, zu dem das Angebot bestätigt wurde
 	 */
-	public GregorianCalendar getTimeConfirmed() {
+	public String getTimeConfirmed() {
 		return timeConfirmed;
 	}
 

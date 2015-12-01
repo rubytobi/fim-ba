@@ -20,7 +20,6 @@ public class NetworkGraph {
 	private String loadprofileStyle = "fill-color: red;";
 	private String deltaLoadprofileStyle = "fill-color: red; shape: box;";
 	private String title = "TRuby - Graph";
-	private int graphVersion = 1;
 
 	public static NetworkGraph instance() {
 		if (instance == null) {
@@ -56,60 +55,52 @@ public class NetworkGraph {
 	/**
 	 * Wird periodisch aufgerufen
 	 */
-	public void update() {
-		switch (graphVersion) {
-		case 1:
-			v1();
-			break;
-		case 2:
-			v2();
-		default:
-			break;
+	public void update(String graphVersion) {
+		if (graphVersion.equals("now")) {
+			now();
+		} else {
+			next();
 		}
 	}
 
-	private void v1() {
+	private void next() {
 		graph.clear();
 
 		Collection<Offer> collectionOffers = GeneralController.getAllOffers().values();
 		Offer[] allOffers = collectionOffers.toArray(new Offer[collectionOffers.size()]);
 
 		for (Offer o : allOffers) {
-			Node offer = graph.addNode(o.getUUID().toString());
-			offer.addAttribute("ui.style", offerStyle);
+			String a = o.getDate();
+			String b = DateTime.ToString(DateTime.nextTimeSlot());
 
-			for (UUID c : o.getAllLoadprofiles().keySet()) {
-				graph.addEdge(UUID.randomUUID().toString(), o.getUUID().toString(), c.toString());
-			}
-		}
-	}
+			if (a.equals(b)) {
+				Node offer = graph.addNode(o.getUUID().toString());
+				offer.addAttribute("ui.style", offerStyle);
 
-	private void v2() {
-		graph.clear();
-
-		Collection<Offer> collectionOffers = GeneralController.getAllOffers().values();
-		Offer[] allOffers = collectionOffers.toArray(new Offer[collectionOffers.size()]);
-
-		for (Offer o : allOffers) {
-			Node offer = graph.addNode(o.getUUID().toString());
-			offer.addAttribute("ui.style", offerStyle);
-
-			for (UUID c : o.getAllLoadprofiles().keySet()) {
-				for (Loadprofile l : o.getAllLoadprofiles().get(c).values()) {
-					Node loadprofile = graph.addNode(l.toString());
-
-					if (l.isDelta()) {
-						loadprofile.addAttribute("ui.style", deltaLoadprofileStyle);
-					} else {
-						loadprofile.addAttribute("ui.style", loadprofileStyle);
-					}
-
-					graph.addEdge(UUID.randomUUID().toString(), c.toString(), l.toString());
-					graph.addEdge(UUID.randomUUID().toString(), o.getUUID().toString(), l.toString());
+				for (UUID c : o.getAllLoadprofiles().keySet()) {
+					graph.addEdge(UUID.randomUUID().toString(), o.getUUID().toString(), c.toString());
 				}
 			}
-
 		}
 
 	}
+
+	private void now() {
+		graph.clear();
+
+		Collection<Offer> collectionOffers = GeneralController.getAllOffers().values();
+		Offer[] allOffers = collectionOffers.toArray(new Offer[collectionOffers.size()]);
+
+		for (Offer o : allOffers) {
+			if (o.getDate().equals(DateTime.currentTimeSlot())) {
+				Node offer = graph.addNode(o.getUUID().toString());
+				offer.addAttribute("ui.style", offerStyle);
+
+				for (UUID c : o.getAllLoadprofiles().keySet()) {
+					graph.addEdge(UUID.randomUUID().toString(), o.getUUID().toString(), c.toString());
+				}
+			}
+		}
+	}
+
 }

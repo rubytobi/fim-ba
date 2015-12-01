@@ -54,7 +54,7 @@ public class FrameResults {
 		this.supply = supply;
 
 		// Erstelle Fenster und Tabs
-		frame = new JFrame("Ergebnisse für " + calendarToString(time, false));
+		frame = new JFrame("Ergebnisse für " + calendarToString(this.time, false));
 		tabs = new JTabbedPane();
 
 		fillTab1();
@@ -357,8 +357,8 @@ public class FrameResults {
 			int countSecondsTooLate = 0;
 			for (ConfirmedOffer confirmed : lastConfirmed) {
 				// Hole, wann das Angebot bestätigt wurde und wann es beginnt
-				GregorianCalendar timeConfirmed = confirmed.getTimeConfirmed();
-				GregorianCalendar timeRealStart = confirmed.getRealStartOffer();
+				GregorianCalendar timeConfirmed = DateTime.parse(confirmed.getTimeConfirmed());
+				GregorianCalendar timeRealStart = DateTime.parse(confirmed.getRealStartOffer());
 
 				// Prüfe, ob Angebot vor Start bestätigt wurde
 				boolean good = timeConfirmed.before(timeRealStart);

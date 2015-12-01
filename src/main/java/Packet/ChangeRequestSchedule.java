@@ -16,7 +16,7 @@ import Util.DateTime;
  */
 public class ChangeRequestSchedule implements Cloneable {
 	private UUID uuid;
-	private GregorianCalendar startLoadprofile;
+	private String startLoadprofile;
 	private double[] changesLoadprofile;
 
 	protected ChangeRequestSchedule() {
@@ -31,7 +31,7 @@ public class ChangeRequestSchedule implements Cloneable {
 	 * @param changesLoadprofile
 	 *            Werte, um die das Lastprofil geaendert werden soll
 	 */
-	public ChangeRequestSchedule(GregorianCalendar startLoadprofile, double[] changesLoadprofile) {
+	public ChangeRequestSchedule(String startLoadprofile, double[] changesLoadprofile) {
 		this.startLoadprofile = startLoadprofile;
 		this.changesLoadprofile = changesLoadprofile;
 		uuid = UUID.randomUUID();
@@ -42,7 +42,7 @@ public class ChangeRequestSchedule implements Cloneable {
 	 * 
 	 * @return Start des zu aendernden Lastprofils als GregorianCalendar
 	 */
-	public GregorianCalendar getStartLoadprofile() {
+	public String getStartLoadprofile() {
 		return startLoadprofile;
 	}
 
@@ -86,7 +86,7 @@ public class ChangeRequestSchedule implements Cloneable {
 
 	@Override
 	public ChangeRequestSchedule clone() {
-		return new ChangeRequestSchedule((GregorianCalendar) startLoadprofile.clone(), changesLoadprofile.clone());
+		return new ChangeRequestSchedule(startLoadprofile, changesLoadprofile.clone());
 	}
 
 	@JsonIgnore
@@ -100,7 +100,7 @@ public class ChangeRequestSchedule implements Cloneable {
 	}
 
 	public String toString() {
-		return "ChangeRequestSchedule [startLoadprofile=" + DateTime.ToString(startLoadprofile) + ",changesLoadprofile="
+		return "ChangeRequestSchedule [startLoadprofile=" + startLoadprofile + ",changesLoadprofile="
 				+ Arrays.toString(changesLoadprofile) + "]";
 	}
 

@@ -8,15 +8,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import com.wordnik.swagger.annotations.ApiOperation;
 
 import Container.ConsumerContainer;
 import Entity.Consumer;
 import Entity.Offer;
+import Util.DateTime;
 import Util.NetworkGraph;
 
 @RestController
+@RequestMapping(value = Application.Params.VERSION)
 public class GeneralController {
 
 	public static HashMap<UUID, Offer> getAllOffers() {
@@ -31,6 +36,7 @@ public class GeneralController {
 		return map;
 	}
 
+	@ApiOperation(value = "Get all the currently available offers", notes = "timeindependent")
 	@RequestMapping("/index")
 	public List<Offer> index() {
 		Collection<Offer> offers = getAllOffers().values();
@@ -47,8 +53,19 @@ public class GeneralController {
 		return offerList;
 	}
 
-	@RequestMapping("/graph")
-	public void updateGraph() {
-		NetworkGraph.instance().update();
+	@RequestMapping("/time")
+	public String[] time() {
+		String[] array = new String[] { DateTime.ToString(DateTime.currentTimeSlot()),
+				DateTime.ToString(DateTime.nextTimeSlot()) };
+
+		System.out.println(array[0]);
+		System.out.println(array[1]);
+
+		return array;
+	}
+
+	@RequestMapping("/graph/{version}")
+	public void updateGraph(@PathVariable String version) {
+		NetworkGraph.instance().update(version);
 	}
 }
