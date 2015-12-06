@@ -132,10 +132,11 @@ public class Consumer implements Identifiable {
 			Log.d(uuid, "Angebotsbestätigung wurde abgelehnt.");
 			return;
 		} else {
-			Log.d(uuid, "Angbeot wurde angenommen.");
+			Log.d(uuid, "Angebot wurde angenommen.");
 		}
 
 		Log.d(uuid, "Invalidiere altes Angebot am Marktplatz");
+		System.out.println("Invalidiere Angebot: " +respondedOfferUUID);
 		API<Void, Void> api = new API<Void, Void>(Void.class);
 		api.marketplace().offers(respondedOfferUUID).invalidate();
 		api.call(this, HttpMethod.GET, null);
@@ -708,9 +709,7 @@ public class Consumer implements Identifiable {
 	}
 
 	public void receiveChangeRequestDecline(UUID uuidOffer) {
-		System.out.println("Consumer erhält Absage für Änderungen");
 		if (!allOffers.containsKey(uuidOffer)) {
-			Log.e(uuid, "receiveChangeRequestDecline abbrechen");
 			return;
 		}
 		// Hole das betroffene Angebo
@@ -893,8 +892,17 @@ public class Consumer implements Identifiable {
 		Offer affectedOffer = allOffers.get(cr.getOffer());
 		if (affectedOffer == null) {
 			Log.e(uuid, "Das betroffene Angebot ist nicht vorhanden. Änderungen daher nicht möglich.");
+			// Sende Antwort an Marketplace
+			double[] allChanges = {0, 0, 0, 0};
+			double currentPriceSugg = 0;
+			ChangeRequestLoadprofile answerToMarketplace = new ChangeRequestLoadprofile(cr.getOffer(), allChanges,
+					cr.getTime(), currentPriceSugg);
+			API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
+			api.marketplace().receiveAnswerChangeRequestLoadprofile();
+			api.call(this, HttpMethod.POST, answerToMarketplace);
 			return;
 		}
+		Log.d(uuid, "Das Angebot wurde gefunden und eine Änderung wird erfragt");
 		double currentMinPrice = affectedOffer.getMinPrice();
 		double currentMaxPrice = affectedOffer.getMaxPrice();
 		double currentPriceSugg = affectedOffer.getPriceSugg();

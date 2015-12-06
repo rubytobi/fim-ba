@@ -176,7 +176,10 @@ public class Marketplace implements Identifiable {
 		// Bestätige die Angebote zum Einheitspreis, die im nächsten Slot
 		// beginnen
 		confirmAllRemainingOffersWithOnePrice(DateTime.ToString(slotLastMatched), slot + 1, false);
-
+		
+		System.out.println(DateTime.ToString(now) + ", " + nextSlot);
+		System.out.println("Stunden: " + (now.get(Calendar.HOUR_OF_DAY)+1) + ", " +DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY));
+		System.out.println(" Minuten: " +minute);
 		System.out.println(minute + " Minuten >= " + minuteOfSecondPhase + ": " + (minute >= minuteOfSecondPhase));
 
 		// Prüfe, ob die aktuelle Zeit schon nah genug am nächsten zur
@@ -273,17 +276,12 @@ public class Marketplace implements Identifiable {
 	private void confirmAllRemainingOffersWithOnePrice(String date, int slot, boolean save) {
 		marketplaceToString();
 
-		String dateString = date;
-		System.out.println("Einheitspreis: " + dateString + " Slot: " + slot);
-		System.out.println("Date: " + dateString);
-
 		// Prüfe, ob noch alte Angebote (vor date) vorliegen und wenn ja,
 		// bestätige diese auch durch den Einheitspreis
 		Set<String> allDates = demand.keySet();
 		for (String currentDate : allDates) {
 			GregorianCalendar current = DateTime.stringToCalendar(currentDate);
 			if (current.before(date)) {
-				System.out.println("Es liegen noch ältere Angebote für " + currentDate + " vor.");
 				confirmAllRemainingOffersWithOnePrice(DateTime.ToString(current), numSlots - 1, false);
 			}
 		}
@@ -295,8 +293,8 @@ public class Marketplace implements Identifiable {
 
 		// Hole alle Angebote zu dem uebergebenen Datum und pruefe, ob wirklich
 		// Angebote vorliegen
-		ArrayList<Offer> allDemandsAtDate = demand.get(dateString);
-		ArrayList<Offer> allSuppliesAtDate = supply.get(dateString);
+		ArrayList<Offer> allDemandsAtDate = demand.get(date);
+		ArrayList<Offer> allSuppliesAtDate = supply.get(date);
 
 		if (allDemandsAtDate == null && allSuppliesAtDate == null) {
 			System.out.println("Keine Angebote für dieses Date");
@@ -335,12 +333,12 @@ public class Marketplace implements Identifiable {
 		}
 
 		if (allSuppliesAtDate != null) {
-			for (Offer currentOffer : allSuppliesAtDate) {
+			for (Offer currentSupply : allSuppliesAtDate) {
 				double sumUntilCurrentSlot = 0;
 				// Berechne die Summe des Lastprofils einschließlich des
 				// aktuellen Slots
-				for (int i = 0; i == slot; i++) {
-					sumUntilCurrentSlot += Math.abs(currentOffer.getAggLoadprofile().getValues()[i]);
+				for (int i = 0; i <= slot; i++) {
+					sumUntilCurrentSlot += Math.abs(currentSupply.getAggLoadprofile().getValues()[i]);
 				}
 
 				// Nur, wenn die oben berechnete Summe des Lastprofils ungleich
@@ -349,9 +347,9 @@ public class Marketplace implements Identifiable {
 				// Andernfalls nicht, da es noch Zeit hat einen Partner zu
 				// finden.
 				if (sumUntilCurrentSlot != 0) {
-					supplyOnePrice.add(currentOffer);
-					volumeSupply += currentOffer.getSumAggLoadprofile();
-					sumPricesSupply += currentOffer.getSumAggLoadprofile() * currentOffer.getPriceSugg();
+					supplyOnePrice.add(currentSupply);
+					volumeSupply += currentSupply.getSumAggLoadprofile();
+					sumPricesSupply += currentSupply.getSumAggLoadprofile() * currentSupply.getPriceSugg();
 				}
 			}
 
@@ -776,6 +774,7 @@ public class Marketplace implements Identifiable {
 		for (String current : demands) {
 			ArrayList<Offer> demandOffers = demand.get(current);
 			for (Offer offer : demandOffers) {
+				System.out.println("UUID: " +offer.getUUID());
 				if (offer.getUUID().equals(uuid)) {
 					return offer;
 				}
@@ -845,7 +844,8 @@ public class Marketplace implements Identifiable {
 		for (String current : supplies) {
 			ArrayList<Offer> supplyOffers = supply.get(current);
 			for (Offer offer : supplyOffers) {
-				if (offer.getUUID() == uuid) {
+				System.out.println("UUID: " +offer.getUUID());
+				if (offer.getUUID().equals(uuid)) {
 					return offer;
 				}
 			}
@@ -935,7 +935,10 @@ public class Marketplace implements Identifiable {
 		// Hole alle verbliebenen Angebote der zu matchenden Stunde
 		ArrayList<Offer> remainingOffers = new ArrayList<Offer>();
 		ArrayList<Offer> supplies = new ArrayList<Offer>();
-
+		
+		System.out.println(nextSlot);
+		allOffersToString();
+		
 		if (demand.get(nextSlot) != null) {
 			remainingOffers = (ArrayList<Offer>) demand.get(nextSlot).clone();
 		}
@@ -957,6 +960,10 @@ public class Marketplace implements Identifiable {
 			}
 		}
 		countRemainingOffers = remainingOffers.size();
+		System.out.println("Remaining Offers: ");
+		for (Offer offer: remainingOffers) {
+			System.out.println(offer.getPriceSugg() + "	" +valuesToString(offer.getAggLoadprofile().getValues()));
+		}
 
 		// Hole von der Methode make die Informaiton, ob ein Selbstausgleich
 		// gewünscht ist
@@ -1136,11 +1143,14 @@ public class Marketplace implements Identifiable {
 		}
 
 		// Öffne Fenster mit Ergebnissen
+		System.out.println("Next Slot: " +nextSlot);
 		FrameResults results = new FrameResults(DateTime.parse(nextSlot), justMatched, lastConfirmed, maxDeviation,
 				changes, countRemainingOffers, deviationWithoutChange, deviationWithChange, allChanges, demand, supply);
 
+		// Gib alle Angebote des Marktplatzes aus
+		allOffersToString();
+		
 		// Zaehle Variable nextSlot um eins hoch
-
 		nextSlot = DateTime.add(Calendar.HOUR_OF_DAY, 1, nextSlot);
 		System.out.println("NextSlot: " + nextSlot);
 	}

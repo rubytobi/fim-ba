@@ -39,10 +39,10 @@ import Util.API;
 public class Application {
 	public static class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 30;
+		public static final int maxDevices = 49;
 
 		// Jedes x-te Gerät ist ein BHKW
-		public static final int bhkwQuota = 5;
+		public static final int bhkwQuota = 10;
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
@@ -52,7 +52,7 @@ public class Application {
 
 		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
 		// starten soll
-		public static final int marketplaceMinuteOfSecondPhase = 55;
+		public static final int marketplaceMinuteOfSecondPhase = 45;
 
 		// Lege fest, ob mit DeltaLastprofilen gearbeitet werden soll
 		public static final boolean enableDeltaLoadprofiles = true;
