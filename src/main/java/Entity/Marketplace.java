@@ -46,7 +46,9 @@ public class Marketplace implements Identifiable {
 	private Map<String, ArrayList<ConfirmedOffer>> confirmedOffers = new TreeMap<String, ArrayList<ConfirmedOffer>>();
 
 	private ChangeRequestLoadprofile currentAnswer;
-
+	
+	private ArrayList<UUID> allOffersReceived = new ArrayList<UUID>();
+	
 	/**
 	 * Maps, die alle noch nicht zusammengefuehrten Angebote des Marktplatzes
 	 * beinhaltet
@@ -1241,6 +1243,7 @@ public class Marketplace implements Identifiable {
 	 *            Neues Angebot, das am Markt teilnehmen will
 	 */
 	public void receiveOffer(Offer offer) {
+		allOffersReceived.add(offer.getUUID());
 		System.out.println("Angebot trifft auf Marktplatz ein.");
 		Log.d(uuid, "Angebot trifft auf Marktplatz ein.");
 		GregorianCalendar dateGreg = DateTime.parse(offer.getDate());
@@ -1358,6 +1361,10 @@ public class Marketplace implements Identifiable {
 		}
 		if (removeOffer == null) {
 			System.out.println("RemoveOffer ist null");
+			System.out.println("Alle empfangenen Angebote: ");
+			for (UUID uuid: allOffersReceived) {
+				System.out.println(uuid);
+			}
 			return;
 		}
 
