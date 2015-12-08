@@ -46,9 +46,9 @@ public class Marketplace implements Identifiable {
 	private Map<String, ArrayList<ConfirmedOffer>> confirmedOffers = new TreeMap<String, ArrayList<ConfirmedOffer>>();
 
 	private ChangeRequestLoadprofile currentAnswer;
-	
+
 	private ArrayList<UUID> allOffersReceived = new ArrayList<UUID>();
-	
+
 	/**
 	 * Maps, die alle noch nicht zusammengefuehrten Angebote des Marktplatzes
 	 * beinhaltet
@@ -178,10 +178,11 @@ public class Marketplace implements Identifiable {
 		// Bestätige die Angebote zum Einheitspreis, die im nächsten Slot
 		// beginnen
 		confirmAllRemainingOffersWithOnePrice(DateTime.ToString(slotLastMatched), slot + 1, false);
-		
+
 		System.out.println(DateTime.ToString(now) + ", " + nextSlot);
-		System.out.println("Stunden: " + (now.get(Calendar.HOUR_OF_DAY)+1) + ", " +DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY));
-		System.out.println(" Minuten: " +minute);
+		System.out.println("Stunden: " + (now.get(Calendar.HOUR_OF_DAY) + 1) + ", "
+				+ DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY));
+		System.out.println(" Minuten: " + minute);
 		System.out.println(minute + " Minuten >= " + minuteOfSecondPhase + ": " + (minute >= minuteOfSecondPhase));
 
 		// Prüfe, ob die aktuelle Zeit schon nah genug am nächsten zur
@@ -776,7 +777,7 @@ public class Marketplace implements Identifiable {
 		for (String current : demands) {
 			ArrayList<Offer> demandOffers = demand.get(current);
 			for (Offer offer : demandOffers) {
-				System.out.println("UUID: " +offer.getUUID());
+				System.out.println("UUID: " + offer.getUUID());
 				if (offer.getUUID().equals(uuid)) {
 					return offer;
 				}
@@ -846,7 +847,7 @@ public class Marketplace implements Identifiable {
 		for (String current : supplies) {
 			ArrayList<Offer> supplyOffers = supply.get(current);
 			for (Offer offer : supplyOffers) {
-				System.out.println("UUID: " +offer.getUUID());
+				System.out.println("UUID: " + offer.getUUID());
 				if (offer.getUUID().equals(uuid)) {
 					return offer;
 				}
@@ -929,18 +930,19 @@ public class Marketplace implements Identifiable {
 			}
 
 			// Öffne Fenster mit Ergebnissen
-			FrameResults results = new FrameResults(DateTime.parse(nextSlot), justMatched, lastConfirmed, maxDeviation, false,
-					countRemainingOffers, deviationWithoutChange, deviationWithoutChange, allChanges, demand, supply);
+			FrameResults results = new FrameResults(DateTime.parse(nextSlot), justMatched, lastConfirmed, maxDeviation,
+					false, countRemainingOffers, deviationWithoutChange, deviationWithoutChange, allChanges, demand,
+					supply);
 			return;
 		}
 
 		// Hole alle verbliebenen Angebote der zu matchenden Stunde
 		ArrayList<Offer> remainingOffers = new ArrayList<Offer>();
 		ArrayList<Offer> supplies = new ArrayList<Offer>();
-		
+
 		System.out.println(nextSlot);
 		allOffersToString();
-		
+
 		if (demand.get(nextSlot) != null) {
 			remainingOffers = (ArrayList<Offer>) demand.get(nextSlot).clone();
 		}
@@ -963,8 +965,8 @@ public class Marketplace implements Identifiable {
 		}
 		countRemainingOffers = remainingOffers.size();
 		System.out.println("Remaining Offers: ");
-		for (Offer offer: remainingOffers) {
-			System.out.println(offer.getPriceSugg() + "	" +valuesToString(offer.getAggLoadprofile().getValues()));
+		for (Offer offer : remainingOffers) {
+			System.out.println(offer.getPriceSugg() + "	" + valuesToString(offer.getAggLoadprofile().getValues()));
 		}
 
 		// Hole von der Methode make die Informaiton, ob ein Selbstausgleich
@@ -1009,7 +1011,6 @@ public class Marketplace implements Identifiable {
 				API<ChangeRequestLoadprofile, Void> api = new API<ChangeRequestLoadprofile, Void>(Void.class);
 				api.consumers(author).offers(currentOffer.getUUID()).changeRequestMarketplace();
 				api.call(this, HttpMethod.POST, cr);
-
 
 				// Warte, bis eine Antwort vom Consumer eingetroffen ist
 				UUID uuid = UUID.randomUUID();
@@ -1145,13 +1146,13 @@ public class Marketplace implements Identifiable {
 		}
 
 		// Öffne Fenster mit Ergebnissen
-		System.out.println("Next Slot: " +nextSlot);
+		System.out.println("Next Slot: " + nextSlot);
 		FrameResults results = new FrameResults(DateTime.parse(nextSlot), justMatched, lastConfirmed, maxDeviation,
 				changes, countRemainingOffers, deviationWithoutChange, deviationWithChange, allChanges, demand, supply);
 
 		// Gib alle Angebote des Marktplatzes aus
 		allOffersToString();
-		
+
 		// Zaehle Variable nextSlot um eins hoch
 		nextSlot = DateTime.add(Calendar.HOUR_OF_DAY, 1, nextSlot);
 		System.out.println("NextSlot: " + nextSlot);
@@ -1243,9 +1244,9 @@ public class Marketplace implements Identifiable {
 	 *            Neues Angebot, das am Markt teilnehmen will
 	 */
 	public void receiveOffer(Offer offer) {
+		System.out.println("Angebot [" + offer.getUUID() + "] trifft auf Marktplatz ein.");
+		Log.d(uuid, "Angebot [" + offer.getUUID() + "] trifft auf Marktplatz ein.");
 		allOffersReceived.add(offer.getUUID());
-		System.out.println("Angebot trifft auf Marktplatz ein.");
-		Log.d(uuid, "Angebot trifft auf Marktplatz ein.");
 		GregorianCalendar dateGreg = DateTime.parse(offer.getDate());
 		String date = DateTime.ToString(dateGreg);
 
@@ -1349,7 +1350,7 @@ public class Marketplace implements Identifiable {
 	 *            Lastprofile
 	 */
 	public void removeOffer(UUID offer, boolean confirmed) {
-		System.out.println("Angebot wird entfernt: " + offer);
+		System.out.println("Angebot [" + offer + "] wird entfernt.");
 
 		Offer removeOffer = getOfferDemand(offer);
 		boolean isSupply;
@@ -1362,7 +1363,7 @@ public class Marketplace implements Identifiable {
 		if (removeOffer == null) {
 			System.out.println("RemoveOffer ist null");
 			System.out.println("Alle empfangenen Angebote: ");
-			for (UUID uuid: allOffersReceived) {
+			for (UUID uuid : allOffersReceived) {
 				System.out.println(uuid);
 			}
 			return;
@@ -1540,8 +1541,8 @@ public class Marketplace implements Identifiable {
 				for (Offer offer : offersAtDate) {
 					double[] values = offer.getAggLoadprofile().getValues();
 					double price = Math.round(100.00 * offer.getPriceSugg()) / 100.00;
-					System.out.println("	Price: " + price + "	Values: " + valuesToString(values) + 
-							"	(" +offer.getAuthor()+ ")");
+					System.out.println("	Price: " + price + "	Values: " + valuesToString(values) + "	("
+							+ offer.getAuthor() + ")");
 				}
 			}
 		}

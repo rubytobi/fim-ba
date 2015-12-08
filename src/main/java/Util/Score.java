@@ -104,4 +104,8 @@ public class Score implements Cloneable {
 	public boolean hasChangeRequest() {
 		return hasChangeRequest;
 	}
+
+	public UUID getReceived() {
+		return received.getUUID();
+	}
 }
