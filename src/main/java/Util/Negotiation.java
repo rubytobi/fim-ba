@@ -129,12 +129,14 @@ public class Negotiation implements Identifiable {
 			priceRequest = Math.abs(currentPrice1 * sumLoadprofile1) / sumLoadprofile2;
 			round2++;
 		}
+		
+		System.out.println("Angefragter Preis: " + priceRequest);
+
 
 		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		API<AnswerToOfferFromMarketplace, Void> api = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
 		api.consumers(currentOffer.getAuthor()).offers(offer).negotiation(uuid).priceChangeRequest();
-		System.out.println(api);
 		api.call(marketplace, HttpMethod.POST, answerOffer);
 	}
 
@@ -177,6 +179,7 @@ public class Negotiation implements Identifiable {
 		UUID consumer = answer.getConsumer();
 		double newPrice = answer.getNewPrice();
 		System.out.println("***receiveAnswer***");
+		System.out.println("Neuer Preis: " +answer.getNewPrice());
 		if (newPrice == Double.POSITIVE_INFINITY) {
 			System.out.println("Ungültige Antwort");
 			closed = true;
