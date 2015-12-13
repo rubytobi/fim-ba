@@ -642,8 +642,7 @@ public class Marketplace implements Identifiable {
 		int numSlots = 4;
 
 		// Starte sofort Verhandlung
-		// Negotiation negotiation = new Negotiation(offer, offers.get(0), 10,
-		// 5);
+		Negotiation negotiation = new Negotiation(offer, offers.get(0), 10, 5);
 
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
@@ -1236,7 +1235,6 @@ public class Marketplace implements Identifiable {
 			// Erstelle neue Verhandlung und speichere Verhandlung unter
 			// negotiatingOffers ab
 			Negotiation negotiation = new Negotiation(offer1, offer2, sumOffer1, sumOffer2);
-			negotiation.negotiationToString();
 			negotiatingOffers.put(negotiation.getUUID(), negotiation);
 		}
 		return true;
@@ -1394,7 +1392,8 @@ public class Marketplace implements Identifiable {
 			Negotiation negotiation = negotiatingOffers.get(current);
 			Offer[] negOffers = negotiation.getOffers();
 			for (Offer negOffer : negOffers) {
-				if (negOffer.getUUID().equals(uuid)) {
+				System.out.println("UUID NEG: " +negOffer.getUUID());
+				if (negOffer.getUUID().equals(offer)) {
 					// Wenn Angebot gefunden wird, muss Verhandlung geschlossen
 					// werden
 					negotiation.close();

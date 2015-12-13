@@ -10,6 +10,10 @@ public class AnswerToPriceChangeRequest {
 		this.consumer = consumer;
 		this.newPrice = newPrice;
 	}
+	
+	public AnswerToPriceChangeRequest() { 
+		// dummy 
+	}
 
 	public UUID getConsumer() {
 		return consumer;
@@ -19,7 +23,4 @@ public class AnswerToPriceChangeRequest {
 		return newPrice;
 	}
 
-	public String toString() {
-		return "[consumer=" + consumer + ", newPrice=" + newPrice + "]";
-	}
 }

@@ -670,7 +670,7 @@ public class Consumer implements Identifiable {
 	public void priceChangeRequest(AnswerToOfferFromMarketplace answerOffer, UUID negotiation) {
 		Log.d(uuid, "Consumer hat priceChangeRequest erhalten, UUID: " + negotiation);
 		System.out.println("Consumer hat priceChangeRequest erhalten, UUID: " + negotiation);
-		double newPrice = answerOffer.getPrice();
+		double price = answerOffer.getPrice();
 
 		// Prüfe, dass der neue Preis innerhalb der Preisgrenzen des Angebotes
 		// liegt
@@ -678,13 +678,12 @@ public class Consumer implements Identifiable {
 		// Liegt er nicht dazwischen, bestätige das Minimum bzw. das Maximum
 		Offer offer = allOffers.get(answerOffer.getOffer());
 		if (offer == null) {
-			System.out.println("Angebot für Negotioation liegt beim Consumer nicht vor.");
-			newPrice = Double.POSITIVE_INFINITY;
+			System.out.println("Angebot für Negotiation liegt beim Consumer nicht vor.");
+			price = Double.POSITIVE_INFINITY;
 
 			// Sende Antwort an Negotiation
-			AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
-			Marketplace marketplace = Marketplace.instance();
-			Negotiation negotiationWhole = marketplace.getNegotiationsMap().get(negotiation);
+			AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, price);
+			Negotiation negotiationWhole = NegotiationContainer.instance().get(negotiation);
 
 			API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
 			api.negotiation().answerToPriceChangeRequest(negotiation);
@@ -693,15 +692,15 @@ public class Consumer implements Identifiable {
 		double min = offer.getMinPrice();
 		double max = offer.getMaxPrice();
 
-		if (newPrice < min) {
-			newPrice = min;
+		if (price < min) {
+			price = min;
 		}
-		if (newPrice > max) {
-			newPrice = max;
+		if (price > max) {
+			price = max;
 		}
 
 		// Sende Antwort an Negotiation
-		AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
+		AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, price);
 		Negotiation negotiationWhole = NegotiationContainer.instance().get(negotiation);
 		if (negotiationWhole == null) {
 			System.out.println("Negotiation konnte nicht gefunden werden.");
