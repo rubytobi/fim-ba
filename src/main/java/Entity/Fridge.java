@@ -500,10 +500,11 @@ public class Fridge implements Device {
 				}
 
 				double[][] changed = chargeChangedSchedule(changesMinute, minutePossibleChange, slot, false);
-				
+
 				if (changed == null) {
-					// Gib Antwort ohne jegliche Änderungen zurück, wenn change == null
-					double[] newChangesKWH = {0, 0, 0, 0};
+					// Gib Antwort ohne jegliche Änderungen zurück, wenn change
+					// == null
+					double[] newChangesKWH = { 0, 0, 0, 0 };
 					double factorForPrice = 0;
 					double sumPenalty = 0;
 					AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
@@ -623,6 +624,9 @@ public class Fridge implements Device {
 					factorForPrice, sumPenalty);
 			return answer;
 		} catch (IllegalArgumentException e) {
+			return null;
+		} catch (Exception e) {
+			e.printStackTrace();
 			return null;
 		}
 	}

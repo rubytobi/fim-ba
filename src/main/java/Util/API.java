@@ -68,7 +68,7 @@ public class API<Request, Response> {
 
 			return;
 		} catch (Exception e) {
-			Log.d(who.getUUID(), e + " - -- - " + who + " - -- - " + what + " - -- - " + response);
+			Log.e(who.getUUID(), e + " - -- - " + who + " - -- - " + what + " - -- - " + response);
 		}
 
 		this.response = null;

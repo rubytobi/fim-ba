@@ -668,7 +668,8 @@ public class Consumer implements Identifiable {
 	 *            Preisanfrage stammt.
 	 */
 	public void priceChangeRequest(AnswerToOfferFromMarketplace answerOffer, UUID negotiation) {
-		System.out.println("Consumer hat priceChangeRequest erhalten, UUID: " +negotiation);
+		Log.d(uuid, "Consumer hat priceChangeRequest erhalten, UUID: " + negotiation);
+		System.out.println("Consumer hat priceChangeRequest erhalten, UUID: " + negotiation);
 		double newPrice = answerOffer.getPrice();
 
 		// Prüfe, dass der neue Preis innerhalb der Preisgrenzen des Angebotes
@@ -679,7 +680,7 @@ public class Consumer implements Identifiable {
 		if (offer == null) {
 			System.out.println("Angebot für Negotioation liegt beim Consumer nicht vor.");
 			newPrice = Double.POSITIVE_INFINITY;
-			
+
 			// Sende Antwort an Negotiation
 			AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
 			Marketplace marketplace = Marketplace.instance();
