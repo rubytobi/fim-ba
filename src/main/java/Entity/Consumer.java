@@ -248,6 +248,7 @@ public class Consumer implements Identifiable {
 			api2.call(this, HttpMethod.GET, null);
 		}
 
+		invalidateOfferAtMarketplace(mergedOffer);
 		Log.d(uuid, "Sende neues Angebot [" + offer.getUUID() + "] an den Marktplatz.");
 		sendOfferToMarketplace(offer);
 
@@ -507,6 +508,8 @@ public class Consumer implements Identifiable {
 						contributionOffer);
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "Angebote konnten nicht verknüpft werden.");
+			} catch (IllegalArgumentException e) {
+				Log.e(uuid, "Angebote konnten nicht verknüpft werden. Kein Preisfehler!");
 			}
 		}
 
@@ -706,7 +709,7 @@ public class Consumer implements Identifiable {
 
 		API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
 		api.negotiation().answerToPriceChangeRequest(negotiation);
-		System.out.println(api);
+		Log.d(uuid, "Sende Antwort an Negotiation [" + api + "]: AnswerToPriceChangeRequest [" + answer + "]");
 		api.call(negotiationWhole, HttpMethod.POST, answer);
 	}
 
@@ -1185,6 +1188,12 @@ public class Consumer implements Identifiable {
 		API<Offer, Void> api2 = new API<>(Void.class);
 		api2.marketplace().offers();
 		api2.call(this, HttpMethod.POST, offer);
+	}
+
+	private void invalidateOfferAtMarketplace(Offer offer) {
+		API<Offer, Void> api2 = new API<>(Void.class);
+		api2.marketplace().offers(offer.getUUID()).invalidate();
+		api2.call(this, HttpMethod.GET, offer);
 	}
 
 	private void sendOfferNotificationToAllConsumers(OfferNotification notification) {

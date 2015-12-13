@@ -177,8 +177,8 @@ public class Fridge implements Device {
 		this.penaltyPrice = penaltyPrice;
 
 		simulationFridge = new SimulationFridge();
-		
-		System.out.println("Neuer Fridge: " +uuid);
+
+		System.out.println("Neuer Fridge: " + uuid);
 		status = DeviceStatus.INITIALIZED;
 	}
 
@@ -191,6 +191,8 @@ public class Fridge implements Device {
 	 *            soll
 	 */
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
+		Log.d(uuid, "ChangeRequestSchedule erhalten: " + cr);
+
 		if (!cr.getStartLoadprofile().equals(timeFixed)) {
 			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
 			// timeFixed angefragt werden. Sende daher Antwort ohne Änderungen
@@ -200,398 +202,429 @@ public class Fridge implements Device {
 			return answer;
 		}
 
-		double[] changesKWH = cr.getChangesLoadprofile();
-		int[] changesMinute = new int[numSlots];
-		double[][] plannedSchedule = scheduleMinutes.clone();
-		double[] loadprofile = createValuesLoadprofile(scheduleMinutes[0]);
-		int[] plannedMinutesCooling = new int[numSlots];
+		try {
 
-		// Minute Max(0), Temperatur Max(1)
-		double[][] maxSlots = new double[2][numSlots], minSlots = new double[2][numSlots];
+			double[] changesKWH = cr.getChangesLoadprofile();
+			int[] changesMinute = new int[numSlots];
+			double[][] plannedSchedule = scheduleMinutes.clone();
+			double[] loadprofile = createValuesLoadprofile(scheduleMinutes[0]);
+			int[] plannedMinutesCooling = new int[numSlots];
 
-		/*
-		 * 1 Berechne, wie viele Minuten zusätzlich bzw. weniger gekühlt werden
-		 * muss und prüfe, ob genügend Minuten vorhanden sind, in welchen
-		 * Änderung möglich ist. Wenn nicht, passe die Höhe der Änderungen an.
-		 */
-		for (int i = 0; i < numSlots; i++) {
-			// Berechne die Anzahl von Minuten, die pro Slot aktuell gekühlt
-			// wird
-			plannedMinutesCooling[i] = (int) Math.ceil(-loadprofile[i] / consCooling);
+			// Minute Max(0), Temperatur Max(1)
+			double[][] maxSlots = new double[2][numSlots], minSlots = new double[2][numSlots];
 
-			// Berechne die Anzahl an Minuten, die zusätzlich bzw. weniger
-			// gekühlt werden soll
-			changesMinute[i] = (int) Math.ceil(changesKWH[i] / consCooling);
+			/*
+			 * 1 Berechne, wie viele Minuten zusätzlich bzw. weniger gekühlt
+			 * werden muss und prüfe, ob genügend Minuten vorhanden sind, in
+			 * welchen Änderung möglich ist. Wenn nicht, passe die Höhe der
+			 * Änderungen an.
+			 */
+			for (int i = 0; i < numSlots; i++) {
+				// Berechne die Anzahl von Minuten, die pro Slot aktuell gekühlt
+				// wird
+				plannedMinutesCooling[i] = (int) Math.ceil(-loadprofile[i] / consCooling);
 
-			// Prüfe dass Anzahl der Minuten, in welchen Änderung möglich ist,
-			// groß genug ist
-			// Falls nicht, setze Änderung auf maximale Anzahl von Minuten, in
-			// den Änderung
-			// möglich ist
-			if (changesMinute[i] > 0) {
-				// Weniger Kühlen
-				int minutesCooling = plannedMinutesCooling[i];
-				if (Math.abs(changesMinute[i]) > minutesCooling) {
-					changesMinute[i] = minutesCooling;
+				// Berechne die Anzahl an Minuten, die zusätzlich bzw. weniger
+				// gekühlt werden soll
+				changesMinute[i] = (int) Math.ceil(changesKWH[i] / consCooling);
+
+				// Prüfe dass Anzahl der Minuten, in welchen Änderung möglich
+				// ist,
+				// groß genug ist
+				// Falls nicht, setze Änderung auf maximale Anzahl von Minuten,
+				// in
+				// den Änderung
+				// möglich ist
+				if (changesMinute[i] > 0) {
+					// Weniger Kühlen
+					int minutesCooling = plannedMinutesCooling[i];
+					if (Math.abs(changesMinute[i]) > minutesCooling) {
+						changesMinute[i] = minutesCooling;
+					}
+				} else {
+					int minutesWarming = 15 - plannedMinutesCooling[i];
+					if (Math.abs(changesMinute[i]) > minutesWarming) {
+						changesMinute[i] = -minutesWarming;
+					}
 				}
+			}
+
+			/*
+			 * 2 Prüfe, ob durch die errechneten Änderungen des jeweilig
+			 * vorhergehenden Slots das absolute Min/Max des aktuellen Slots
+			 * unter- oder überschritten wird. Wenn ja, passe die Höhe der
+			 * Änderungen an, sodass keien unter- und über- schreitungen mehr
+			 * stattfinden.
+			 */
+			// Berechne für jeden Slot das aktuelle Maximum und Minimum (1) und
+			// in
+			// welcher Minute es eintritt (0)
+			for (int i = 0; i < numSlots; i++) {
+				maxSlots[1][i] = plannedSchedule[1][i * 15];
+				minSlots[1][i] = maxSlots[1][i];
+				maxSlots[0][i] = i * 15;
+				minSlots[0][i] = i * 15;
+				for (int j = i * 15; j < (i + 1) * 15; j++) {
+					if (plannedSchedule[1][j] > maxSlots[1][i]) {
+						maxSlots[1][i] = plannedSchedule[1][j];
+						maxSlots[0][i] = j;
+					}
+					if (plannedSchedule[1][j] < minSlots[1][i]) {
+						minSlots[1][i] = plannedSchedule[1][j];
+						minSlots[0][i] = j;
+					}
+				}
+			}
+
+			// Prüfe, ob die Änderungen der vorhergehenden Slots ein über-/
+			// unter-
+			// schreiten der maximalen/ minimalen Temperatur erzwingen. Passe
+			// das
+			// Minimum und das Maximum mit Beachtung der Änderungen in den
+			// vorhergehenden Slots an
+			int changesBefore = changesMinute[0];
+
+			for (int i = 1; i < numSlots; i++) {
+				if (changesBefore != 0) {
+					if (changesBefore < 0) {
+						minSlots[1][i] -= changesBefore * (fallCooling - riseWarming);
+						if (minSlots[1][i] < minTemp2) {
+							// Prüfe, um wie viel temp2 unterschritten wurde
+							double tooLow = minTemp2 - minSlots[1][i];
+
+							// Anzahl an Minuten, die weniger gekühlt werden
+							// darf
+							// (positive Zahl)
+							int minutesLessCooling = (int) Math.ceil(tooLow / (-fallCooling + riseWarming));
+
+							// Prüfe, ob in den vorhergehenden Slots zusätzlich
+							// zum
+							// Plan gekühlt wurde und wenn ja, kühle dann um
+							// minutesLessCooling weniger
+							int lastSlot = 1;
+							while (i - lastSlot >= 0 && minutesLessCooling > 0) {
+								double currentChange = 0;
+								if (changesMinute[i - lastSlot] < 0) {
+									if (Math.abs(changesMinute[i - lastSlot]) >= minutesLessCooling) {
+										changesMinute[i - lastSlot] += minutesLessCooling;
+										currentChange = minutesLessCooling;
+										minutesLessCooling = 0;
+									} else {
+										currentChange = -changesMinute[i - lastSlot];
+										minutesLessCooling += changesMinute[i - lastSlot];
+										changesMinute[i - lastSlot] = 0;
+									}
+
+									// Passe alle Werte nach Slot (i-lastSlot)
+									// an
+									for (int j = i - lastSlot + 1; j <= i; j++) {
+										minSlots[1][j] += currentChange * (riseWarming - fallCooling);
+									}
+									changesBefore += currentChange;
+								}
+								lastSlot++;
+							}
+						}
+					} else {
+						maxSlots[1][i] += changesBefore * (riseWarming - fallCooling);
+						if (maxSlots[1][i] > maxTemp2) {
+
+							// Prüfe, um wie viel temp2 überschritten wurde
+							double tooHigh = maxTemp2 - maxSlots[1][i];
+
+							// Anzahl an Minuten, die mehr gekühlt werden muss
+							// (positive Zahl)
+							int minutesMoreCooling = (int) Math.ceil(tooHigh / (fallCooling - riseWarming));
+
+							// Prüfe, ob in den vorhergehenden Slots zusätzlich
+							// zum
+							// Plan ge-
+							// kühlt wurde und wenn ja, kühle dann um
+							// minutesMoreCooling mehr
+							int lastSlot = 1;
+							while (i - lastSlot >= 0 && minutesMoreCooling > 0) {
+								double currentChange;
+								if (changesMinute[i - lastSlot] > 0) {
+									if (changesMinute[i - lastSlot] >= minutesMoreCooling) {
+										changesMinute[i - lastSlot] = changesMinute[i - lastSlot] - minutesMoreCooling;
+										currentChange = -minutesMoreCooling;
+										minutesMoreCooling = 0;
+									} else {
+										currentChange = -changesMinute[i - lastSlot];
+										minutesMoreCooling -= changesMinute[i - 1];
+										changesMinute[i - lastSlot] = 0;
+									}
+
+									// Passe alle Werte nach Slot (i-lastSlot)
+									// an
+									for (int j = i - lastSlot + 1; j <= i; j++) {
+										maxSlots[1][j] -= currentChange * (fallCooling - riseWarming);
+									}
+									changesBefore += currentChange;
+
+								}
+								lastSlot++;
+							}
+						}
+					}
+				}
+				changesBefore += changesMinute[i];
+			}
+
+			/*
+			 * 3 Prüfe, ob alle Änderungen vor dem Extrema im jeweiligen Slot
+			 * möglich sind. Wenn nein, prüfe, ob für die restlichen Änderungen
+			 * nach dem Extrema genügend Zeit und Kapazität verfügbar ist. Wenn
+			 * nein, passe die Höhe der Änderungen an.
+			 */
+			// Wie viele Changes (1) darf ich erst ab Minute (0) machen?
+			int[][] minutePossibleChange = new int[2][numSlots];
+			int change;
+
+			double[][] newSchedule = new double[2][numSlots * 15];
+
+			for (int slot = 0; slot < numSlots; slot++) {
+				change = changesMinute[slot];
+				minutePossibleChange[0][slot] = (int) minSlots[0][slot];
+				if (change != 0) {
+					if (change < 0) {
+						minSlots[1][slot] += change * (fallCooling - riseWarming);
+						if (minSlots[1][slot] < minTemp2) {
+							double currentMin = minSlots[1][slot];
+							int currentMinute = (int) minSlots[0][slot];
+
+							// Berechne, wie viele Änderungsmöglichkeiten vor
+							// und
+							// nach dem Extremum vorliegen
+							int amountBefore = 0;
+							int amountAfter = 0;
+							for (int j = 0; j < numSlots * 15; j++) {
+								if (scheduleMinutes[0][j] == 0) {
+									if (j < currentMinute) {
+										amountBefore++;
+									} else {
+										amountAfter++;
+									}
+								}
+							}
+
+							// Berechne, wie viele Changes vor dem Eintritt des
+							// Minimums möglich sind
+							double amountPossibleBefore = Math
+									.ceil((currentMin - minTemp2) / (fallCooling - riseWarming));
+							if (amountPossibleBefore > amountBefore) {
+								amountPossibleBefore = amountBefore;
+							}
+
+							// Berechne, wie viele Changes nun noch nach
+							// Eintritt
+							// des
+							// Minimums nötig sind
+							double amountRest = change - amountPossibleBefore;
+							if (amountRest > amountAfter) {
+								amountRest = amountAfter;
+								double possibleChange = amountPossibleBefore + amountAfter;
+								double less = change - possibleChange;
+
+								// Passe alle nachfolgenden Minima an
+								for (int j = slot + 1; j < numSlots; j++) {
+									minSlots[1][j] = less * (riseWarming - fallCooling);
+								}
+
+								changesMinute[slot] = (int) possibleChange;
+							}
+							minutePossibleChange[0][slot] = (int) minSlots[0][slot] + 1;
+							minutePossibleChange[1][slot] = (int) amountRest;
+						}
+
+						else {
+							minutePossibleChange[0][slot] = slot * 15;
+							minutePossibleChange[1][slot] = change;
+						}
+
+					} else {
+						maxSlots[1][slot] += change * (riseWarming - fallCooling);
+						if (maxSlots[1][slot] > maxTemp2) {
+							double currentMax = maxSlots[1][slot];
+							int currentMinute = (int) maxSlots[0][slot];
+
+							// Berechne, wie viele Änderungsmöglichkeiten vor
+							// und
+							// nach dem Extremum vorliegen
+							int amountBefore = 0;
+							int amountAfter = 0;
+							for (int j = slot * 15; j < (slot + 1) * 15; j++) {
+								if (scheduleMinutes[0][j] == consCooling) {
+									if (j < currentMinute) {
+										amountBefore++;
+									} else {
+										amountAfter++;
+									}
+								}
+							}
+
+							// Berechne, wie viele der Changes vor dem
+							// Eintritt des Maximums möglich sind
+							double amountPossibleBefore = Math
+									.ceil((currentMax - maxTemp2) / (riseWarming - fallCooling));
+							if (amountPossibleBefore > amountBefore) {
+								amountPossibleBefore = amountBefore;
+							}
+
+							// Berechne, wie viele Changes nun noch nach
+							// Eintritt
+							// des Maximums nötig sind
+							double amountRest = change - amountPossibleBefore;
+							if (amountRest > amountAfter) {
+								amountRest = amountAfter;
+								double possibleChange = amountPossibleBefore + amountAfter;
+								double more = change - possibleChange;
+
+								// Passe alle nachfolgenden Maxima an
+								for (int j = slot + 1; j < numSlots; j++) {
+									maxSlots[1][j] = more * (fallCooling - riseWarming);
+								}
+
+								changesMinute[slot] = (int) possibleChange;
+							}
+
+							minutePossibleChange[0][slot] = (int) maxSlots[0][slot] + 1;
+							minutePossibleChange[1][slot] = (int) amountRest;
+						}
+
+						else {
+							minutePossibleChange[0][slot] = slot * 15;
+							minutePossibleChange[1][slot] = change;
+						}
+					}
+				}
+
+				double[][] changed = chargeChangedSchedule(changesMinute, minutePossibleChange, slot, false);
+				
+				if (changed == null) {
+					// Gib Antwort ohne jegliche Änderungen zurück, wenn change == null
+					double[] newChangesKWH = {0, 0, 0, 0};
+					double factorForPrice = 0;
+					double sumPenalty = 0;
+					AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
+							factorForPrice, sumPenalty);
+					return answer;
+				}
+
+				// Prüfe, dass Werte auch nach Minimum/ Maximum zu keiner Zeit
+				// unter-/ überschritten werden
+				boolean changesNecessary = false;
+
+				// Prüfe, ob Werte nach Minimum/ Maximum noch unter-/
+				// überschritten
+				// werden
+				// Wenn ja, berechne Höhe der Überschreitung und notwendige
+				// Anpassung und berechne changedSchedule nocheinmal
+				double[][] valuesToTest = changed;
+				double adaptChange = 0;
+				int[] secondChange = { 0, 0, 0, 0 };
+				int[][] secondMinutePossibleChange = minutePossibleChange.clone();
+				for (int n = minutePossibleChange[0][slot] - slot * 15; n < 15; n++) {
+					if (valuesToTest[1][n] + adaptChange < minTemp2) {
+						changesNecessary = true;
+						changesMinute[slot]++;
+						secondChange[slot]++;
+						adaptChange += riseWarming - fallCooling;
+					} else if (valuesToTest[1][n] + adaptChange > maxTemp2) {
+						changesNecessary = true;
+						changesMinute[slot]--;
+						secondChange[slot]--;
+						adaptChange += fallCooling - riseWarming;
+					}
+				}
+
+				if (changesNecessary) {
+					secondMinutePossibleChange[1][slot] = secondChange[slot];
+					changed = chargeChangedSchedule(secondChange, minutePossibleChange, slot, true);
+				}
+
+				int start = slot * 15;
+				for (int k = 0; k < 15; k++) {
+					newSchedule[0][start] = changed[0][k];
+					newSchedule[1][start] = changed[1][k];
+				}
+
+			}
+
+			// Berechne, in wie vielen Minuten der Plan vor und nach den
+			// Änderungen
+			// in dem Bereich zwischen maxTemp1 und maxTemp2 oder zwischen
+			// minTemp2
+			// und minTemp1 war.
+			// War die Temperatur in einer Minute bei maxTemp2 bzw. minTemp2, so
+			// wird die volle Minute berechnet, war die Temperatur bei maxTemp1
+			// bzw.
+			// minTemp2, so wird die Minute gar nicht berechnet. In dem Bereich
+			// dazwischen wird die Minute anteilig berechnet, je nachdem wie
+			// hoch
+			// die Temperatur genau war.
+			double before = 0;
+			double after = 0;
+			double spanTooHigh = maxTemp2 - maxTemp1;
+			double spanTooLow = minTemp1 - minTemp2;
+			for (int i = 0; i < numSlots * 15; i++) {
+				double currentTempBefore = scheduleMinutes[1][i];
+				double currentTempAfter = scheduleCurrentChangeRequest[1][i];
+				if (currentTempBefore < minTemp1) {
+					currentTempBefore -= minTemp2;
+					before += 1 - currentTempBefore / spanTooLow;
+				} else if (currentTempBefore > maxTemp1) {
+					currentTempBefore -= maxTemp1;
+					before += currentTempBefore / spanTooHigh;
+				}
+				if (currentTempAfter < minTemp1) {
+					currentTempAfter -= minTemp2;
+					after += 1 - currentTempAfter / spanTooLow;
+				} else if (currentTempAfter > maxTemp1) {
+					currentTempAfter -= maxTemp1;
+					after += currentTempAfter / spanTooHigh;
+				}
+			}
+
+			// Berechne, um wie viele (anteilige) Minuten der Bereich zwischen
+			// minTemp1 und maxTemp1 durch die Änderungen mehr verlassen wurde
+			double worsening;
+			if (after > before) {
+				worsening = before - after;
 			} else {
-				int minutesWarming = 15 - plannedMinutesCooling[i];
-				if (Math.abs(changesMinute[i]) > minutesWarming) {
-					changesMinute[i] = -minutesWarming;
-				}
+				worsening = 0;
 			}
+
+			// Berechne den Faktor für den Preis.
+			// Hierbei wird berechnet, wie viel der Kühlschrank für die Anzahl
+			// an
+			// worsening Minuten beim Kühlen verbrauchen würde
+			double sumPenalty = Math.abs(worsening * penaltyPrice);
+
+			// Berechnet wie viele kWh nun pro Viertelstunde mehr oder weniger
+			// verbraucht wird und summiert die Werte auf.
+			double sumKWHAdditionalCooling = 0;
+			double[] newChangesKWH = new double[numSlots];
+			for (int i = 0; i < numSlots; i++) {
+				newChangesKWH[i] = changesMinute[i] * consCooling;
+				sumKWHAdditionalCooling += newChangesKWH[i];
+			}
+
+			// Jede kWh, die zusätzlich gekühlt werden muss, wird zum Faktor für
+			// den
+			// Preis hinzugerechnet
+			double factorForPrice = 0;
+			if (sumKWHAdditionalCooling > 0) {
+				factorForPrice += sumKWHAdditionalCooling;
+			}
+
+			// Gibt mögliche Änderungen und den Faktor für deren Preis zurück
+			AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
+					factorForPrice, sumPenalty);
+			return answer;
+		} catch (IllegalArgumentException e) {
+			return null;
 		}
-
-		/*
-		 * 2 Prüfe, ob durch die errechneten Änderungen des jeweilig
-		 * vorhergehenden Slots das absolute Min/Max des aktuellen Slots unter-
-		 * oder überschritten wird. Wenn ja, passe die Höhe der Änderungen an,
-		 * sodass keien unter- und über- schreitungen mehr stattfinden.
-		 */
-		// Berechne für jeden Slot das aktuelle Maximum und Minimum (1) und in
-		// welcher Minute es eintritt (0)
-		for (int i = 0; i < numSlots; i++) {
-			maxSlots[1][i] = plannedSchedule[1][i * 15];
-			minSlots[1][i] = maxSlots[1][i];
-			maxSlots[0][i] = i * 15;
-			minSlots[0][i] = i * 15;
-			for (int j = i * 15; j < (i + 1) * 15; j++) {
-				if (plannedSchedule[1][j] > maxSlots[1][i]) {
-					maxSlots[1][i] = plannedSchedule[1][j];
-					maxSlots[0][i] = j;
-				}
-				if (plannedSchedule[1][j] < minSlots[1][i]) {
-					minSlots[1][i] = plannedSchedule[1][j];
-					minSlots[0][i] = j;
-				}
-			}
-		}
-
-		// Prüfe, ob die Änderungen der vorhergehenden Slots ein über-/ unter-
-		// schreiten der maximalen/ minimalen Temperatur erzwingen. Passe das
-		// Minimum und das Maximum mit Beachtung der Änderungen in den
-		// vorhergehenden Slots an
-		int changesBefore = changesMinute[0];
-
-		for (int i = 1; i < numSlots; i++) {
-			if (changesBefore != 0) {
-				if (changesBefore < 0) {
-					minSlots[1][i] -= changesBefore * (fallCooling - riseWarming);
-					if (minSlots[1][i] < minTemp2) {
-						// Prüfe, um wie viel temp2 unterschritten wurde
-						double tooLow = minTemp2 - minSlots[1][i];
-
-						// Anzahl an Minuten, die weniger gekühlt werden darf
-						// (positive Zahl)
-						int minutesLessCooling = (int) Math.ceil(tooLow / (-fallCooling + riseWarming));
-
-						// Prüfe, ob in den vorhergehenden Slots zusätzlich zum
-						// Plan gekühlt wurde und wenn ja, kühle dann um
-						// minutesLessCooling weniger
-						int lastSlot = 1;
-						while (i - lastSlot >= 0 && minutesLessCooling > 0) {
-							double currentChange = 0;
-							if (changesMinute[i - lastSlot] < 0) {
-								if (Math.abs(changesMinute[i - lastSlot]) >= minutesLessCooling) {
-									changesMinute[i - lastSlot] += minutesLessCooling;
-									currentChange = minutesLessCooling;
-									minutesLessCooling = 0;
-								} else {
-									currentChange = -changesMinute[i - lastSlot];
-									minutesLessCooling += changesMinute[i - lastSlot];
-									changesMinute[i - lastSlot] = 0;
-								}
-
-								// Passe alle Werte nach Slot (i-lastSlot) an
-								for (int j = i - lastSlot + 1; j <= i; j++) {
-									minSlots[1][j] += currentChange * (riseWarming - fallCooling);
-								}
-								changesBefore += currentChange;
-							}
-							lastSlot++;
-						}
-					}
-				} else {
-					maxSlots[1][i] += changesBefore * (riseWarming - fallCooling);
-					if (maxSlots[1][i] > maxTemp2) {
-
-						// Prüfe, um wie viel temp2 überschritten wurde
-						double tooHigh = maxTemp2 - maxSlots[1][i];
-
-						// Anzahl an Minuten, die mehr gekühlt werden muss
-						// (positive Zahl)
-						int minutesMoreCooling = (int) Math.ceil(tooHigh / (fallCooling - riseWarming));
-
-						// Prüfe, ob in den vorhergehenden Slots zusätzlich zum
-						// Plan ge-
-						// kühlt wurde und wenn ja, kühle dann um
-						// minutesMoreCooling mehr
-						int lastSlot = 1;
-						while (i - lastSlot >= 0 && minutesMoreCooling > 0) {
-							double currentChange;
-							if (changesMinute[i - lastSlot] > 0) {
-								if (changesMinute[i - lastSlot] >= minutesMoreCooling) {
-									changesMinute[i - lastSlot] = changesMinute[i - lastSlot] - minutesMoreCooling;
-									currentChange = -minutesMoreCooling;
-									minutesMoreCooling = 0;
-								} else {
-									currentChange = -changesMinute[i - lastSlot];
-									minutesMoreCooling -= changesMinute[i - 1];
-									changesMinute[i - lastSlot] = 0;
-								}
-
-								// Passe alle Werte nach Slot (i-lastSlot) an
-								for (int j = i - lastSlot + 1; j <= i; j++) {
-									maxSlots[1][j] -= currentChange * (fallCooling - riseWarming);
-								}
-								changesBefore += currentChange;
-
-							}
-							lastSlot++;
-						}
-					}
-				}
-			}
-			changesBefore += changesMinute[i];
-		}
-
-		/*
-		 * 3 Prüfe, ob alle Änderungen vor dem Extrema im jeweiligen Slot
-		 * möglich sind. Wenn nein, prüfe, ob für die restlichen Änderungen nach
-		 * dem Extrema genügend Zeit und Kapazität verfügbar ist. Wenn nein,
-		 * passe die Höhe der Änderungen an.
-		 */
-		// Wie viele Changes (1) darf ich erst ab Minute (0) machen?
-		int[][] minutePossibleChange = new int[2][numSlots];
-		int change;
-
-		double[][] newSchedule = new double[2][numSlots * 15];
-
-		for (int slot = 0; slot < numSlots; slot++) {
-			change = changesMinute[slot];
-			minutePossibleChange[0][slot] = (int) minSlots[0][slot];
-			if (change != 0) {
-				if (change < 0) {
-					minSlots[1][slot] += change * (fallCooling - riseWarming);
-					if (minSlots[1][slot] < minTemp2) {
-						double currentMin = minSlots[1][slot];
-						int currentMinute = (int) minSlots[0][slot];
-
-						// Berechne, wie viele Änderungsmöglichkeiten vor und
-						// nach dem Extremum vorliegen
-						int amountBefore = 0;
-						int amountAfter = 0;
-						for (int j = 0; j < numSlots * 15; j++) {
-							if (scheduleMinutes[0][j] == 0) {
-								if (j < currentMinute) {
-									amountBefore++;
-								} else {
-									amountAfter++;
-								}
-							}
-						}
-
-						// Berechne, wie viele Changes vor dem Eintritt des
-						// Minimums möglich sind
-						double amountPossibleBefore = Math.ceil((currentMin - minTemp2) / (fallCooling - riseWarming));
-						if (amountPossibleBefore > amountBefore) {
-							amountPossibleBefore = amountBefore;
-						}
-
-						// Berechne, wie viele Changes nun noch nach Eintritt
-						// des
-						// Minimums nötig sind
-						double amountRest = change - amountPossibleBefore;
-						if (amountRest > amountAfter) {
-							amountRest = amountAfter;
-							double possibleChange = amountPossibleBefore + amountAfter;
-							double less = change - possibleChange;
-
-							// Passe alle nachfolgenden Minima an
-							for (int j = slot + 1; j < numSlots; j++) {
-								minSlots[1][j] = less * (riseWarming - fallCooling);
-							}
-
-							changesMinute[slot] = (int) possibleChange;
-						}
-						minutePossibleChange[0][slot] = (int) minSlots[0][slot] + 1;
-						minutePossibleChange[1][slot] = (int) amountRest;
-					}
-
-					else {
-						minutePossibleChange[0][slot] = slot * 15;
-						minutePossibleChange[1][slot] = change;
-					}
-
-				} else {
-					maxSlots[1][slot] += change * (riseWarming - fallCooling);
-					if (maxSlots[1][slot] > maxTemp2) {
-						double currentMax = maxSlots[1][slot];
-						int currentMinute = (int) maxSlots[0][slot];
-
-						// Berechne, wie viele Änderungsmöglichkeiten vor und
-						// nach dem Extremum vorliegen
-						int amountBefore = 0;
-						int amountAfter = 0;
-						for (int j = slot * 15; j < (slot + 1) * 15; j++) {
-							if (scheduleMinutes[0][j] == consCooling) {
-								if (j < currentMinute) {
-									amountBefore++;
-								} else {
-									amountAfter++;
-								}
-							}
-						}
-
-						// Berechne, wie viele der Changes vor dem
-						// Eintritt des Maximums möglich sind
-						double amountPossibleBefore = Math.ceil((currentMax - maxTemp2) / (riseWarming - fallCooling));
-						if (amountPossibleBefore > amountBefore) {
-							amountPossibleBefore = amountBefore;
-						}
-
-						// Berechne, wie viele Changes nun noch nach Eintritt
-						// des Maximums nötig sind
-						double amountRest = change - amountPossibleBefore;
-						if (amountRest > amountAfter) {
-							amountRest = amountAfter;
-							double possibleChange = amountPossibleBefore + amountAfter;
-							double more = change - possibleChange;
-
-							// Passe alle nachfolgenden Maxima an
-							for (int j = slot + 1; j < numSlots; j++) {
-								maxSlots[1][j] = more * (fallCooling - riseWarming);
-							}
-
-							changesMinute[slot] = (int) possibleChange;
-						}
-
-						minutePossibleChange[0][slot] = (int) maxSlots[0][slot] + 1;
-						minutePossibleChange[1][slot] = (int) amountRest;
-					}
-
-					else {
-						minutePossibleChange[0][slot] = slot * 15;
-						minutePossibleChange[1][slot] = change;
-					}
-				}
-			}
-
-			double[][] changed = chargeChangedSchedule(changesMinute, minutePossibleChange, slot, false);
-			if (changed == null) {
-				// Gib Antwort ohne jegliche Änderungen zurück
-				double[] newChangesKWH = {0, 0, 0, 0};
-				double factorForPrice = 0;
-				double sumPenalty = 0;
-				AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
-						factorForPrice, sumPenalty);
-				return answer;
-			}
-
-			// Prüfe, dass Werte auch nach Minimum/ Maximum zu keiner Zeit
-			// unter-/ überschritten werden
-			boolean changesNecessary = false;
-
-			// Prüfe, ob Werte nach Minimum/ Maximum noch unter-/ überschritten
-			// werden
-			// Wenn ja, berechne Höhe der Überschreitung und notwendige
-			// Anpassung und berechne changedSchedule nocheinmal
-			double[][] valuesToTest = changed;
-			double adaptChange = 0;
-			int[] secondChange = { 0, 0, 0, 0 };
-			int[][] secondMinutePossibleChange = minutePossibleChange.clone();
-			for (int n = minutePossibleChange[0][slot] - slot * 15; n < 15; n++) {
-				if (valuesToTest[1][n] + adaptChange < minTemp2) {
-					changesNecessary = true;
-					changesMinute[slot]++;
-					secondChange[slot]++;
-					adaptChange += riseWarming - fallCooling;
-				} else if (valuesToTest[1][n] + adaptChange > maxTemp2) {
-					changesNecessary = true;
-					changesMinute[slot]--;
-					secondChange[slot]--;
-					adaptChange += fallCooling - riseWarming;
-				}
-			}
-
-			if (changesNecessary) {
-				secondMinutePossibleChange[1][slot] = secondChange[slot];
-				changed = chargeChangedSchedule(secondChange, minutePossibleChange, slot, true);
-			}
-
-			int start = slot * 15;
-			for (int k = 0; k < 15; k++) {
-				newSchedule[0][start] = changed[0][k];
-				newSchedule[1][start] = changed[1][k];
-			}
-
-		}
-
-		// Berechne, in wie vielen Minuten der Plan vor und nach den Änderungen
-		// in dem Bereich zwischen maxTemp1 und maxTemp2 oder zwischen minTemp2
-		// und minTemp1 war.
-		// War die Temperatur in einer Minute bei maxTemp2 bzw. minTemp2, so
-		// wird die volle Minute berechnet, war die Temperatur bei maxTemp1 bzw.
-		// minTemp2, so wird die Minute gar nicht berechnet. In dem Bereich
-		// dazwischen wird die Minute anteilig berechnet, je nachdem wie hoch
-		// die Temperatur genau war.
-		double before = 0;
-		double after = 0;
-		double spanTooHigh = maxTemp2 - maxTemp1;
-		double spanTooLow = minTemp1 - minTemp2;
-		for (int i = 0; i < numSlots * 15; i++) {
-			double currentTempBefore = scheduleMinutes[1][i];
-			double currentTempAfter = scheduleCurrentChangeRequest[1][i];
-			if (currentTempBefore < minTemp1) {
-				currentTempBefore -= minTemp2;
-				before += 1 - currentTempBefore / spanTooLow;
-			} else if (currentTempBefore > maxTemp1) {
-				currentTempBefore -= maxTemp1;
-				before += currentTempBefore / spanTooHigh;
-			}
-			if (currentTempAfter < minTemp1) {
-				currentTempAfter -= minTemp2;
-				after += 1 - currentTempAfter / spanTooLow;
-			} else if (currentTempAfter > maxTemp1) {
-				currentTempAfter -= maxTemp1;
-				after += currentTempAfter / spanTooHigh;
-			}
-		}
-
-		// Berechne, um wie viele (anteilige) Minuten der Bereich zwischen
-		// minTemp1 und maxTemp1 durch die Änderungen mehr verlassen wurde
-		double worsening;
-		if (after > before) {
-			worsening = before - after;
-		} else {
-			worsening = 0;
-		}
-
-		// Berechne den Faktor für den Preis.
-		// Hierbei wird berechnet, wie viel der Kühlschrank für die Anzahl an
-		// worsening Minuten beim Kühlen verbrauchen würde
-		double sumPenalty = Math.abs(worsening * penaltyPrice);
-
-		// Berechnet wie viele kWh nun pro Viertelstunde mehr oder weniger
-		// verbraucht wird und summiert die Werte auf.
-		double sumKWHAdditionalCooling = 0;
-		double[] newChangesKWH = new double[numSlots];
-		for (int i = 0; i < numSlots; i++) {
-			newChangesKWH[i] = changesMinute[i] * consCooling;
-			sumKWHAdditionalCooling += newChangesKWH[i];
-		}
-
-		// Jede kWh, die zusätzlich gekühlt werden muss, wird zum Faktor für den
-		// Preis hinzugerechnet
-		double factorForPrice = 0;
-		if (sumKWHAdditionalCooling > 0) {
-			factorForPrice += sumKWHAdditionalCooling;
-		}
-
-		// Gibt mögliche Änderungen und den Faktor für deren Preis zurück
-		AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
-				factorForPrice, sumPenalty);
-		return answer;
 	}
 
 	/**
@@ -1043,7 +1076,7 @@ public class Fridge implements Device {
 			DateTime.add(Calendar.MINUTE, 1, start);
 		}
 		DateTime.add(Calendar.HOUR_OF_DAY, -1, start);
-		
+
 		double[] valuesLoadprofile = createValuesLoadprofile(schedule[0]);
 		loadprofilesFixed.put(start, valuesLoadprofile);
 	}
@@ -1158,7 +1191,7 @@ public class Fridge implements Device {
 			double[] newValues = createValuesLoadprofile(deltaSchedule[0]);
 			aenderung = DateTime.set(Calendar.MINUTE, 0, aenderung);
 			double[] oldValues;
-			
+
 			if (DateTime.ToString(startLoadprofile).equals(timeFixed)) {
 				oldValues = createValuesLoadprofile(scheduleMinutes[0]);
 			} else {
