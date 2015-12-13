@@ -76,6 +76,15 @@ public class Negotiation implements Identifiable {
 		System.out.println("Offer2: " + offer2.getUUID() + " Runde: " + round2 + " Summe LP: " + sumLoadprofile2
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished2);
 	}
+	
+	public void close() {
+		// Schließe Verhandlung
+		closed = true;
+
+		// Entferne Verhandlung vom Container
+		NegotiationContainer container = NegotiationContainer.instance();
+		container.delete(uuid);
+	}
 
 	/**
 	 * Liefert die an der Negotiation beteiligten Angebote

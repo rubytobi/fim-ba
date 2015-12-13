@@ -13,6 +13,7 @@ import java.util.Set;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
+import Container.NegotiationContainer;
 import Packet.AnswerToOfferFromMarketplace;
 import Packet.EndOfNegotiation;
 import Packet.SearchParams;
@@ -639,9 +640,10 @@ public class Marketplace implements Identifiable {
 			return false;
 		}
 		int numSlots = 4;
-		
+
 		// Starte sofort Verhandlung
-		Negotiation negotiation = new Negotiation(offer, offers.get(0), 10, 5);
+		// Negotiation negotiation = new Negotiation(offer, offers.get(0), 10,
+		// 5);
 
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
@@ -780,7 +782,6 @@ public class Marketplace implements Identifiable {
 		for (String current : demands) {
 			ArrayList<Offer> demandOffers = demand.get(current);
 			for (Offer offer : demandOffers) {
-				System.out.println("UUID: " + offer.getUUID());
 				if (offer.getUUID().equals(uuid)) {
 					return offer;
 				}
@@ -850,7 +851,6 @@ public class Marketplace implements Identifiable {
 		for (String current : supplies) {
 			ArrayList<Offer> supplyOffers = supply.get(current);
 			for (Offer offer : supplyOffers) {
-				System.out.println("UUID: " + offer.getUUID());
 				if (offer.getUUID().equals(uuid)) {
 					return offer;
 				}
@@ -1212,13 +1212,26 @@ public class Marketplace implements Identifiable {
 			confirmOffer(offer2, offer2.getPriceSugg(), ConfirmedOffer.Type.MATCHED);
 		}
 
-		// Erstelle Angebot, falls Preise nicht passen, aber Preisfindung
+		// Erstelle Verhandlung, falls Preise nicht passen, aber Preisfindung
 		// generell möglich ist
 		if (!pricesFit) {
 			// Entferne Angebote von Marktplatz
 			System.out.println("matchFittingOffers entfernt Angebote");
-			removeOffer(offer1.getUUID(), false);
-			removeOffer(offer2.getUUID(), false);
+			Offer offerSearch1 = getOfferDemand(offer1.getUUID());
+			if (offerSearch1 == null) {
+				offerSearch1 = getOfferSupply(offer1.getUUID());
+			}
+			if (offerSearch1 != null) {
+				removeOffer(offer1.getUUID(), false);
+			}
+
+			Offer offerSearch2 = getOfferDemand(offer2.getUUID());
+			if (offerSearch2 == null) {
+				offerSearch2 = getOfferSupply(offer2.getUUID());
+			}
+			if (offerSearch2 != null) {
+				removeOffer(offer2.getUUID(), false);
+			}
 
 			// Erstelle neue Verhandlung und speichere Verhandlung unter
 			// negotiatingOffers ab
@@ -1278,9 +1291,18 @@ public class Marketplace implements Identifiable {
 			if (sumUntilSlot != 0) {
 				Log.d(uuid, "Angebot kommt zu spät und wird zum Einheitspreis bestätigt");
 				double[] price = unitPricesWithPenalty.get(DateTime.ToString(dateGreg));
-				// System.out.println("Preise: " +price[0]+ ", " +price[1]);
 				double confirmPrice = 0;
-				if (sumLoadprofile >= 0) {
+				if (sumLoadprofile > 0) {
+					// Füge Angebot zu Supply hinzu
+					ArrayList<Offer> offers = supply.get(date);
+					if (offers == null) {
+						offers = new ArrayList<Offer>();
+					}
+					offers.add(offer);
+					Collections.sort(offers, new sortOfferPriceSupplyLowToHigh());
+					supply.put(date, offers);
+					
+					// Berechne Preis, zu welchem Angebot bestätigt wird
 					if (price == null || price[1] == 0) {
 						confirmPrice = -sumUntilSlot * offer.getPriceSugg() * 0.1;
 					} else {
@@ -1288,6 +1310,16 @@ public class Marketplace implements Identifiable {
 
 					}
 				} else {
+					// Füge Angeobt zu Demand hinzu
+					ArrayList<Offer> offers = demand.get(date);
+					if (offers == null) {
+						offers = new ArrayList<Offer>();
+					}
+					offers.add(offer);
+					Collections.sort(offers, new sortOfferPriceDemandHighToLow());
+					demand.put(date, offers);
+					
+					// Berechne Preis, zu welchem Angebot bestätigt wird
 					if (price == null || price[0] == 0) {
 						confirmPrice = eexPrice * 1.1;
 					} else {
@@ -1355,6 +1387,23 @@ public class Marketplace implements Identifiable {
 	public void removeOffer(UUID offer, boolean confirmed) {
 		System.out.println("Angebot [" + offer + "] wird entfernt.");
 
+		// Prüfe, ob das zu entfernende Angebot in einer Negotiation ist und
+		// wenn ja beende diese
+		Set<UUID> allNegotiations = negotiatingOffers.keySet();
+		for (UUID current : allNegotiations) {
+			Negotiation negotiation = negotiatingOffers.get(current);
+			Offer[] negOffers = negotiation.getOffers();
+			for (Offer negOffer : negOffers) {
+				if (negOffer.getUUID().equals(uuid)) {
+					// Wenn Angebot gefunden wird, muss Verhandlung geschlossen
+					// werden
+					negotiation.close();
+					EndOfNegotiation end = new EndOfNegotiation(negotiation.getUUID(), 0, 0, false);
+					this.endOfNegotiation(end);
+				}
+			}
+		}
+
 		Offer removeOffer = getOfferDemand(offer);
 		boolean isSupply;
 		if (removeOffer == null) {
@@ -1363,6 +1412,7 @@ public class Marketplace implements Identifiable {
 		} else {
 			isSupply = false;
 		}
+
 		if (removeOffer == null) {
 			System.out.println("RemoveOffer ist null");
 			System.out.println("Alle empfangenen Angebote: ");
