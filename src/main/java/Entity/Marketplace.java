@@ -636,7 +636,8 @@ public class Marketplace implements Identifiable {
 		} else {
 			offers = supply.get(offer.getDate());
 		}
-		if (offers == null) {
+
+		if (offers == null || offers.size() == 0) {
 			return false;
 		}
 		int numSlots = 4;
@@ -1299,7 +1300,7 @@ public class Marketplace implements Identifiable {
 					offers.add(offer);
 					Collections.sort(offers, new sortOfferPriceSupplyLowToHigh());
 					supply.put(date, offers);
-					
+
 					// Berechne Preis, zu welchem Angebot bestätigt wird
 					if (price == null || price[1] == 0) {
 						confirmPrice = -sumUntilSlot * offer.getPriceSugg() * 0.1;
@@ -1316,7 +1317,7 @@ public class Marketplace implements Identifiable {
 					offers.add(offer);
 					Collections.sort(offers, new sortOfferPriceDemandHighToLow());
 					demand.put(date, offers);
-					
+
 					// Berechne Preis, zu welchem Angebot bestätigt wird
 					if (price == null || price[0] == 0) {
 						confirmPrice = eexPrice * 1.1;
@@ -1392,7 +1393,7 @@ public class Marketplace implements Identifiable {
 			Negotiation negotiation = negotiatingOffers.get(current);
 			Offer[] negOffers = negotiation.getOffers();
 			for (Offer negOffer : negOffers) {
-				System.out.println("UUID NEG: " +negOffer.getUUID());
+				System.out.println("UUID NEG: " + negOffer.getUUID());
 				if (negOffer.getUUID().equals(offer)) {
 					// Wenn Angebot gefunden wird, muss Verhandlung geschlossen
 					// werden
