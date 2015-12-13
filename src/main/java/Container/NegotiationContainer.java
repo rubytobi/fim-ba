@@ -4,6 +4,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import Entity.Device;
+
+import java.util.Set;
+
 import Util.Negotiation;
 
 public class NegotiationContainer {
@@ -31,7 +35,22 @@ public class NegotiationContainer {
 	 * @return Negotiation mit uebergebener UUID
 	 */
 	public Negotiation get(UUID uuid) {
-		return negotiations.get(uuid);
+		Negotiation negotiation = negotiations.get(uuid);
+		if (negotiation == null) {
+			System.out.println("UUID: " +uuid);
+			Set<UUID> set = negotiations.keySet();
+			if (set == null) {
+				System.out.println("Keine Negotiations im Container");
+			}
+			else {
+				for (UUID current: set) {
+					System.out.println(current);
+				}
+			}
+			double anzahl = negotiations.size();
+			System.out.println("Negotiation ist nicht im Container mit " +anzahl+ " Negotiations");
+		}
+		return negotiation;
 	}
 	
 	/**
@@ -48,6 +67,7 @@ public class NegotiationContainer {
 	 */
 	public void add(Negotiation negotiation) {
 		negotiations.put(negotiation.getUUID(), negotiation);
+		System.out.println("Negotiation ist im Container: " +negotiation.getUUID());
 	}
 	
 	/**
@@ -57,4 +77,5 @@ public class NegotiationContainer {
 	public void delete(UUID uuid) {
 		negotiations.remove(uuid);
 	}
+	
 }

@@ -3,7 +3,6 @@ package Util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.GregorianCalendar;
 
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -40,7 +39,7 @@ public class API<Request, Response> {
 	}
 
 	public API<Request, Response> answerToPriceChangeRequest(UUID uuid) {
-		uri += uuid + "/answerChangeRequest";
+		uri += "/" +uuid + "/answerToPriceChangeRequest";
 		return this;
 	}
 

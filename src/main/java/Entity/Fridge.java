@@ -478,6 +478,15 @@ public class Fridge implements Device {
 			}
 
 			double[][] changed = chargeChangedSchedule(changesMinute, minutePossibleChange, slot, false);
+			if (changed == null) {
+				// Gib Antwort ohne jegliche Änderungen zurück
+				double[] newChangesKWH = {0, 0, 0, 0};
+				double factorForPrice = 0;
+				double sumPenalty = 0;
+				AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
+						factorForPrice, sumPenalty);
+				return answer;
+			}
 
 			// Prüfe, dass Werte auch nach Minimum/ Maximum zu keiner Zeit
 			// unter-/ überschritten werden

@@ -31,6 +31,10 @@ public class Negotiation implements Identifiable {
 
 	public Negotiation(Offer offer1, Offer offer2, double sumLoadprofile1, double sumLoadprofile2) {
 		this();
+		for (int i = 0; i < 4; i++) {
+			System.out.println("Angebot 1, Wert " + i + " : " + offer1.getAggLoadprofile().getValues()[i]);
+			System.out.println("Angebot 2, Wert " + i + " : " + offer2.getAggLoadprofile().getValues()[i]);
+		}
 
 		this.offer1 = offer1;
 		this.offer2 = offer2;
@@ -121,8 +125,8 @@ public class Negotiation implements Identifiable {
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		API<AnswerToOfferFromMarketplace, Void> api = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
 		api.consumers(currentOffer.getAuthor()).offers(offer).negotiation(uuid).priceChangeRequest();
+		System.out.println(api);
 		api.call(marketplace, HttpMethod.POST, answerOffer);
-
 	}
 
 	/**
@@ -164,6 +168,10 @@ public class Negotiation implements Identifiable {
 		UUID consumer = answer.getConsumer();
 		double newPrice = answer.getNewPrice();
 		System.out.println("***receiveAnswer***");
+		if (newPrice == Double.POSITIVE_INFINITY) {
+			System.out.println("Ungültige Antwort");
+			closed = true;
+		}
 		if (closed) {
 			return;
 		}
@@ -244,7 +252,7 @@ public class Negotiation implements Identifiable {
 		// Berechne neue, extakte Preise
 		double newPrice1;
 		double newPrice2;
-		
+
 		// Berechen Faire Preise
 		double price1 = offer1.getPriceSugg();
 		double price2 = offer2.getPriceSugg();
@@ -256,21 +264,19 @@ public class Negotiation implements Identifiable {
 		boolean up1, up2;
 
 		if (Math.abs(sum1) > Math.abs(sum2)) {
-			fairChange = (absSumLP1 * price1 - absSumLP2 * price2)
-					/ (absSumLP1 + absSumLP2);
+			fairChange = (absSumLP1 * price1 - absSumLP2 * price2) / (absSumLP1 + absSumLP2);
 			fairPrice1 = offer1.getPriceSugg() - fairChange;
 			fairPrice2 = offer2.getPriceSugg() + fairChange;
 			up1 = false;
 			up2 = true;
 		} else {
-			fairChange = (absSumLP2 * price2 - absSumLP1 * price1)
-					/ (absSumLP1 + absSumLP2);
+			fairChange = (absSumLP2 * price2 - absSumLP1 * price1) / (absSumLP1 + absSumLP2);
 			fairPrice1 = offer1.getPriceSugg() + fairChange;
 			fairPrice2 = offer1.getPriceSugg() - fairChange;
 			up1 = true;
 			up2 = false;
 		}
-		
+
 		// Prüfe, ob faire Preise verhandelt werden konnten
 		// Wenn ja, verwende faire Preise
 		// Wenn nein, berechne andere Preise

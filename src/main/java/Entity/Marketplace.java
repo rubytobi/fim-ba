@@ -639,6 +639,9 @@ public class Marketplace implements Identifiable {
 			return false;
 		}
 		int numSlots = 4;
+		
+		// Starte sofort Verhandlung
+		Negotiation negotiation = new Negotiation(offer, offers.get(0), 10, 5);
 
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();

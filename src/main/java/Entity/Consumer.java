@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.sun.research.ws.wadl.Application;
 
+import Container.NegotiationContainer;
 import Packet.OfferNotification;
 import Packet.SearchParams;
 import Packet.AnswerChangeRequestLoadprofile;
@@ -664,6 +665,7 @@ public class Consumer implements Identifiable {
 	 *            Preisanfrage stammt.
 	 */
 	public void priceChangeRequest(AnswerToOfferFromMarketplace answerOffer, UUID negotiation) {
+		System.out.println("Consumer hat priceChangeRequest erhalten, UUID: " +negotiation);
 		double newPrice = answerOffer.getPrice();
 
 		// Prüfe, dass der neue Preis innerhalb der Preisgrenzen des Angebotes
@@ -671,6 +673,19 @@ public class Consumer implements Identifiable {
 		// Liegt er dazwischen, bestätige ihn.
 		// Liegt er nicht dazwischen, bestätige das Minimum bzw. das Maximum
 		Offer offer = allOffers.get(answerOffer.getOffer());
+		if (offer == null) {
+			System.out.println("Angebot für Negotioation liegt beim Consumer nicht vor.");
+			newPrice = Double.POSITIVE_INFINITY;
+			
+			// Sende Antwort an Negotiation
+			AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
+			Marketplace marketplace = Marketplace.instance();
+			Negotiation negotiationWhole = marketplace.getNegotiationsMap().get(negotiation);
+
+			API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
+			api.negotiation().answerToPriceChangeRequest(negotiation);
+			api.call(negotiationWhole, HttpMethod.POST, answer);
+		}
 		double min = offer.getMinPrice();
 		double max = offer.getMaxPrice();
 
@@ -683,11 +698,15 @@ public class Consumer implements Identifiable {
 
 		// Sende Antwort an Negotiation
 		AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, newPrice);
-		Marketplace marketplace = Marketplace.instance();
-		Negotiation negotiationWhole = marketplace.getNegotiationsMap().get(negotiation);
+		Negotiation negotiationWhole = NegotiationContainer.instance().get(negotiation);
+		if (negotiationWhole == null) {
+			System.out.println("Negotiation konnte nicht gefunden werden.");
+			return;
+		}
 
 		API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
 		api.negotiation().answerToPriceChangeRequest(negotiation);
+		System.out.println(api);
 		api.call(negotiationWhole, HttpMethod.POST, answer);
 	}
 
