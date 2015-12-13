@@ -249,7 +249,7 @@ public class ConsumerController {
 	 *            Angebots-Antwort
 	 * @return Leere Antwort
 	 */
-	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/negotiation/{uuidNegotiation/priceChangeRequest", method = RequestMethod.POST)
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/negotiation/{uuidNegotiation}/priceChangeRequest", method = RequestMethod.POST)
 	public ResponseEntity<Void> priceChangeRequest(@PathVariable UUID uuid, @PathVariable UUID uuidNegotiation,
 			@RequestBody AnswerToOfferFromMarketplace answerOffer) {
 		ConsumerContainer.instance().get(uuid).priceChangeRequest(answerOffer, uuidNegotiation);

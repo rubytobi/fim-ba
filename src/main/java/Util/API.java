@@ -39,8 +39,8 @@ public class API<Request, Response> {
 		return this;
 	}
 
-	public API<Request, Response> answerToPriceChangeRequest(UUID uuid) {
-		uri += uuid + "/answerChangeRequest";
+	public API<Request, Response> answerToPriceChangeRequest() {
+		uri += "/answerChangeRequest";
 		return this;
 	}
 
