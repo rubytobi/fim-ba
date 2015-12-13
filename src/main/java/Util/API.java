@@ -39,7 +39,7 @@ public class API<Request, Response> {
 	}
 
 	public API<Request, Response> answerToPriceChangeRequest(UUID uuid) {
-		uri += "/" +uuid + "/answerToPriceChangeRequest";
+		uri += "/" + uuid + "/answerToPriceChangeRequest";
 		return this;
 	}
 
@@ -68,6 +68,7 @@ public class API<Request, Response> {
 
 			return;
 		} catch (Exception e) {
+			e.printStackTrace();
 			Log.e(who.getUUID(), e + " - -- - " + who + " - -- - " + what + " - -- - " + response);
 		}
 

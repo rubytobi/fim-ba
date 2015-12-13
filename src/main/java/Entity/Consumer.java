@@ -509,6 +509,7 @@ public class Consumer implements Identifiable {
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "Angebote konnten nicht verknüpft werden.");
 			} catch (IllegalArgumentException e) {
+				e.printStackTrace();
 				Log.e(uuid, "Angebote konnten nicht verknüpft werden. Kein Preisfehler!");
 			}
 		}
