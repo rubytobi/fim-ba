@@ -31,10 +31,6 @@ public class Negotiation implements Identifiable {
 
 	public Negotiation(Offer offer1, Offer offer2, double sumLoadprofile1, double sumLoadprofile2) {
 		this();
-		for (int i = 0; i < 4; i++) {
-			System.out.println("Angebot 1, Wert " + i + " : " + offer1.getAggLoadprofile().getValues()[i]);
-			System.out.println("Angebot 2, Wert " + i + " : " + offer2.getAggLoadprofile().getValues()[i]);
-		}
 
 		this.offer1 = offer1;
 		this.offer2 = offer2;
@@ -56,6 +52,21 @@ public class Negotiation implements Identifiable {
 		this.demand2 = sumLoadprofile2 < 0;
 		this.minCurrentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
 		this.maxCurrentSum = minCurrentSum;
+		
+		double[] values1 = offer1.getAggLoadprofile().getValues();
+		System.out.println("\nAngebot: " +offer1.getUUID());
+		System.out.println("Werte: [" +values1[0] +"]["+ values1[1]  +"]["+ values1[2]  +"]["+ values1[3] +"]");
+		System.out.println("Schranken: " +offer1.getMaxPrice()+ ", " +offer1.getMinPrice());
+		System.out.println("Summe: " +sumLoadprofile1+ " Preis: " +currentPrice1);
+
+		
+		double[] values2 = offer2.getAggLoadprofile().getValues();
+		System.out.println("\nAngebot: " +offer2.getUUID());
+		System.out.println("Werte: [" +values2[0]  +"]["+ values2[1]  +"]["+ values2[2]  +"]["+ values2[3] +"]");
+		System.out.println("Schranken: " +offer2.getMaxPrice()+ ", " +offer2.getMinPrice());
+		System.out.println("Summe: " +sumLoadprofile2+ " Preis: " +currentPrice2);
+		
+		System.out.println("\nAktuelle Summe beide: " +maxCurrentSum);
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -76,7 +87,7 @@ public class Negotiation implements Identifiable {
 		System.out.println("Offer2: " + offer2.getUUID() + " Runde: " + round2 + " Summe LP: " + sumLoadprofile2
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished2);
 	}
-	
+
 	public void close() {
 		// Schließe Verhandlung
 		closed = true;
@@ -109,8 +120,8 @@ public class Negotiation implements Identifiable {
 
 	/**
 	 * Sendet eine Preisanfrage an das übergebene Angebot. Hierbei wird immer
-	 * der aktuelle Preisvorschlag des anderen Angebots als Preisanfrage
-	 * versendet
+	 * der Preis versendet, den das Angebot eingehen müsste, damit eine Einigung
+	 * möglich ist
 	 * 
 	 * @param offer
 	 *            Angebot, an das Anfrage nach Preisänderung gesendet wird
@@ -119,19 +130,24 @@ public class Negotiation implements Identifiable {
 		System.out.println("***sendPriceRequest***");
 		double priceRequest;
 		Offer currentOffer;
+		System.out.println("Angebot: " +offer);
 		if (offer.equals(offer1.getUUID())) {
 			currentOffer = offer1;
-			priceRequest = Math.abs(currentPrice2 * sumLoadprofile2) / sumLoadprofile1;
+			priceRequest = ((currentPrice2 * sumLoadprofile2)*-1) / sumLoadprofile1;
 			round1++;
+			System.out.println("MaxPreis: " +acceptedMax1);
+			System.out.println("MinPreis: " +acceptedMin1);
 
 		} else {
 			currentOffer = offer2;
-			priceRequest = Math.abs(currentPrice1 * sumLoadprofile1) / sumLoadprofile2;
+			priceRequest = ((currentPrice1 * sumLoadprofile1)*-1) / sumLoadprofile2;
 			round2++;
+			System.out.println("MaxPreis: " +acceptedMax1);
+			System.out.println("MinPreis: " +acceptedMin1);
 		}
 		
-		System.out.println("Angefragter Preis: " + priceRequest);
 
+		System.out.println("Angefragter Preis: " + priceRequest);
 
 		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
@@ -179,7 +195,7 @@ public class Negotiation implements Identifiable {
 		UUID consumer = answer.getConsumer();
 		double newPrice = answer.getNewPrice();
 		System.out.println("***receiveAnswer***");
-		System.out.println("Neuer Preis: " +answer.getNewPrice());
+		System.out.println("Neuer Preis: " + answer.getNewPrice());
 		if (newPrice == Double.POSITIVE_INFINITY) {
 			System.out.println("Ungültige Antwort");
 			closed = true;
@@ -232,10 +248,14 @@ public class Negotiation implements Identifiable {
 			}
 			offer = offer2.getUUID();
 		}
+		
+		System.out.println("Summe Minimum: " +minCurrentSum);
+		System.out.println("Summe Maximum: " +maxCurrentSum);
 
-		// Wenn min den akzeptierten Preisgrenzen eine Einigung möglich ist,
+		// Wenn mit den akzeptierten Preisgrenzen eine Einigung möglich ist,
 		// berechne die extakten Preise und beende die Verhandlung
 		if (minCurrentSum <= 0 && maxCurrentSum >= 0) {
+			System.out.println("Einigung ist möglich");
 			// Berechne extakte Preise
 			if (chargeExactPrices()) {
 				// Teile Marktplatz mit, dass Verhandlung erfolgreich beendet
