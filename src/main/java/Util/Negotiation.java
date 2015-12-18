@@ -18,7 +18,7 @@ public class Negotiation implements Identifiable {
 	private boolean demand1, demand2;
 	private double currentPrice1, currentPrice2;
 	private double sumLoadprofile1, sumLoadprofile2;
-	private double minCurrentSum, maxCurrentSum;
+	private double minSum1, maxSum1, maxSum2, minSum2;
 	private double acceptedMin1, acceptedMax1;
 	private double acceptedMin2, acceptedMax2;
 	private UUID uuid;
@@ -50,8 +50,12 @@ public class Negotiation implements Identifiable {
 		this.acceptedMax2 = currentPrice2;
 		this.demand1 = sumLoadprofile1 < 0;
 		this.demand2 = sumLoadprofile2 < 0;
-		this.minCurrentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
-		this.maxCurrentSum = minCurrentSum;
+		this.minSum1 = Math.abs(sumLoadprofile1 * currentPrice1);
+		this.maxSum1 = minSum1;
+		this.minSum2 = Math.abs(sumLoadprofile2 * currentPrice2);
+		this.maxSum2 = minSum2;
+		//this.minCurrentSum = sumLoadprofile1 * currentPrice1 + sumLoadprofile2 * currentPrice2;
+		//this.maxCurrentSum = minCurrentSum;
 		
 		double[] values1 = offer1.getAggLoadprofile().getValues();
 		System.out.println("\nAngebot: " +offer1.getUUID());
@@ -66,7 +70,6 @@ public class Negotiation implements Identifiable {
 		System.out.println("Schranken: " +offer2.getMaxPrice()+ ", " +offer2.getMinPrice());
 		System.out.println("Summe: " +sumLoadprofile2+ " Preis: " +currentPrice2);
 		
-		System.out.println("\nAktuelle Summe beide: " +maxCurrentSum);
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -195,7 +198,7 @@ public class Negotiation implements Identifiable {
 		UUID consumer = answer.getConsumer();
 		double newPrice = answer.getNewPrice();
 		System.out.println("***receiveAnswer***");
-		System.out.println("Neuer Preis: " + answer.getNewPrice());
+		System.out.println("Neuer Preis: " + newPrice);
 		if (newPrice == Double.POSITIVE_INFINITY) {
 			System.out.println("Ungültige Antwort");
 			closed = true;
@@ -208,53 +211,72 @@ public class Negotiation implements Identifiable {
 		// Berechne, ob sich durch die Anpassung des Preises das akzeptierte
 		// Minimum bzw. das aktzeptierte Maximum der Angebotspreise und mit
 		// ihnen die mögliche Maximale/Minimale Summe der Angebote geändert hat
-		boolean answerFromOffer1 = consumer.equals(offer2.getAuthor());
+		boolean answerFromOffer1 = consumer.equals(offer1.getAuthor());
+		double newSum;
 		if (answerFromOffer1) {
 			currentPrice1 = newPrice;
+			newSum = Math.abs(sumLoadprofile1 * newPrice);
+			if (newSum < minSum1) {
+				minSum1 = newSum;
+			}
+			if (newSum > maxSum1) {
+				maxSum1 = newSum;
+			}
 			if (currentPrice1 > acceptedMax1) {
 				acceptedMax1 = currentPrice1;
-				if (demand1) {
+				/*if (demand1) {
 					minCurrentSum = sumLoadprofile1 * acceptedMax1;
 				} else {
 					maxCurrentSum = sumLoadprofile1 * acceptedMax1;
-				}
+				}*/
 			}
 			if (currentPrice1 < acceptedMin1) {
 				acceptedMin1 = currentPrice1;
-				if (demand1) {
+				/*if (demand1) {
 					maxCurrentSum = sumLoadprofile1 * acceptedMin1;
 				} else {
 					minCurrentSum = sumLoadprofile1 * acceptedMin1;
-				}
+				}*/
 			}
 			offer = offer1.getUUID();
 		} else {
 			currentPrice2 = newPrice;
+			newSum = Math.abs(sumLoadprofile2 * newPrice);
+			if (newSum < minSum2) {
+				minSum2 = newSum;
+			}
+			if (newSum > maxSum2) {
+				maxSum2 = newSum;
+			}
 			if (currentPrice2 > acceptedMax2) {
 				acceptedMax2 = currentPrice2;
+				/*
 				if (demand2) {
 					minCurrentSum = sumLoadprofile2 * acceptedMax2;
 				} else {
 					maxCurrentSum = sumLoadprofile2 * acceptedMax2;
-				}
+				}*/
 			}
 			if (currentPrice2 < acceptedMin2) {
 				acceptedMin2 = currentPrice2;
-				if (demand2) {
+				/*if (demand2) {
 					maxCurrentSum = sumLoadprofile2 * acceptedMin2;
 				} else {
 					minCurrentSum = sumLoadprofile2 * acceptedMin2;
-				}
+				}*/
 			}
 			offer = offer2.getUUID();
 		}
+		System.out.println("Neue Summe: " +newSum);
 		
-		System.out.println("Summe Minimum: " +minCurrentSum);
-		System.out.println("Summe Maximum: " +maxCurrentSum);
+		System.out.println("Summe Minimum 1: " +minSum1);
+		System.out.println("Summe Maximum 1: " +maxSum1);
+		System.out.println("Summe Minimum 2: " +minSum2);
+		System.out.println("Summe Maximum 2: " +maxSum2);
 
 		// Wenn mit den akzeptierten Preisgrenzen eine Einigung möglich ist,
 		// berechne die extakten Preise und beende die Verhandlung
-		if (minCurrentSum <= 0 && maxCurrentSum >= 0) {
+		if (!((minSum1 < minSum2 && maxSum1 < minSum2 ) || (minSum1 > maxSum2))) {
 			System.out.println("Einigung ist möglich");
 			// Berechne extakte Preise
 			if (chargeExactPrices()) {

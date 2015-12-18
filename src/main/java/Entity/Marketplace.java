@@ -517,6 +517,7 @@ public class Marketplace implements Identifiable {
 		System.out.println("***End of Negotiation: " + successful + " ***\n");
 		System.out.println("NewPrice1: " + newPrice1 + " NewPrice2: " + newPrice2);
 		Negotiation currentNegotiation = negotiatingOffers.get(negotiation);
+		// Negotiation aus Negotiation Container holen??
 		Offer[] offers = currentNegotiation.getOffers();
 		String date = offers[0].getDate();
 
