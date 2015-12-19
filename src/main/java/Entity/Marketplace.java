@@ -367,6 +367,7 @@ public class Marketplace implements Identifiable {
 		if (allNegotiations.size() != 0) {
 			System.out.println(allNegotiations.size() + " Negotiations werden beendet.");
 			for (UUID negotiation : allNegotiations) {
+				System.out.println(negotiation);
 				Negotiation currentNeg = negotiatingOffers.get(negotiation);
 				Offer[] offers = currentNeg.getOffers();
 				Offer offer1 = offers[0];
@@ -407,7 +408,7 @@ public class Marketplace implements Identifiable {
 		// Bestaetige alle Angebote des Zeitraums mit den errechneten Preisen
 		if (demandOnePrice.size() != 0) {
 			for (Offer demand : demandOnePrice) {
-				confirmOffer(demand, priceDemand, ConfirmedOffer.Type.UNITPRICE);
+				confirmOffer(demand, priceDemand, ConfirmedOffer.Type.UNITPRICE, false);
 			}
 		} else {
 			System.out.println("Demands At Date leer");
@@ -416,7 +417,7 @@ public class Marketplace implements Identifiable {
 		if (supplyOnePrice.size() != 0) {
 			for (Offer supply : supplyOnePrice) {
 				System.out.println("Bestätige zum Einheitspreis");
-				confirmOffer(supply, priceSupply, ConfirmedOffer.Type.UNITPRICE);
+				confirmOffer(supply, priceSupply, ConfirmedOffer.Type.UNITPRICE, false);
 			}
 		} else {
 			System.out.println("Keine Supplies At Date");
@@ -434,8 +435,10 @@ public class Marketplace implements Identifiable {
 	 * @param newPrice
 	 *            Neuer, vom Marktplatz festgelegter Preis des Angebots
 	 */
-	private void confirmOffer(Offer offer, double newPrice, ConfirmedOffer.Type type) {
+	private void confirmOffer(Offer offer, double newPrice, ConfirmedOffer.Type type, boolean negotiation) {
 		double[] valuesLP = offer.getAggLoadprofile().getValues();
+		System.out.println("Bestätige Angebot: " +offer.getUUID());
+		System.out.println(type);
 		System.out.println("Zeit: " + offer.getDate());
 		System.out.println("[" + valuesLP[0] + "][" + valuesLP[1] + "][" + valuesLP[2] + "][" + valuesLP[3] + "]");
 
@@ -450,7 +453,9 @@ public class Marketplace implements Identifiable {
 		confirmedOffers.put(offer.getDate(), confirmedAtDate);
 
 		// Entferne offer von Marktplatz
-		removeOffer(offer.getUUID(), true);
+		if (!negotiation) {
+			removeOffer(offer.getUUID(), true);
+		}
 
 		// Nehme Lastprofil von offer in die Summe der Lastprofile aller
 		// bestaetigten Angebote auf
@@ -510,16 +515,23 @@ public class Marketplace implements Identifiable {
 	 *            Verhandlung, die beendet wurde
 	 */
 	public void endOfNegotiation(EndOfNegotiation end) {
+		// Hole alle Informationen aus end
 		UUID negotiation = end.getNegotiation();
 		double newPrice1 = end.getNewPrice1();
 		double newPrice2 = end.getNewPrice2();
 		boolean successful = end.getSuccessful();
 		System.out.println("***End of Negotiation: " + successful + " ***\n");
 		System.out.println("NewPrice1: " + newPrice1 + " NewPrice2: " + newPrice2);
+		
+		// Hole das betroffene Negotiation-Objekt aus der Map negotiatingOffers
 		Negotiation currentNegotiation = negotiatingOffers.get(negotiation);
-		// Negotiation aus Negotiation Container holen??
+		// Hole die beiden Betroffenen Angebote aus der Verhandlung
 		Offer[] offers = currentNegotiation.getOffers();
 		String date = offers[0].getDate();
+		
+		// Entferne die Verhandlung von der Map negotiatingOffers, da sie
+		// beendet ist
+		negotiatingOffers.remove(negotiation);
 
 		if (successful) {
 			// Berechne die Summe der Abweichungen vor Bestätigung der beiden
@@ -531,8 +543,8 @@ public class Marketplace implements Identifiable {
 			}
 
 			// Bestätige Angebote
-			confirmOffer(offers[0], newPrice1, ConfirmedOffer.Type.MATCHED);
-			confirmOffer(offers[1], newPrice2, ConfirmedOffer.Type.MATCHED);
+			confirmOffer(offers[0], newPrice1, ConfirmedOffer.Type.MATCHED, true);
+			confirmOffer(offers[1], newPrice2, ConfirmedOffer.Type.MATCHED, true);
 
 			// Berechne die Summe der Abweichungen nach Bestätigung der beiden
 			// Angebote
@@ -586,8 +598,8 @@ public class Marketplace implements Identifiable {
 					}
 
 					// Bestätige Angebote zum geltenden Einheitspreis
-					confirmOffer(offers[0], price0, ConfirmedOffer.Type.UNITPRICE);
-					confirmOffer(offers[1], price1, ConfirmedOffer.Type.UNITPRICE);
+					confirmOffer(offers[0], price0, ConfirmedOffer.Type.UNITPRICE, true);
+					confirmOffer(offers[1], price1, ConfirmedOffer.Type.UNITPRICE, true);
 				}
 				// Wenn kein Einheitspreis vorliegt, berechne neuen
 				// Einheitspreis für diese beiden Angebote
@@ -611,7 +623,6 @@ public class Marketplace implements Identifiable {
 				receiveOffer(offers[0]);
 				receiveOffer(offers[1]);
 			}
-			negotiatingOffers.remove(negotiation);
 		}
 	}
 
@@ -644,7 +655,8 @@ public class Marketplace implements Identifiable {
 		int numSlots = 4;
 
 		// Starte sofort Verhandlung
-		//Negotiation negotiation = new Negotiation(offer, offers.get(0), 10, 5);
+		// Negotiation negotiation = new Negotiation(offer, offers.get(0), 10,
+		// 5);
 
 		Offer offerMostImprovement = offer;
 		double[] valuesOffer = offer.getAggLoadprofile().getValues();
@@ -1068,7 +1080,7 @@ public class Marketplace implements Identifiable {
 					allChanges.add(possibleChange);
 
 					// Bestaetige das Angebot zum uebergebenen Preis
-					confirmOffer(currentOffer, currentAnswer.getPrice(), ConfirmedOffer.Type.CHANGED);
+					confirmOffer(currentOffer, currentAnswer.getPrice(), ConfirmedOffer.Type.CHANGED, false);
 
 					// Aktualisiere die Gesamtabweichung aller bestaetigter
 					// Angebote
@@ -1198,6 +1210,7 @@ public class Marketplace implements Identifiable {
 
 		// Bestätige bestehende Preise, da Preise bereits zusammenpassen
 		if (pricesFit) {
+			Log.d(uuid, "Zusammenführung der beiden Angeobte " +offer1.getUUID()+ " und " +offer2.getUUID());
 			// Lege zusammengefuehrte Angebote und Preise in der Historie ab
 			MatchedOffers matched = new MatchedOffers(offer1.getPriceSugg(), offer2.getPriceSugg(), offer1, offer2,
 					deviationBefore, deviationAfter);
@@ -1209,15 +1222,14 @@ public class Marketplace implements Identifiable {
 			matchedOffers.put(offer1.getDate(), array);
 
 			// Schicke Bestaetigung beider Angebote an Consumer
-			confirmOffer(offer1, offer1.getPriceSugg(), ConfirmedOffer.Type.MATCHED);
-			confirmOffer(offer2, offer2.getPriceSugg(), ConfirmedOffer.Type.MATCHED);
+			confirmOffer(offer1, offer1.getPriceSugg(), ConfirmedOffer.Type.MATCHED, false);
+			confirmOffer(offer2, offer2.getPriceSugg(), ConfirmedOffer.Type.MATCHED, false);
 		}
 
 		// Erstelle Verhandlung, falls Preise nicht passen, aber Preisfindung
 		// generell möglich ist
 		if (!pricesFit) {
 			// Entferne Angebote von Marktplatz
-			System.out.println("matchFittingOffers entfernt Angebote");
 			Offer offerSearch1 = getOfferDemand(offer1.getUUID());
 			if (offerSearch1 == null) {
 				offerSearch1 = getOfferSupply(offer1.getUUID());
@@ -1238,6 +1250,7 @@ public class Marketplace implements Identifiable {
 			// negotiatingOffers ab
 			Negotiation negotiation = new Negotiation(offer1, offer2, sumOffer1, sumOffer2);
 			negotiatingOffers.put(negotiation.getUUID(), negotiation);
+			negotiation.startNegotiation();
 		}
 		return true;
 	}
@@ -1326,7 +1339,7 @@ public class Marketplace implements Identifiable {
 						confirmPrice = price[0];
 					}
 				}
-				confirmOffer(offer, confirmPrice, ConfirmedOffer.Type.UNITPRICE);
+				confirmOffer(offer, confirmPrice, ConfirmedOffer.Type.UNITPRICE, false);
 				return;
 			}
 		}
@@ -1366,7 +1379,7 @@ public class Marketplace implements Identifiable {
 				demand.put(date, offers);
 			}
 		} else if (sumLoadprofile == 0) {
-			confirmOffer(offer, offer.getPriceSugg(), ConfirmedOffer.Type.MATCHED);
+			confirmOffer(offer, offer.getPriceSugg(), ConfirmedOffer.Type.MATCHED, false);
 		}
 	}
 

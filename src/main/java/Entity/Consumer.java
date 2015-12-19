@@ -267,7 +267,7 @@ public class Consumer implements Identifiable {
 	 */
 	public void confirmOfferByMarketplace(AnswerToOfferFromMarketplace answerOffer) {
 		Log.d(uuid, "Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
-		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getPrice());
+		System.out.println("Der Consumer erhält die Bestätigung des Angebots: " + answerOffer.getOffer()+ "Preis: "+ answerOffer.getPrice());
 
 		// Hole das Angebot, für das die Bestätigung gilt
 		Offer offer = getOfferIntern(answerOffer.getOffer());
@@ -685,10 +685,12 @@ public class Consumer implements Identifiable {
 			// Sende Antwort an Negotiation
 			AnswerToPriceChangeRequest answer = new AnswerToPriceChangeRequest(uuid, price);
 			Negotiation negotiationWhole = NegotiationContainer.instance().get(negotiation);
-
-			API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
-			api.negotiation().answerToPriceChangeRequest(negotiation);
-			api.call(negotiationWhole, HttpMethod.POST, answer);
+			if (negotiationWhole != null) {
+				API<AnswerToPriceChangeRequest, Void> api = new API<AnswerToPriceChangeRequest, Void>(Void.class);
+				api.negotiation().answerToPriceChangeRequest(negotiation);
+				api.call(negotiationWhole, HttpMethod.POST, answer);
+			}
+			return;
 		}
 		double min = offer.getMinPrice();
 		double max = offer.getMaxPrice();

@@ -286,24 +286,32 @@ public class FrameResults {
 			countAll = justMatched.size();
 			int countSmaller = 0;
 			int countOk = 0;
+			testResult1.append("Es gab " +justMatched.size()+ " Zusammenführungen.\n");
 			for (MatchedOffers matched : justMatched) {
 				double before = matched.getDeviationBefore();
 				double after = matched.getDeviationAfter();
 				boolean smaller = after < before;
+				Offer[] offer = matched.getOffers();
 				if (smaller) {
 					countSmaller++;
 					testResult1.append("Abweichung geringer. (Abweichung davor: " + matched.getDeviationBefore()
-							+ ", danach: " + matched.getDeviationAfter() + ")\n");
+							+ ", danach: " + matched.getDeviationAfter() + ") Werte Angebot 1:"
+							+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
+							+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				} else {
 					boolean ok = after < before + maxDeviation;
 					if (ok) {
 						countOk++;
-						testResult1.append("Abweichung ok.       (Abweichung davor: " + matched.getDeviationBefore()
-								+ ", danach: " + matched.getDeviationAfter() + ")\n");
+						testResult1.append("Abweichung ok.       (Abweichung davor: " + Math.round(100.00 * matched.getDeviationBefore())/100.00
+								+ ", danach: " + Math.round(100.00 * matched.getDeviationAfter())/100.00 + ") Werte Angebot 1:"
+								+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
+								+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 					} else {
 						result++;
-						testResult1.append("Abweichung höher.    (Abweichung davor: " + matched.getDeviationBefore()
-								+ ", danach: " + matched.getDeviationAfter() + ")\n");
+						testResult1.append("Abweichung höher.    (Abweichung davor: " + Math.round(100.00 * matched.getDeviationBefore())/100.00
+								+ ", danach: " + Math.round(100.00 * matched.getDeviationAfter())/100.00 + ") Werte Angebot 1:"
+								+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
+								+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 					}
 				}
 			}
@@ -311,9 +319,9 @@ public class FrameResults {
 			double percentageSmaller = Math.round(100.00 * (countSmaller / countAll));
 			double percentageOk = Math.round(100.00 * (countOk / countAll));
 
-			testResult1.append("\n" + percentageSmaller + " % der Zusammenführungen: Geringere Abweichung");
+			testResult1.append("\n" + percentageSmaller + " % der Zusammenführungen: Geringere Abweichung\n");
 			testResult1.append(percentageOk + " % der Zusammenführungen: Leicht höhere Abweichung\n");
-			testResult1.append((1 - (percentageSmaller + percentageOk)) / countAll
+			testResult1.append((100 - (percentageSmaller + percentageOk)) / countAll
 					+ " % der Zusammenführungen: Höhere Abweichung");
 		}
 
@@ -326,7 +334,8 @@ public class FrameResults {
 			fulfill1.append("Kriterium 1 erfüllt: 0 Zusammenführungen haben zu einer höheren Abweichung geführt.");
 		} else {
 			fulfill1.setBackground(Color.RED);
-			fulfill1.append("Kriterium 1 nicht erfüllt: " +result+ " Zusammenführungen haben zu eienr höheren Abweichung geführt.");
+			fulfill1.append("Kriterium 1 nicht erfüllt: " + result
+					+ " Zusammenführungen haben zu eienr höheren Abweichung geführt.");
 		}
 	}
 
@@ -341,29 +350,36 @@ public class FrameResults {
 			countAll = justMatched.size();
 			for (MatchedOffers matched : justMatched) {
 				// Hole die Gesamtpreise
-				double allRoundPrice1 = matched.getAllRoundPrice1();
-				double allRoundPrice2 = matched.getAllRoundPrice2();
-	
-				// Prüfe, ob Summe der Gesamtpreise = 0
-				double sum = allRoundPrice1 + allRoundPrice2;
-	
+				double allRoundPrice1 = Math.round(100.00 * matched.getAllRoundPrice1())/100.00;
+				double allRoundPrice2 = Math.round(100.00 * matched.getAllRoundPrice2())/100.00;
+				
+				// Hole Angebote
+				Offer[] offer = matched.getOffers();
+
+				// Berechne Summe gerundet auf 2 Nachkommastellen
+				double sum = Math.round(100.00 * (allRoundPrice1 + allRoundPrice2))/100.00;
+
 				// Gib das Ergebnis aus
 				if (sum == 0) {
 					result++;
-					System.out.println("Gesamtpreise passen     : Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2 + "\n");
+					testResult2.append("Gesamtpreise passen     : Summe = " + sum + " (GP1: " + allRoundPrice1
+							+ ", GP2: " + allRoundPrice2 
+							+ ") Werte Angebot 1: "	+ valuesToString(offer[0].getAggLoadprofile().getValues()) 
+							+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				} else {
-					System.out.println("Geamtpreise passen nicht: Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2 + "\n");
+					testResult2.append("Geamtpreise passen nicht: Summe = " + sum + " (GP1: " + allRoundPrice1
+							+ ", GP2: " + allRoundPrice2
+							+ ") Werte Angebot 1: "	+ valuesToString(offer[0].getAggLoadprofile().getValues()) 
+							+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				}
 			}
-	
+
 			// Gib prozentuales Ergebnis aus
 			double percentageGood = Math.round(100.00 * (result / countAll));
 			testResult2.append("\n" + percentageGood + " % der Gesamtpreise haben zusammengepasst\n");
 			testResult2.append((100 - percentageGood) + " % der Gesamtpreise haben nicht zusammengepasst");
 		}
-	
+
 		// Zeige das Ergebnis an
 		fulfill2 = new JTextArea();
 		Font fontResults = new Font("Verdana", Font.BOLD, 14);
@@ -373,7 +389,8 @@ public class FrameResults {
 			fulfill2.append("Kriterium 2 erfüllt: Bei allen Zusammenführungen ist die Summe gleich 0.");
 		} else {
 			fulfill2.setBackground(Color.RED);
-			fulfill2.append("Kriterium 2 nicht erfüllt: Bei " +result+ " Zusammenführungen ist die Summe nicht gleich 0.");
+			fulfill2.append(
+					"Kriterium 2 nicht erfüllt: Bei " + result + " Zusammenführungen ist die Summe nicht gleich 0.");
 		}
 	}
 
@@ -395,13 +412,20 @@ public class FrameResults {
 				boolean good = timeConfirmed.before(timeRealStart);
 				if (good) {
 					countGood++;
-					testResult3.append("Bestätigung vor Start: JA   (Bestätigung: "
+					testResult3.append("Bestätigung vor Start: JA	(Bestätigung: "
 							+ calendarToString(timeConfirmed, false) + ", Start: "
-							+ calendarToString(timeRealStart, false) + ") " + confirmed.getTypeString() + "\n");
+							+ calendarToString(timeRealStart, false) + ") " + confirmed.getTypeString() + "	"
+							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues()) 
+							+ "		Anzahl der beteiligten Geräte: " +confirmed.getOffer().getAllLoadprofiles().size() 
+							+ " ID Angebot: " +confirmed.getOffer().getUUID() + "\n");
+
 				} else {
-					testResult3.append("Bestätigung vor Start: NEIN (Bestätigung: "
+					testResult3.append("Bestätigung vor Start: NEIN	(Bestätigung: "
 							+ calendarToString(timeConfirmed, false) + ", Start: "
-							+ calendarToString(timeRealStart, false) + ") " + confirmed.getTypeString() + "\n");
+							+ calendarToString(timeRealStart, false) + ") " + confirmed.getTypeString() + "	"
+							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues()) 
+							+ "		Anzahl der beteiligten Geräte: " +confirmed.getOffer().getAllLoadprofiles().size() 
+							+ " ID Angebot: " +confirmed.getOffer().getUUID() + "\n");
 					int differenceInMilliSeconds = (int) (timeConfirmed.getTimeInMillis()
 							- timeRealStart.getTimeInMillis());
 					result += Math.round(100.00 * (differenceInMilliSeconds * 0.001)) / 100.00 + 1;
@@ -428,7 +452,7 @@ public class FrameResults {
 			fulfill3.append("Kriterium 3 erfüllt: Die Verspätung betrug insgesamt 0 s");
 		} else {
 			fulfill3.setBackground(Color.RED);
-			fulfill3.append("Kriterium 3 nicht erfüllt: Die Verspätung betrug insesamt " +result+ " s");
+			fulfill3.append("Kriterium 3 nicht erfüllt: Die Verspätung betrug insgesamt " + result + " s");
 		}
 	}
 
@@ -466,14 +490,14 @@ public class FrameResults {
 		} else {
 			testResult4.append("Es gab keine Anpassungen in diesem Slot (" + calendarToString(time, false));
 		}
-	
+
 		// Zeige das Ergebnis an
 		fulfill4 = new JTextArea();
 		Font fontResults = new Font("Verdana", Font.BOLD, 14);
 		fulfill4.setFont(fontResults);
 		if (result > 0) {
 			fulfill4.setBackground(Color.GREEN);
-			fulfill4.append("Kriterium 4 erfüllt: Die Abweichung konnte um " +result+ " % verringert werden.");
+			fulfill4.append("Kriterium 4 erfüllt: Die Abweichung konnte um " + result + " % verringert werden.");
 		} else {
 			fulfill4.setBackground(Color.RED);
 			fulfill4.append("Kriterium 4 nicht erfüllt: Die Abweichung konnte nicht verringert werden.");

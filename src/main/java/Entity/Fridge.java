@@ -543,6 +543,9 @@ public class Fridge implements Device {
 					secondMinutePossibleChange[1][slot] = secondChange[slot];
 					changed = chargeChangedSchedule(secondChange, minutePossibleChange, slot, true);
 				}
+				if (changed == null) {
+					return null;
+				}
 
 				int start = slot * 15;
 				for (int k = 0; k < 15; k++) {
@@ -879,7 +882,7 @@ public class Fridge implements Device {
 	/**
 	 * Berechnet wie viel Prozent des aktuellen eex-Preises für das Lastprofil
 	 * zu scheduleMinutes maximal gezahlt werden soll. Das Ergebnis ist gleich
-	 * 0% , wenn die aktuelle Temperatur <= minTemp1 und gleich 100 %, wenn die
+	 * 1% , wenn die aktuelle Temperatur <= minTemp1 und gleich 100 %, wenn die
 	 * aktuelle Temperatur >= maxTemp1.
 	 * 
 	 * @return Wert, der angibt, wie viel Prozent des aktuellen eex-Preises für
@@ -890,7 +893,7 @@ public class Fridge implements Device {
 		double maxPrice = Math.max(0, priceEex);
 		double minPrice = Math.min(0, priceEex);
 		if (startTemp <= minTemp1) {
-			return minPrice;
+			return priceEex * 0.01;
 		} else if (startTemp >= maxTemp1) {
 			return maxPrice;
 		} else {
