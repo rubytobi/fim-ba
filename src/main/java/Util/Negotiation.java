@@ -51,21 +51,6 @@ public class Negotiation implements Identifiable {
 		this.maxSum1 = minSum1;
 		this.minSum2 = Math.round(10000.00 * (Math.abs(sumLoadprofile2 * currentPrice2))) / 10000.00;
 		this.maxSum2 = minSum2;
-		// this.minCurrentSum = sumLoadprofile1 * currentPrice1 +
-		// sumLoadprofile2 * currentPrice2;
-		// this.maxCurrentSum = minCurrentSum;
-
-		double[] values1 = offer1.getAggLoadprofile().getValues();
-		System.out.println("\nAngebot: " + offer1.getUUID());
-		System.out.println("Werte: [" + values1[0] + "][" + values1[1] + "][" + values1[2] + "][" + values1[3] + "]");
-		System.out.println("Schranken: " + offer1.getMaxPrice() + ", " + offer1.getMinPrice());
-		System.out.println("Summe: " + sumLoadprofile1 + " Preis: " + currentPrice1);
-
-		double[] values2 = offer2.getAggLoadprofile().getValues();
-		System.out.println("\nAngebot: " + offer2.getUUID());
-		System.out.println("Werte: [" + values2[0] + "][" + values2[1] + "][" + values2[2] + "][" + values2[3] + "]");
-		System.out.println("Schranken: " + offer2.getMaxPrice() + ", " + offer2.getMinPrice());
-		System.out.println("Summe: " + sumLoadprofile2 + " Preis: " + currentPrice2);
 
 		// Füge Negotiation zu Container hinzu
 		NegotiationContainer container = NegotiationContainer.instance();
@@ -122,29 +107,22 @@ public class Negotiation implements Identifiable {
 	 *            Angebot, an das Anfrage nach Preisänderung gesendet wird
 	 */
 	private void sendPriceRequest(UUID offer) {
-		System.out.println("***sendPriceRequest***");
 		double priceRequest;
 		Offer currentOffer;
-		System.out.println("Angebot: " + offer);
 		if (offer.equals(offer1.getUUID())) {
 			currentOffer = offer1;
 			priceRequest = ((currentPrice2 * sumLoadprofile2) * -1) / sumLoadprofile1;
 			round1++;
-			System.out.println("MaxPreis: " + acceptedMax1);
-			System.out.println("MinPreis: " + acceptedMin1);
 
 		} else {
 			currentOffer = offer2;
 			priceRequest = ((currentPrice1 * sumLoadprofile1) * -1) / sumLoadprofile2;
 			round2++;
-			System.out.println("MaxPreis: " + acceptedMax1);
-			System.out.println("MinPreis: " + acceptedMin1);
 		}
 		
+		// Runde angefragten Preis
 		priceRequest = Math.round(10000.0000 * priceRequest)/10000.0000;
-
-		System.out.println("Angefragter Preis: " + priceRequest);
-
+		
 		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		API<AnswerToOfferFromMarketplace, Void> api = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
@@ -200,10 +178,7 @@ public class Negotiation implements Identifiable {
 	public void receiveAnswer(AnswerToPriceChangeRequest answer) {
 		UUID consumer = answer.getConsumer();
 		double newPrice = answer.getNewPrice();
-		System.out.println("***receiveAnswer***");
-		System.out.println("Neuer Preis: " + newPrice);
 		if (newPrice == Double.POSITIVE_INFINITY) {
-			System.out.println("Ungültige Antwort");
 			closed = true;
 		}
 		if (closed) {
@@ -249,17 +224,10 @@ public class Negotiation implements Identifiable {
 			}
 			offer = offer2.getUUID();
 		}
-		System.out.println("Neue Summe: " + newSum);
-
-		System.out.println("Summe Minimum 1: " + minSum1);
-		System.out.println("Summe Maximum 1: " + maxSum1);
-		System.out.println("Summe Minimum 2: " + minSum2);
-		System.out.println("Summe Maximum 2: " + maxSum2);
 
 		// Wenn mit den akzeptierten Preisgrenzen eine Einigung möglich ist,
 		// berechne die extakten Preise und beende die Verhandlung
 		if (!((minSum1 < minSum2 && maxSum1 < minSum2) || (minSum1 > maxSum2))) {
-			System.out.println("Einigung ist möglich");
 			// Berechne extakte Preise
 			if (chargeExactPrices()) {
 				// Teile Marktplatz mit, dass Verhandlung erfolgreich beendet
@@ -284,7 +252,6 @@ public class Negotiation implements Identifiable {
 	 * @return Boolean-Wert, ob exakte Preise berechnet werden konnten
 	 */
 	private boolean chargeExactPrices() {
-		System.out.println("***chargeExactPrices***");
 		// Berechne neue, extakte Preise
 		double newPrice1;
 		double newPrice2;
@@ -334,10 +301,7 @@ public class Negotiation implements Identifiable {
 		// Prüfe, ob Ergebnis auch wirklich im angegebenen Preisrahmen
 		if (newPrice1 > acceptedMax1 || newPrice1 < acceptedMin1 || newPrice2 > acceptedMax2
 				|| newPrice2 < acceptedMin2) {
-			System.out.println("newPrice1: " +newPrice1+ " Min1: " +acceptedMin1+ " Max1: " +acceptedMax1);
-			System.out.println("newPrice2: " +newPrice2+ " Min2: " +acceptedMin2+ " Max2: " +acceptedMax2);
-
-			System.out.println("Da ist jetzt was falsch");
+			Log.e(uuid, "Berechnung der exakten Preise lief schief");
 			return false;
 		} else {
 			currentPrice1 = newPrice1;

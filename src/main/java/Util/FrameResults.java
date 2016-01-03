@@ -154,22 +154,22 @@ public class FrameResults {
 		// Füge alle Panels zum 1. Tab hinzu
 		c.fill = GridBagConstraints.BOTH;
 		c.weightx = 1;
-		c.weighty = 0.2;
-		// Kriterium 11
+		c.weighty = 0.5;
+		// Kriterium 1
 		c.gridx = 0;
 		c.gridy = 0;
 		tab1.add(kriteria1, c);
-		// Kriterium 12
+		// Kriterium 2
 		c.gridx = 0;
 		c.gridy = 1;
 		tab1.add(kriteria2, c);
 		c.fill = GridBagConstraints.BOTH;
-		// Kriterium 2
+		// Kriterium 3
 		c.weighty = 1;
 		c.gridx = 0;
 		c.gridy = 2;
 		tab1.add(kriteria3, c);
-		// Kriterium 3
+		// Kriterium 4
 		c.gridx = 0;
 		c.gridy = 3;
 		tab1.add(kriteria4, c);
@@ -286,32 +286,31 @@ public class FrameResults {
 			countAll = justMatched.size();
 			int countSmaller = 0;
 			int countOk = 0;
-			testResult1.append("Es gab " +justMatched.size()+ " Zusammenführungen.\n");
+			testResult1.append("Es gab " + justMatched.size() + " Zusammenführungen.\n");
 			for (MatchedOffers matched : justMatched) {
-				double before = matched.getDeviationBefore();
-				double after = matched.getDeviationAfter();
+				double before = Math.round(100.00 * matched.getDeviationBefore()) / 100.00;
+				double after = Math.round(100.00 * matched.getDeviationAfter()) / 100.00;
 				boolean smaller = after < before;
 				Offer[] offer = matched.getOffers();
 				if (smaller) {
 					countSmaller++;
-					testResult1.append("Abweichung geringer. (Abweichung davor: " + matched.getDeviationBefore()
-							+ ", danach: " + matched.getDeviationAfter() + ") Werte Angebot 1:"
-							+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
-							+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
+					testResult1.append("Abweichung geringer. (Abweichung davor: " + before + ", danach: " + after
+							+ ") Werte Angebot 1:" + valuesToString(offer[0].getAggLoadprofile().getValues())
+							+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				} else {
 					boolean ok = after < before + maxDeviation;
 					if (ok) {
 						countOk++;
-						testResult1.append("Abweichung ok.       (Abweichung davor: " + Math.round(100.00 * matched.getDeviationBefore())/100.00
-								+ ", danach: " + Math.round(100.00 * matched.getDeviationAfter())/100.00 + ") Werte Angebot 1:"
-								+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
-								+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
+						testResult1.append("Abweichung ok.       (Abweichung davor: " + before + ", danach: " + after
+								+ ") Werte Angebot 1:" + valuesToString(offer[0].getAggLoadprofile().getValues())
+								+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues())
+								+ "\n");
 					} else {
 						result++;
-						testResult1.append("Abweichung höher.    (Abweichung davor: " + Math.round(100.00 * matched.getDeviationBefore())/100.00
-								+ ", danach: " + Math.round(100.00 * matched.getDeviationAfter())/100.00 + ") Werte Angebot 1:"
-								+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
-								+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
+						testResult1.append("Abweichung höher.    (Abweichung davor: " + before + ", danach: " + after
+								+ ") Werte Angebot 1:" + valuesToString(offer[0].getAggLoadprofile().getValues())
+								+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues())
+								+ "\n");
 					}
 				}
 			}
@@ -350,34 +349,35 @@ public class FrameResults {
 			countAll = justMatched.size();
 			for (MatchedOffers matched : justMatched) {
 				// Hole die Gesamtpreise
-				double allRoundPrice1 = Math.round(100.00 * matched.getAllRoundPrice1())/100.00;
-				double allRoundPrice2 = Math.round(100.00 * matched.getAllRoundPrice2())/100.00;
-				
+				double allRoundPrice1 = Math.round(100.00 * matched.getAllRoundPrice1()) / 100.00;
+				double allRoundPrice2 = Math.round(100.00 * matched.getAllRoundPrice2()) / 100.00;
+
 				// Hole Angebote
 				Offer[] offer = matched.getOffers();
 
 				// Berechne Summe gerundet auf 2 Nachkommastellen
-				double sum = Math.round(100.00 * (allRoundPrice1 + allRoundPrice2))/100.00;
+				double sum = Math.round(100.00 * (allRoundPrice1 + allRoundPrice2)) / 100.00;
 
 				// Gib das Ergebnis aus
 				if (sum == 0) {
-					result++;
-					testResult2.append("Gesamtpreise passen     : Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2 
-							+ ") Werte Angebot 1: "	+ valuesToString(offer[0].getAggLoadprofile().getValues()) 
-							+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
+					// result++;
+					testResult2.append("Gesamtpreise passen:		Summe = " + sum + " (GP1: " + allRoundPrice1
+							+ ", GP2: " + allRoundPrice2 + ") Werte Angebot 1: "
+							+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
+							+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				} else {
-					testResult2.append("Geamtpreise passen nicht: Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2
-							+ ") Werte Angebot 1: "	+ valuesToString(offer[0].getAggLoadprofile().getValues()) 
-							+ "Werte Angebot 2: " + valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
+					result++;
+					testResult2.append("Geamtpreise passen nicht:	Summe = " + sum + " (GP1: " + allRoundPrice1
+							+ ", GP2: " + allRoundPrice2 + ") Werte Angebot 1: "
+							+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
+							+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				}
 			}
 
 			// Gib prozentuales Ergebnis aus
-			double percentageGood = Math.round(100.00 * (result / countAll));
-			testResult2.append("\n" + percentageGood + " % der Gesamtpreise haben zusammengepasst\n");
-			testResult2.append((100 - percentageGood) + " % der Gesamtpreise haben nicht zusammengepasst");
+			double percentageBad = Math.round(100.00 * (result / countAll));
+			testResult2.append("\n" + percentageBad + " % der Gesamtpreise haben nicht zusammengepasst\n");
+			testResult2.append((100 - percentageBad) + " % der Gesamtpreise haben zusammengepasst");
 		}
 
 		// Zeige das Ergebnis an
@@ -396,8 +396,14 @@ public class FrameResults {
 
 	private void setTextAreaKriteria3() {
 		testResult3 = new JTextArea();
-		double countAll = 0;
-		double result = 0;
+		int countAll = 0;
+		int result = 0;
+		int countUnitGood = 0;
+		int countUnitBad = 0;
+		int countMatchGood = 0;
+		int countMatchBad = 0;
+		int countChangeGood = 0;
+		int countChangeBad = 0;
 		if (lastConfirmed.size() == 0) {
 			testResult3.append("Keine bestätigten Angebote für diesen Slot (" + calendarToString(time, true) + ")");
 		} else {
@@ -410,32 +416,55 @@ public class FrameResults {
 
 				// Prüfe, ob Angebot vor Start bestätigt wurde
 				boolean good = timeConfirmed.before(timeRealStart);
+				String type = confirmed.getTypeString();
 				if (good) {
 					countGood++;
 					testResult3.append("Bestätigung vor Start: JA	(Bestätigung: "
 							+ calendarToString(timeConfirmed, false) + ", Start: "
-							+ calendarToString(timeRealStart, false) + ") " + confirmed.getTypeString() + "	"
-							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues()) 
-							+ "		Anzahl der beteiligten Geräte: " +confirmed.getOffer().getAllLoadprofiles().size() 
-							+ " ID Angebot: " +confirmed.getOffer().getUUID() + "\n");
-
+							+ calendarToString(timeRealStart, false) + ") " + type + "	"
+							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues())
+							+ "		Anzahl der beteiligten Geräte: " + confirmed.getOffer().getAllLoadprofiles().size()
+							+ " ID Angebot: " + confirmed.getOffer().getUUID() + "\n");
+					if (type == "Zusammengeführt") {
+						countMatchGood++;
+					}
+					if (type == "Einheitspreis  ") {
+						countUnitGood++;
+					}
+					if (type == "Anpassung      ") {
+						countChangeGood++;
+					}
 				} else {
 					testResult3.append("Bestätigung vor Start: NEIN	(Bestätigung: "
 							+ calendarToString(timeConfirmed, false) + ", Start: "
-							+ calendarToString(timeRealStart, false) + ") " + confirmed.getTypeString() + "	"
-							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues()) 
-							+ "		Anzahl der beteiligten Geräte: " +confirmed.getOffer().getAllLoadprofiles().size() 
-							+ " ID Angebot: " +confirmed.getOffer().getUUID() + "\n");
+							+ calendarToString(timeRealStart, false) + ") " + type + "	"
+							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues())
+							+ "		Anzahl der beteiligten Geräte: " + confirmed.getOffer().getAllLoadprofiles().size()
+							+ " ID Angebot: " + confirmed.getOffer().getUUID() + "\n");
 					int differenceInMilliSeconds = (int) (timeConfirmed.getTimeInMillis()
 							- timeRealStart.getTimeInMillis());
 					result += Math.round(100.00 * (differenceInMilliSeconds * 0.001)) / 100.00 + 1;
+					if (type == "Zusammengeführt") {
+						countMatchBad++;
+					}
+					if (type == "Einheitspreis  ") {
+						countUnitBad++;
+					}
+					if (type == "Anpassung      ") {
+						countChangeBad++;
+					}
 				}
 			}
-
 			// Gib prozentuales Ergebnis aus
 			double percentageGood = Math.round(100.00 * (countGood / countAll));
 			testResult3.append(
 					"\nVon den " + lastConfirmed.size() + " Bestätigungen waren " + countGood + " rechtzeitig.");
+			testResult3.append("\nZusammengeführt: 	Insgesamt " + (countMatchGood + countMatchBad) + ", davon "
+					+ countMatchGood + " rechtzeitig");
+			testResult3.append("\nAnpassung:		Insgesamt " + (countChangeGood + countChangeBad) + ", davon "
+					+ countChangeGood + " rechtzeitig");
+			testResult3.append("\nEinheitspreis: 		Insgesamt " + (countUnitGood + countUnitBad) + ", davon "
+					+ countUnitGood + " rechtzeitig\n");
 			testResult3.append("\n" + percentageGood + " % der Bestätigungen waren rechtzeitig\n");
 			testResult3.append((100 - percentageGood) + " % der Bestätigungen waren zu spät");
 
@@ -465,18 +494,26 @@ public class FrameResults {
 			testResult4.append("\nAbweichungen nach Anpassungen:\n	" + valuesToString(deviationWithChange));
 			testResult4.append("\nAlle " + allChanges.size() + " Anpassungen:");
 			for (double[] currentChanges : allChanges) {
-				testResult4.append("\n	" + valuesToString(currentChanges));
+				testResult4.append("\n	" + changesToString(currentChanges));
 			}
 			// Verringerung in Prozent
 			testResult4.append("\nVerringerung in Prozent: ");
 			double less1 = Math
-					.round(100.00 * (deviationWithoutChange[0] - deviationWithChange[0]) / deviationWithoutChange[0]);
+					.round(10000.00
+							* ((deviationWithoutChange[0] - deviationWithChange[0]) / deviationWithoutChange[0]))
+					/ 100.00;
 			double less2 = Math
-					.round(100.00 * (deviationWithoutChange[1] - deviationWithChange[1]) / deviationWithoutChange[1]);
+					.round(10000.00
+							* ((deviationWithoutChange[1] - deviationWithChange[1]) / deviationWithoutChange[1]))
+					/ 100.00;
 			double less3 = Math
-					.round(100.00 * (deviationWithoutChange[2] - deviationWithChange[2]) / deviationWithoutChange[2]);
+					.round(10000.00
+							* ((deviationWithoutChange[2] - deviationWithChange[2]) / deviationWithoutChange[2]))
+					/ 100.00;
 			double less4 = Math
-					.round(100.00 * (deviationWithoutChange[3] - deviationWithChange[3]) / deviationWithoutChange[3]);
+					.round(10000.00
+							* ((deviationWithoutChange[3] - deviationWithChange[3]) / deviationWithoutChange[3]))
+					/ 100.00;
 			testResult4.append("\n	Slot1: " + less1 + " %");
 			testResult4.append("\n	Slot2: " + less2 + " %");
 			testResult4.append("\n	Slot3: " + less3 + " %");
@@ -485,7 +522,7 @@ public class FrameResults {
 					+ deviationWithChange[3];
 			double deviationWithoutSum = deviationWithoutChange[0] + deviationWithoutChange[1]
 					+ deviationWithoutChange[2] + deviationWithoutChange[3];
-			result = Math.round(100.00 * ((deviationWithoutSum - deviationWithSum) / deviationWithoutSum));
+			result = Math.round(10000.00 * ((deviationWithoutSum - deviationWithSum) / deviationWithoutSum)) / 100.00;
 			testResult4.append("\n	Gesamt: " + result + " %");
 		} else {
 			testResult4.append("Es gab keine Anpassungen in diesem Slot (" + calendarToString(time, false));
@@ -541,6 +578,19 @@ public class FrameResults {
 		String s = "";
 		for (int i = 0; i < values.length; i++) {
 			s = s + "[" + values[i] + "]";
+		}
+		return s;
+	}
+
+	private String changesToString(double[] values) {
+		String s = "";
+		for (int i = 0; i < 4; i++) {
+			s = s + "[" + Math.round(100.00 * values[i]) / 100.00 + "]";
+		}
+		if (values[4] == 1) {
+			s = s + " (angenommen)";
+		} else {
+			s = s + " (abgelehnt)";
 		}
 		return s;
 	}

@@ -1,8 +1,6 @@
 package Util;
 
 import java.util.GregorianCalendar;
-import java.util.TreeMap;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
@@ -30,13 +28,13 @@ public class SimulationBHKW {
 
 		schedule = new double[2][numSlots * 15];
 		boolean rising = true;
-		double value = maxLoad;
+		double value = Math.round(100.00 * (Math.random()/2 +0.5) * maxLoad) /100.00;
 		int rounds = 0;
-		double change = Math.round(100.00 * maxLoad * 0.2) / 100.00;
+		double change = Math.round(100.00 * maxLoad * 0.1) / 100.00;
 		for (int i = 0; i < numSlots * 15; i++) {
 			schedule[0][i] = sizeHeatReservoir * 0.5;
 			schedule[1][i] = value;
-			if (rounds == 10) {
+			if (rounds == 5) {
 				if ( (rising & value+change > maxLoad) || (!rising & value-change < maxLoad*0.5)) {
 					rising = !rising;
 				}
@@ -49,7 +47,6 @@ public class SimulationBHKW {
 			} else {
 				rounds++;
 			}
-
 		}
 	}
 

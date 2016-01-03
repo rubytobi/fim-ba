@@ -29,6 +29,7 @@ import Entity.Fridge;
 import Entity.Identifiable;
 import Packet.FridgeCreation;
 import Util.API;
+import Util.DateTime;
 
 @Configuration
 @EnableAutoConfiguration
@@ -39,17 +40,17 @@ import Util.API;
 public class Application {
 	public static class Params {
 		// Setze die Anzahl an Devices der Simulation
-		public static final int maxDevices = 49;
+		public static final int maxDevices = 51;
 
 		// Jedes x-te Gerät ist ein BHKW
-		public static final int bhkwQuota = 10;
+		public static final int bhkwQuota = 25;
 
 		// Setze den Zeitfaktor, sodass die Simulationszeit schneller (>1) oder
 		// langsamer (<1) als die reale Zeit vergeht
 		// Beachte, dass bei einer sehr schnellen Simulationszeit die
 		// Ping-Zeiten angepasst werden müssen!
 		public static final double timeFactor = 20;
-
+		
 		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
 		// starten soll
 		public static final int marketplaceMinuteOfSecondPhase = 45;
@@ -138,7 +139,7 @@ public class Application {
 
 	@Scheduled(initialDelay = 5000, fixedRate = 1000)
 	public static void pingAllDevices() {
-		System.out.println("PING DEVICES");
+		System.out.println("PING DEVICES:		" +DateTime.ToString(DateTime.now()));
 
 		RestTemplate rest = new RestTemplate();
 
@@ -155,7 +156,7 @@ public class Application {
 
 	@Scheduled(fixedRate = 1000)
 	public static void pingAllConsumers() {
-		System.out.println("PING CONSUMERS");
+		System.out.println("PING CONSUMERS:		" +DateTime.ToString(DateTime.now()));
 		RestTemplate rest = new RestTemplate();
 
 		ResponseEntity<Consumer[]> consumers = rest.exchange(Params.BASE_URI + "/consumers", HttpMethod.GET, null,
@@ -173,7 +174,7 @@ public class Application {
 
 	@Scheduled(fixedRate = 5000)
 	public static void pingMarketplace() {
-		System.out.println("PING MARKETPLACE");
+		System.out.println("PING MARKETPLACE:	" +DateTime.ToString(DateTime.now()));
 		RestTemplate rest = new RestTemplate();
 		try {
 			rest.exchange(Params.BASE_URI + "/marketplace/ping", HttpMethod.POST, null, Void.class);

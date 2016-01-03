@@ -75,7 +75,6 @@ public class MarketplaceController {
 
 	@RequestMapping(value = "/marketplace/offers/{uuid}/invalidate", method = RequestMethod.GET)
 	public ResponseEntity<Void> removeOffer(@PathVariable UUID uuid) {
-		System.out.println("Consumer entfernen Angebote vom Markplatz");
 		Marketplace.instance().removeOffer(uuid, false);
 		return ResponseBuilder.returnVoid(Marketplace.instance());
 	}
