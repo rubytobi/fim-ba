@@ -28,6 +28,19 @@ public class Negotiation implements Identifiable {
 		marketplace = Marketplace.instance();
 	}
 
+	/**
+	 * Konstruktor, der aus den übergebenen Parametern eine Preisverhandlung
+	 * erstellt, jedoch noch nicht startet
+	 * 
+	 * @param offer1
+	 *            Erstes Angebot, das an der Preisverhandlung teilnimmt
+	 * @param offer2
+	 *            Zweites Angebot, das an der Preisverhandlung teilnimmt
+	 * @param sumLoadprofile1
+	 *            Summe der Lastprofilwerte des ersten Angebots
+	 * @param sumLoadprofile2
+	 *            Summe der Lastprofilwerte des zweiten Angebots
+	 */
 	public Negotiation(Offer offer1, Offer offer2, double sumLoadprofile1, double sumLoadprofile2) {
 		this();
 
@@ -68,6 +81,9 @@ public class Negotiation implements Identifiable {
 				+ " aktueller Preis: " + currentPrice1 + " Finished: " + finished2);
 	}
 
+	/**
+	 * Schließt die Verhandlung und entfernt sie aus dem Negotiation-Container
+	 */
 	public void close() {
 		// Schließe Verhandlung
 		closed = true;
@@ -119,10 +135,10 @@ public class Negotiation implements Identifiable {
 			priceRequest = ((currentPrice1 * sumLoadprofile1) * -1) / sumLoadprofile2;
 			round2++;
 		}
-		
+
 		// Runde angefragten Preis
-		priceRequest = Math.round(10000.0000 * priceRequest)/10000.0000;
-		
+		priceRequest = Math.round(10000.0000 * priceRequest) / 10000.0000;
+
 		// Sende Anfrage mit priceRequest an consumer
 		AnswerToOfferFromMarketplace answerOffer = new AnswerToOfferFromMarketplace(offer, priceRequest);
 		API<AnswerToOfferFromMarketplace, Void> api = new API<AnswerToOfferFromMarketplace, Void>(Void.class);
@@ -294,20 +310,20 @@ public class Negotiation implements Identifiable {
 			newPrice1 = Math.abs((sumLoadprofile2 * currentPrice2) / sumLoadprofile1);
 			newPrice2 = currentPrice2;
 		}
-		
-		newPrice1 = Math.round(10000.00 * newPrice1)/10000.00;
-		newPrice2 = Math.round(10000.00 * newPrice2)/10000.00;
+
+		newPrice1 = Math.round(10000.00 * newPrice1) / 10000.00;
+		newPrice2 = Math.round(10000.00 * newPrice2) / 10000.00;
 
 		// Prüfe, ob Ergebnis auch wirklich im angegebenen Preisrahmen
 		if (newPrice1 > acceptedMax1 || newPrice1 < acceptedMin1 || newPrice2 > acceptedMax2
 				|| newPrice2 < acceptedMin2) {
 			Log.e(uuid, "Berechnung der exakten Preise lief schief");
 			return false;
-		} else {
-			currentPrice1 = newPrice1;
-			currentPrice2 = newPrice2;
-			return true;
 		}
+
+		currentPrice1 = newPrice1;
+		currentPrice2 = newPrice2;
+		return true;
 	}
 
 	/**
@@ -331,5 +347,21 @@ public class Negotiation implements Identifiable {
 		API<EndOfNegotiation, Void> api = new API<EndOfNegotiation, Void>(Void.class);
 		api.marketplace().endOfNegotiation();
 		api.call(marketplace, HttpMethod.POST, end);
+	}
+
+	/**
+	 * Diese Methode dient zu einfachen Ausgabe von Double-Arrays, wie sie bspw.
+	 * in den Angeboten verwendet werden
+	 * 
+	 * @param values
+	 *            Werte, die als String ausgegeben werden sollen
+	 * @return String, der alle Werte beinhaltet
+	 */
+	private String valuesToString(double[] values) {
+		String s = "";
+		for (int i = 0; i < values.length; i++) {
+			s = s + "[" + values[i] + "]";
+		}
+		return s;
 	}
 }

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import Packet.ChangeRequestSchedule;
-import Util.DateTime;
 
 /**
  * Klasse fuer Lastprofile
@@ -121,6 +120,8 @@ public class Loadprofile {
 		this();
 
 		if (!lp1.getDate().equals(lp2.getDate())) {
+			System.out.println(lp1.getDate());
+			System.out.println(lp2.getDate());
 			throw new IllegalArgumentException();
 		}
 

@@ -21,6 +21,7 @@ public class PossibleMatch implements Comparable<PossibleMatch> {
 		}
 		this.offer1 = offer1;
 		this.offer2 = offer2;
+		System.out.println("Possible Match: erstelle Lastprofil");
 		Loadprofile loadprofile = new Loadprofile(offer1.getAggLoadprofile(), offer2.getAggLoadprofile());
 		this.valuesAggLoadprofile = loadprofile.getValues();
 		this.outcomeMatch = chargeOutcomeMatch();

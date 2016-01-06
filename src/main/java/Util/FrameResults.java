@@ -40,7 +40,8 @@ public class FrameResults {
 	public FrameResults(GregorianCalendar time, ArrayList<MatchedOffers> justMatched,
 			ArrayList<ConfirmedOffer> lastConfirmed, double maxDeviation, boolean changes, int countRemainingOffers,
 			double[] deviationWithoutChange, double[] deviationWithChange, ArrayList<double[]> allChanges,
-			HashMap<String, ArrayList<Offer>> demand, HashMap<String, ArrayList<Offer>> supply) {
+			HashMap<String, ArrayList<Offer>> demand, HashMap<String, ArrayList<Offer>> supply, double[] prediction,
+			int countDevices) {
 		// Setze alle Werte
 		this.time = time;
 		this.justMatched = justMatched;
@@ -54,8 +55,38 @@ public class FrameResults {
 		this.demand = demand;
 		this.supply = supply;
 
+		String scenario = "FEHLER";
+		if (countDevices == 51) {
+			double value = prediction[0];
+			if (value == 0) {
+				scenario = "1f";
+			}
+			if (value == -20) {
+				scenario = "2f";
+			}
+			if (value == 20) {
+				scenario = "3f";
+			}
+			if (value == 10 || value == -10) {
+				scenario = "4f";
+			}
+			scenario = scenario + " (Prognose: " + valuesToString(prediction) + ")";
+		}
+		if (countDevices == 50) {
+			scenario = "1t";
+		}
+		if (countDevices == 750) {
+			scenario = "2t";
+		}
+		if (countDevices == 11250) {
+			scenario = "3t";
+		}
+		if (countDevices == 168750) {
+			scenario = "4t";
+		}
+		
 		// Erstelle Fenster und Tabs
-		frame = new JFrame("Ergebnisse für " + calendarToString(this.time, false));
+		frame = new JFrame("Ergebnisse für " + calendarToString(this.time, false) + " - Szenario " + scenario);
 		tabs = new JTabbedPane();
 
 		fillTab1();
@@ -120,8 +151,7 @@ public class FrameResults {
 		// Erstelle alle Informationen für Kriterium 3
 		kriteria3 = new JPanel(new BorderLayout());
 		head3 = new JTextArea();
-		head3.append("Kriterium 3: \nJedes Angebot wird vor dessen Beginn bestätigt \n"
-				+ "(Betrachtet werden alle Angebote, die seit der letzten Betrachtung bestätigt wurden");
+		head3.append("Kriterium 3: \nJedes Angebot wird vor dessen Beginn bestätigt");
 		head3.setFont(fontHead);
 		head3.setBackground(Color.LIGHT_GRAY);
 		// Schreibe alle Results in die TextArea
@@ -361,7 +391,7 @@ public class FrameResults {
 				// Gib das Ergebnis aus
 				if (sum == 0) {
 					// result++;
-					testResult2.append("Gesamtpreise passen:		Summe = " + sum + " (GP1: " + allRoundPrice1
+					testResult2.append("Gesamtpreise passen:	Summe = " + sum + " (GP1: " + allRoundPrice1
 							+ ", GP2: " + allRoundPrice2 + ") Werte Angebot 1: "
 							+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
 							+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
@@ -420,7 +450,7 @@ public class FrameResults {
 				if (good) {
 					countGood++;
 					testResult3.append("Bestätigung vor Start: JA	(Bestätigung: "
-							+ calendarToString(timeConfirmed, false) + ", Start: "
+							+ calendarToString(timeConfirmed, false) + ", Beginn: "
 							+ calendarToString(timeRealStart, false) + ") " + type + "	"
 							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues())
 							+ "		Anzahl der beteiligten Geräte: " + confirmed.getOffer().getAllLoadprofiles().size()
@@ -436,7 +466,7 @@ public class FrameResults {
 					}
 				} else {
 					testResult3.append("Bestätigung vor Start: NEIN	(Bestätigung: "
-							+ calendarToString(timeConfirmed, false) + ", Start: "
+							+ calendarToString(timeConfirmed, false) + ", Beginn: "
 							+ calendarToString(timeRealStart, false) + ") " + type + "	"
 							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues())
 							+ "		Anzahl der beteiligten Geräte: " + confirmed.getOffer().getAllLoadprofiles().size()
@@ -495,6 +525,11 @@ public class FrameResults {
 			testResult4.append("\nAlle " + allChanges.size() + " Anpassungen:");
 			for (double[] currentChanges : allChanges) {
 				testResult4.append("\n	" + changesToString(currentChanges));
+			}
+			// Berechne Betragwerte für Abweichungen
+			for (int i = 0; i < 4; i++) {
+				deviationWithoutChange[i] = Math.abs(deviationWithoutChange[i]);
+				deviationWithChange[i] = Math.abs(deviationWithChange[i]);
 			}
 			// Verringerung in Prozent
 			testResult4.append("\nVerringerung in Prozent: ");
@@ -588,9 +623,11 @@ public class FrameResults {
 			s = s + "[" + Math.round(100.00 * values[i]) / 100.00 + "]";
 		}
 		if (values[4] == 1) {
-			s = s + " (angenommen)";
+			s = s + "	(angenommen)";
+		} else if (values[4] == 3) {
+			s = "Keine Antwort erhalten";
 		} else {
-			s = s + " (abgelehnt)";
+			s = s + "	(abgelehnt)";
 		}
 		return s;
 	}

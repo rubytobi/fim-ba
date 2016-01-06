@@ -36,20 +36,6 @@ public class NegotiationContainer {
 	 */
 	public Negotiation get(UUID uuid) {
 		Negotiation negotiation = negotiations.get(uuid);
-		if (negotiation == null) {
-			System.out.println("UUID: " +uuid);
-			Set<UUID> set = negotiations.keySet();
-			if (set == null) {
-				System.out.println("Keine Negotiations im Container");
-			}
-			else {
-				for (UUID current: set) {
-					System.out.println(current);
-				}
-			}
-			double anzahl = negotiations.size();
-			System.out.println("Negotiation ist nicht im Container mit " +anzahl+ " Negotiations");
-		}
 		return negotiation;
 	}
 	
@@ -67,7 +53,6 @@ public class NegotiationContainer {
 	 */
 	public void add(Negotiation negotiation) {
 		negotiations.put(negotiation.getUUID(), negotiation);
-		System.out.println("Negotiation ist im Container: " +negotiation.getUUID());
 	}
 	
 	/**

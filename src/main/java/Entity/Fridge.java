@@ -178,7 +178,6 @@ public class Fridge implements Device {
 
 		simulationFridge = new SimulationFridge();
 
-		System.out.println("Neuer Fridge: " + uuid);
 		status = DeviceStatus.INITIALIZED;
 	}
 
@@ -1186,7 +1185,6 @@ public class Fridge implements Device {
 		 * Deltalastprofile
 		 */
 		while (!DateTime.ToString(startLoadprofile).equals(DateTime.ToString(compare))) {
-			System.out.println("Berechne neuen Fahrplan");
 			// Berechne neuen Fahrplan
 			double[][] deltaSchedule = chargeDeltaSchedule(aenderung, newTemperature, firstSchedule);
 
@@ -1221,7 +1219,6 @@ public class Fridge implements Device {
 				}
 			}
 			if (change) {
-				System.out.println("Versende Delta-LP");
 				// Versende deltaValues als Delta-Lastprofil an den Consumer
 				Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, DateTime.ToString(startLoadprofile),
 						Loadprofile.Type.DELTA);

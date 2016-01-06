@@ -68,8 +68,8 @@ public class API<Request, Response> {
 
 			return;
 		} catch (Exception e) {
-			e.printStackTrace();
 			Log.e(who.getUUID(), e + " - -- - " + who + " - -- - " + what + " - -- - " + response);
+			e.printStackTrace();
 		}
 
 		this.response = null;

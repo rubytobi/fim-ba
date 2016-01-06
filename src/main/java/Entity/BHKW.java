@@ -94,6 +94,12 @@ public class BHKW implements Device {
 	 */
 	@JsonView(View.Summary.class)
 	private DeviceStatus status;
+	
+	/**
+	 * Startwert des BHKW in kWh
+	 */
+	@JsonView(View.Summary.class)
+	private double startLoad;
 
 	/**
 	 * Zeitpunkt, ab dem scheduleMinutes gilt
@@ -142,17 +148,17 @@ public class BHKW implements Device {
 	 *            Maximale Last des Blockheizkraftwerks
 	 */
 	public BHKW(double chpCoefficient, double priceFuel, double consFuelPerKWh, double sizeHeatReservoir,
-			double maxLoad) {
+			double maxLoad, double startLoad) {
 		this();
 		this.chpCoefficient = chpCoefficient;
 		this.priceFuel = priceFuel;
 		this.consFuelPerKWh = consFuelPerKWh;
 		this.sizeHeatReservoir = sizeHeatReservoir;
 		this.maxLoad = maxLoad;
+		this.startLoad = startLoad;
 
-		simulation = new SimulationBHKW(maxLoad, sizeHeatReservoir);
+		simulation = new SimulationBHKW(maxLoad, sizeHeatReservoir, startLoad);
 
-		System.out.println("Neues BHKW: " + uuid);
 		status = DeviceStatus.INITIALIZED;
 	}
 
@@ -167,7 +173,6 @@ public class BHKW implements Device {
 	 * @return Antwort auf den CR
 	 */
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
-		System.out.println("Device erhält Änderungsanfrage");
 		double[] changesKWH = cr.getChangesLoadprofile();
 		String dateCR = cr.getStartLoadprofile();
 		String dateCurrent = timeFixed;
@@ -299,7 +304,6 @@ public class BHKW implements Device {
 	 *         Stromerzeugung [1]
 	 */
 	private double[][] chargeChangedSchedule(double[][] changes) {
-		System.out.println("ChargeChangedSchedule");
 		double[][] planned = scheduleMinutes.clone();
 		double[] plannedPowerLoadprofile = createValuesLoadprofile(planned[1]);
 
@@ -512,7 +516,6 @@ public class BHKW implements Device {
 	public void confirmLoadprofile(String time) {
 		if (timeFixed.equals(time)) {
 			saveSchedule(scheduleMinutes, timeFixed);
-			System.out.println("scheduleFixed gespeichert für: " + timeFixed);
 			sendNewLoadprofile();
 		}
 	}
@@ -583,12 +586,9 @@ public class BHKW implements Device {
 		double powerPlanned = 0, powerScaled;
 		int minute = currentTime.get(Calendar.MINUTE);
 		currentTime.set(Calendar.MINUTE, 0);
-		System.out.println("Zeit: " + DateTime.ToString(currentTime));
 
 		double[][] plan = schedulesFixed.get(DateTime.ToString(currentTime));
 		if (plan == null) {
-			System.out.println("Es liegt kein schedulesFixed für " + DateTime.ToString(currentTime) + " vor.");
-			System.out.println("ScheduleMintues gilt ab: " + timeFixed);
 			return;
 		}
 		powerPlanned = plan[1][minute];
@@ -612,7 +612,6 @@ public class BHKW implements Device {
 	 *            abgelehnt (false) wird
 	 */
 	public void receiveAnswerChangeRequest(boolean acceptChange) {
-		System.out.println("Device enthält Zusage für Laständerungen");
 		if (acceptChange) {
 			scheduleMinutes = scheduleCurrentChangeRequest;
 		}
@@ -714,7 +713,6 @@ public class BHKW implements Device {
 	 * Lastprofil wird an den Consumer geschickt.
 	 */
 	public void sendNewLoadprofile() {
-		System.out.println("BHKW " + uuid + " sendet neues Lastprofil.");
 		double[] valuesLoadprofile;
 
 		/*
@@ -741,7 +739,6 @@ public class BHKW implements Device {
 		// Zaehle timeFixed um eine Stunde hoch
 		timeFixed = DateTime.add(Calendar.HOUR_OF_DAY, 1, timeFixed);
 
-		System.out.println("Neuer scheduleMinutes wird geholt für: " + timeFixed);
 		scheduleMinutes = simulation.getNewSchedule(timeFixed);
 		valuesLoadprofile = createValuesLoadprofile(scheduleMinutes[1]);
 

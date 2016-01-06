@@ -46,7 +46,6 @@ public class SimulationFridge {
 		double change = 0;
 		openDoor();
 		if (doorOpen) {
-			System.out.println("Tür ist offen");
 			change = Math.random();
 		}
 		closeDoor();

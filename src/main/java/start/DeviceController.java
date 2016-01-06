@@ -64,7 +64,7 @@ public class DeviceController {
 	@RequestMapping(value = "/devices/bhkw", method = RequestMethod.POST)
 	public @ResponseBody UUID addDevice(@RequestBody BHKWCreation params) {
 		BHKW bhkw = new BHKW(params.getChpCoefficient(), params.getPriceFuel(), params.getConsFuelPerKWh(),
-				params.getSizeHeatReservoir(), params.getMaxLoad());
+				params.getSizeHeatReservoir(), params.getMaxLoad(), params.getStartLoad());
 
 		DeviceContainer.instance().add(bhkw);
 		return bhkw.getUUID();
@@ -154,7 +154,7 @@ public class DeviceController {
 
 	}
 
-	@RequestMapping(value = "/devices/{uuid}/changeRequest/decline", method = RequestMethod.GET)
+	@RequestMapping(value = "/devices/{uuid}/changeRequest/decline", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveChangeRequest(@PathVariable UUID uuid) {
 		DeviceContainer.instance().get(uuid).receiveAnswerChangeRequest(false);
 		return ResponseBuilder.returnVoid(DeviceContainer.instance().get(uuid));

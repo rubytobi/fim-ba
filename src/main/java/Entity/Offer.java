@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonView;
 
 import Packet.AnswerChangeRequestLoadprofile;
 import Util.API;
-import Util.DateTime;
 import Util.Log;
 import Util.View;
 import Event.OffersPriceborderException;
@@ -98,7 +97,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this.priceSugg = loadprofile.getPriceSugg();
 		this.minPrice = loadprofile.getMinPrice();
 		this.maxPrice = loadprofile.getMaxPrice();
-
+		
+		System.out.println("Neues Angebot Lastprofil");
 		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
@@ -160,7 +160,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		if (priceSugg > maxPrice) {
 			priceSugg = maxPrice;
 		}
-
+		
+		System.out.println("Offer: ChangeRequestAnswer");
 		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
@@ -263,7 +264,8 @@ public class Offer implements Comparable<Offer>, Cloneable {
 			newPriceSugg = this.maxPrice;
 		}
 		this.priceSugg = newPriceSugg;
-
+		
+		System.out.println("Neues Angebot aus zwei Angeboten");
 		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
@@ -305,6 +307,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 				if (this.aggLoadprofile == null) {
 					this.aggLoadprofile = lp;
 				} else {
+					System.out.println("Offer: calculateAggLoadprofile");
 					this.aggLoadprofile = new Loadprofile(this.aggLoadprofile, lp);
 				}
 			}

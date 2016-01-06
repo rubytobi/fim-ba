@@ -225,7 +225,7 @@ public class ConsumerController {
 		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));
 	}
 
-	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/decline", method = RequestMethod.GET)
+	@RequestMapping(value = "/consumers/{uuid}/offers/{uuidOffer}/changeRequest/decline", method = RequestMethod.POST)
 	public ResponseEntity<Void> receiveChangeRequestDecline(@PathVariable UUID uuid, @PathVariable UUID uuidOffer) {
 		ConsumerContainer.instance().get(uuid).receiveChangeRequestDecline(uuidOffer);
 		return ResponseBuilder.returnVoid(ConsumerContainer.instance().get(uuid));

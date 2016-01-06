@@ -270,7 +270,7 @@ public class Consumer implements Identifiable {
 
 		// Prüfe, ob das Angebot vorhanden ist
 		if (offer == null) {
-			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist?!");
+			Log.e(uuid, "Marktplatz möchte ein Angebot bestätigen, welches nicht vorhanden ist");
 			return;
 		}
 
@@ -294,7 +294,6 @@ public class Consumer implements Identifiable {
 				for (UUID current : set) {
 					// An sich selbst wird keine Bestätigung gesendet
 					if (current == uuid) {
-						System.out.println("Consumer ist Autor.");
 						continue;
 					}
 					// Alle anderen Teilnehmer werden informiert
@@ -477,6 +476,7 @@ public class Consumer implements Identifiable {
 				contributionOffer = contributions.get(c).getLoadprofile().toOffer(c);
 			} else {
 				try {
+					System.out.println("Consumer 479: ImproveOwnOffer");
 					contributionOffer = new Offer(contributionOffer, contributions.get(c).getLoadprofile().toOffer(c));
 				} catch (OffersPriceborderException e) {
 					Log.d(uuid,
@@ -511,7 +511,7 @@ public class Consumer implements Identifiable {
 			for (UUID c : contributions.keySet()) {
 				API<Void, Void> api2_decline = new API<Void, Void>(Void.class);
 				api2_decline.consumers(c).offers(ownOffer.getUUID()).changeRequest().decline();
-				api2_decline.call(this, HttpMethod.GET, null);
+				api2_decline.call(this, HttpMethod.POST, null);
 				api2_decline.clear();
 			}
 
@@ -575,6 +575,7 @@ public class Consumer implements Identifiable {
 			Offer marketplace = getMarketplacePrediction();
 			for (Offer own : offerWithPrivileges) {
 				try {
+					System.out.println("Consumer 578: PING");
 					scorecard.add(new Score(new Offer(own, receivedOffer), marketplace, own, receivedOffer, null));
 				} catch (OffersPriceborderException e) {
 					Log.d(uuid, "Preisgrenzen stimmen nicht überein.");
@@ -743,7 +744,7 @@ public class Consumer implements Identifiable {
 					// Absage für ChangeRequest an Consumer
 					API<Void, Void> api1 = new API<Void, Void>(Void.class);
 					api1.consumers(current).offers(uuidOffer).changeRequest().decline();
-					api1.call(this, HttpMethod.GET, null);
+					api1.call(this, HttpMethod.POST, null);
 				}
 			}
 		}
@@ -751,12 +752,12 @@ public class Consumer implements Identifiable {
 		// Consumer informiert sein eigenes Gerät über Absage der Änderungen
 		API<Boolean, Void> api2 = new API<Boolean, Void>(Void.class);
 		api2.devices(device).changeRequest().decline();
-		api2.call(this, HttpMethod.GET, false);
+		api2.call(this, HttpMethod.POST, false);
 	}
 
 	public void receiveChangeRequestConfirm(UUID uuidOffer) {
 		if (!allOffers.containsKey(uuidOffer)) {
-			Log.e(uuid, "receiveChangeRequestConfirm abbrechen");
+			Log.d(uuid, "receiveChangeRequestConfirm abbrechen");
 			return;
 		}
 		// Hole das betroffene Angebot
@@ -949,10 +950,12 @@ public class Consumer implements Identifiable {
 			double answerMax = answerLP.getMaxPrice();
 			if (answerMin > currentMaxPrice || answerMax < currentMinPrice) {
 				Log.d(uuid, "Absage an Consumer für Änderungen wegen Preis");
+			
 				// Absage für ChangeRequest an Consumer
 				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
 				api1.consumers(current).offers(current).changeRequest().decline();
 				api1.call(this, HttpMethod.POST, cr);
+				continue;
 			} else {
 				currentMaxPrice = answerMax;
 				currentMinPrice = answerMin;
@@ -963,6 +966,25 @@ public class Consumer implements Identifiable {
 			}
 			if (currentPriceSugg > currentMaxPrice) {
 				currentPriceSugg = currentMaxPrice;
+			}
+
+			// Prüfe, ob Änderungen sinnvoll
+			double[] changesBefore = cr.getChange();
+			double sumChangesBefore = 0;
+			double sumAnswerChanges = 0;
+			for (int i = 0; i < numSlots; i++) {
+				sumChangesBefore += Math.abs(changesBefore[i]);
+				sumAnswerChanges += Math.abs(requestedChanges[i] - answerChanges[i]);
+			}
+			// Wenn noch benötigte Änderungen jetzt größer als zuvor, sage ab
+			if (sumAnswerChanges > sumChangesBefore) {
+				Log.d(uuid, "Absage an Consumer für Änderungen wegen schlechten Änderungen");
+				
+				// Absage für ChangeRequest an Consumer
+				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
+				api1.consumers(current).offers(current).changeRequest().decline();
+				api1.call(this, HttpMethod.POST, cr);
+				continue;
 			}
 
 			// Passe noch benötigte und bereits vorgenommene Änderungen an
