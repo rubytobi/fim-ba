@@ -481,6 +481,10 @@ public class Consumer implements Identifiable {
 				} catch (OffersPriceborderException e) {
 					Log.d(uuid,
 							"Aufgrund der Preisgrenzen, konnte die Änderung nicht zusammengeführt werden. Der Beitrag des Consumers wird abgelehnt.");
+				} catch (IllegalArgumentException e) {
+					Log.d(uuid,
+							"Aufgrund unterschiedlicher Zeiten, konnte die Änderung nicht zusammengeführt werden. Der Beitrag des Consumers wird abgelehnt.");
+				} finally {
 					rejectConsumersContribution(c, ownOffer.getUUID());
 				}
 			}
@@ -950,7 +954,7 @@ public class Consumer implements Identifiable {
 			double answerMax = answerLP.getMaxPrice();
 			if (answerMin > currentMaxPrice || answerMax < currentMinPrice) {
 				Log.d(uuid, "Absage an Consumer für Änderungen wegen Preis");
-			
+
 				// Absage für ChangeRequest an Consumer
 				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
 				api1.consumers(current).offers(current).changeRequest().decline();
@@ -979,7 +983,7 @@ public class Consumer implements Identifiable {
 			// Wenn noch benötigte Änderungen jetzt größer als zuvor, sage ab
 			if (sumAnswerChanges > sumChangesBefore) {
 				Log.d(uuid, "Absage an Consumer für Änderungen wegen schlechten Änderungen");
-				
+
 				// Absage für ChangeRequest an Consumer
 				API<ChangeRequestLoadprofile, Void> api1 = new API<ChangeRequestLoadprofile, Void>(Void.class);
 				api1.consumers(current).offers(current).changeRequest().decline();
