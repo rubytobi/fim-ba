@@ -69,7 +69,7 @@ public class Marketplace implements Identifiable {
 	/**
 	 * Aktuell geduldete Abweichung in kWh
 	 */
-	private double maxDeviation = 20;
+	private double maxDeviation = 12;
 
 	/**
 	 * Map, die alle bisher zusammengefuehrten Angebote nach Zeitslot beinhaltet
@@ -751,7 +751,7 @@ public class Marketplace implements Identifiable {
 			// hinzu
 			possibleMatchesOfDateOffer.add(possibleMatch);
 		}
-
+		
 		// Prüfe, ob ein Match nach des festgesetzten maximalen Abweichung
 		// sinnvoll ist
 		boolean match;

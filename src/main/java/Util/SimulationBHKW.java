@@ -30,7 +30,7 @@ public class SimulationBHKW {
 		boolean rising = true;
 		double value = startLoad;
 		int rounds = 0;
-		double change = Math.round(100.00 * maxLoad * 0.1) / 100.00;
+		double change = 0.1;
 		for (int i = 0; i < numSlots * 15; i++) {
 			schedule[0][i] = sizeHeatReservoir * 0.5;
 			schedule[1][i] = value;

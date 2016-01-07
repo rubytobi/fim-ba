@@ -126,7 +126,7 @@ public class Loadprofile {
 		}
 
 		if (lp1.getValues() == null || lp2.getValues() == null) {
-			throw new IllegalArgumentException();
+			//throw new IllegalArgumentException();
 		}
 
 		date = lp1.getDate();

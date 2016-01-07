@@ -52,7 +52,7 @@ public class Application {
 		static int scenario2t = 750;
 		static int scenario3t = 11250;
 		static int scenario4t = 168750;
-		public static final int maxDevices = scenariof;
+		public static final int maxDevices = scenario2t;
 
 		// Jedes x-te Gerät ist ein BHKW
 		public static final int bhkwQuota = 25;
@@ -72,7 +72,7 @@ public class Application {
 
 		// Gibt den Wert an, mit welchem das jeweilige BHKW gestartet werden
 		// soll
-		public static double startLoad = 0.7;
+		public static double startLoad = 0.8;
 
 		public static final String URL = "http://localhost:8080";
 		public static final String VERSION = "";

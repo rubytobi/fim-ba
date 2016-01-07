@@ -36,6 +36,7 @@ public class FrameResults {
 	private double[] deviationWithChange;
 	private ArrayList<double[]> allChanges;
 	private HashMap<String, ArrayList<Offer>> demand, supply;
+	private boolean technicalRequirements = false;
 
 	public FrameResults(GregorianCalendar time, ArrayList<MatchedOffers> justMatched,
 			ArrayList<ConfirmedOffer> lastConfirmed, double maxDeviation, boolean changes, int countRemainingOffers,
@@ -70,26 +71,37 @@ public class FrameResults {
 			if (value == 10 || value == -10) {
 				scenario = "4f";
 			}
-			scenario = scenario + " (Prognose: " + valuesToString(prediction) + ")";
+			scenario = scenario + " - Prognose: " + valuesToString(prediction) + " 51 Geräte";
 		}
 		if (countDevices == 50) {
-			scenario = "1t";
+			scenario = "1t - 50 Geräte";
+			technicalRequirements = true;
 		}
 		if (countDevices == 750) {
-			scenario = "2t";
+			scenario = "2t - 750 Geräte";
+			technicalRequirements = true;
 		}
 		if (countDevices == 11250) {
-			scenario = "3t";
+			scenario = "3t - 11250 Geräte";
+			technicalRequirements = true;
 		}
 		if (countDevices == 168750) {
-			scenario = "4t";
+			scenario = "4t - 168750 Geräte";
+			technicalRequirements = true;
 		}
-		
+
 		// Erstelle Fenster und Tabs
 		frame = new JFrame("Ergebnisse für " + calendarToString(this.time, false) + " - Szenario " + scenario);
 		tabs = new JTabbedPane();
-
-		fillTab1();
+		
+		// Erstelle Tabs und deren Inhalt
+		if (technicalRequirements) {
+			fillTab1Technical();
+		}
+		else {
+			fillTab1Functional();
+		}
+		// fillTab1();
 		fillTab2();
 
 		// Füge Tabs zur Tableiste hinzu
@@ -204,6 +216,122 @@ public class FrameResults {
 		c.gridy = 3;
 		tab1.add(kriteria4, c);
 
+	}
+
+	private void fillTab1Technical() {
+		// Erstelle Panel für Tab1
+		tab1 = new JPanel();
+		tab1.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+
+		// Lege Schrift für Kriterien und Ergebnisse fest
+		Font fontHead = new Font("Verdana", Font.BOLD, 14);
+		Font fontResults = new Font("Verdana", Font.PLAIN, 14);
+
+		// Erstelle alle Informationen für Kriterium 3
+		kriteria3 = new JPanel(new BorderLayout());
+		head3 = new JTextArea();
+		head3.append("Kriterium 3: \nJedes Angebot wird vor dessen Beginn bestätigt");
+		head3.setFont(fontHead);
+		head3.setBackground(Color.LIGHT_GRAY);
+		// Schreibe alle Results in die TextArea
+		setTextAreaKriteria3();
+		testResult3.setFont(fontResults);
+		// Erstelle ein ScrollPane
+		JScrollPane sp3 = new JScrollPane(testResult3);
+		// Füge alles in das jeweilige Panel ein
+		kriteria3.add(BorderLayout.NORTH, head3);
+		kriteria3.add(sp3);
+		kriteria3.add(BorderLayout.SOUTH, fulfill3);
+
+		// Füge alle Panels zum 1. Tab hinzu
+		c.fill = GridBagConstraints.BOTH;
+		// Kriterium 3
+		c.weighty = 1;
+		c.weightx = 1;
+		c.gridx = 0;
+		c.gridy = 0;
+		tab1.add(kriteria3, c);
+	}
+
+	private void fillTab1Functional() {
+		// Erstelle Panel für Tab1
+		tab1 = new JPanel();
+		tab1.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+
+		// Lege Schrift für Kriterien und Ergebnisse fest
+		Font fontHead = new Font("Verdana", Font.BOLD, 14);
+		Font fontResults = new Font("Verdana", Font.PLAIN, 14);
+
+		// Erstelle alle Informationen für Kriterium 1
+		kriteria1 = new JPanel(new BorderLayout());
+		head1 = new JTextArea();
+		head1.append(
+				"Kriterium 1: \nAngebot und Nachfrage werden so zusammengeführt, dass eine Annäherung an die Prognose erfolgt");
+		head1.setBackground(Color.LIGHT_GRAY);
+		head1.setFont(fontHead);
+		// Schreibe alle Results in die TextArea
+		setTextAreaKriteria1();
+		testResult1.setFont(fontResults);
+		// Erstelle ein ScrollPane
+		JScrollPane sp1 = new JScrollPane(testResult1);
+		// Füge alles in das jeweilige Panel ein
+		kriteria1.add(BorderLayout.NORTH, head1);
+		kriteria1.add(sp1);
+		kriteria1.add(BorderLayout.SOUTH, fulfill1);
+
+		// Erstelle alle Informationen für Kriterium 2
+		kriteria2 = new JPanel(new BorderLayout());
+		head2 = new JTextArea();
+		head2.append("Kriterium 2: \nZusammenführung führt zu Zahlungsfluss ohne Differenz");
+		head2.setBackground(Color.LIGHT_GRAY);
+		head2.setFont(fontHead);
+		// Schreibe alle Ergebnisse in die TextArea
+		setTextAreaKriteria2();
+		testResult2.setFont(fontResults);
+		// Erstelle ein ScrollPane
+		JScrollPane sp2 = new JScrollPane(testResult2);
+		// Füge alles in das jeweilige Panel ein
+		kriteria2.add(BorderLayout.NORTH, head2);
+		kriteria2.add(sp2);
+		kriteria2.add(BorderLayout.SOUTH, fulfill2);
+
+		// Erstelle alle Informationen für Kriterium 4
+		kriteria4 = new JPanel(new BorderLayout());
+		head4 = new JTextArea();
+		head4.append(
+				"Kriterium 4: \nDie Abweichung von der Prognose kann durch die Anpassung von Geräten verringert werden.");
+		head4.setBackground(Color.LIGHT_GRAY);
+		head4.setFont(fontHead);
+		// Schreibe alle Results in die TextArea
+		setTextAreaKriteria4();
+		testResult4.setFont(fontResults);
+		// Erstelle ein ScrollPane
+		JScrollPane sp4 = new JScrollPane(testResult4);
+		// Füge alles in das jeweilige Panel ein
+		kriteria4.add(BorderLayout.NORTH, head4);
+		kriteria4.add(sp4);
+		kriteria4.add(BorderLayout.SOUTH, fulfill4);
+
+		// Füge alle Panels zum 1. Tab hinzu
+		c.fill = GridBagConstraints.BOTH;
+		c.weightx = 1;
+		c.weighty = 0.5;
+		// Kriterium 1
+		c.gridx = 0;
+		c.gridy = 0;
+		tab1.add(kriteria1, c);
+		// Kriterium 2
+		c.gridx = 0;
+		c.gridy = 1;
+		tab1.add(kriteria2, c);
+		c.fill = GridBagConstraints.BOTH;
+		// Kriterium 4
+		c.weighty = 1;
+		c.gridx = 0;
+		c.gridy = 2;
+		tab1.add(kriteria4, c);
 	}
 
 	private void fillTab2() {
@@ -347,11 +475,14 @@ public class FrameResults {
 			// Gib prozentuales Ergebnis aus
 			double percentageSmaller = Math.round(100.00 * (countSmaller / countAll));
 			double percentageOk = Math.round(100.00 * (countOk / countAll));
+			double percentageHigher = Math.round(100.00 * (result / countAll));
 
-			testResult1.append("\n" + percentageSmaller + " % der Zusammenführungen: Geringere Abweichung\n");
-			testResult1.append(percentageOk + " % der Zusammenführungen: Leicht höhere Abweichung\n");
-			testResult1.append((100 - (percentageSmaller + percentageOk)) / countAll
-					+ " % der Zusammenführungen: Höhere Abweichung");
+			testResult1.append("\n" + percentageSmaller + " % der Zusammenführungen: Geringere Abweichung (absolut: "
+					+ countSmaller + ")\n");
+			testResult1.append(
+					percentageOk + " % der Zusammenführungen: Leicht höhere Abweichung (absolut: " + countOk + ")\n");
+			testResult1
+					.append(percentageHigher + " % der Zusammenführungen: Höhere Abweichung (absolut: " + result + ")");
 		}
 
 		// Zeige das Ergebnis an
@@ -391,8 +522,8 @@ public class FrameResults {
 				// Gib das Ergebnis aus
 				if (sum == 0) {
 					// result++;
-					testResult2.append("Gesamtpreise passen:	Summe = " + sum + " (GP1: " + allRoundPrice1
-							+ ", GP2: " + allRoundPrice2 + ") Werte Angebot 1: "
+					testResult2.append("Gesamtpreise passen:	Summe = " + sum + " (GP1: " + allRoundPrice1 + ", GP2: "
+							+ allRoundPrice2 + ") Werte Angebot 1: "
 							+ valuesToString(offer[0].getAggLoadprofile().getValues()) + "Werte Angebot 2: "
 							+ valuesToString(offer[1].getAggLoadprofile().getValues()) + "\n");
 				} else {
