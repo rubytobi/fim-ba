@@ -311,6 +311,10 @@ public class Consumer implements Identifiable {
 	}
 
 	private void distributeNewOffer(Offer toBeReplaced, Offer newOffer) {
+		if (toBeReplaced == null || toBeReplaced.getAllLoadprofiles() == null) {
+			Log.e(uuid, "Der kann nicht ersetzt werden!?");
+		}
+
 		for (UUID consumerUUID : toBeReplaced.getAllLoadprofiles().keySet()) {
 			if (consumerUUID.equals(uuid)) {
 				// sich selber überspringen und den author des letzten vertrags
@@ -504,7 +508,6 @@ public class Consumer implements Identifiable {
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "Angebote konnten nicht verknüpft werden.");
 			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
 				Log.e(uuid, "Angebote konnten nicht verknüpft werden. Kein Preisfehler!");
 			}
 		}
