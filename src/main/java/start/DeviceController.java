@@ -64,7 +64,7 @@ public class DeviceController {
 	@RequestMapping(value = "/devices/bhkw", method = RequestMethod.POST)
 	public @ResponseBody UUID addDevice(@RequestBody BHKWCreation params) {
 		BHKW bhkw = new BHKW(params.getChpCoefficient(), params.getPriceFuel(), params.getConsFuelPerKWh(),
-				params.getSizeHeatReservoir(), params.getMaxLoad(), params.getStartLoad());
+				params.getSizePowerStorage(), params.getMaxLoad(), params.getStartLoad());
 
 		DeviceContainer.instance().add(bhkw);
 		return bhkw.getUUID();

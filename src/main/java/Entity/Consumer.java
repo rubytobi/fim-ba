@@ -813,6 +813,10 @@ public class Consumer implements Identifiable {
 		AnswerChangeRequestSchedule answer = askDeviceForChange(
 				new ChangeRequestSchedule(cr.getTime(), cr.getChange()));
 
+		if (answer == null) {
+			Log.e(uuid, "Keine Antwort erhalten?");
+		}
+
 		Log.d(uuid, "Angefragte Änderung: [" + Arrays.toString(cr.getChange()) + "]");
 		Log.d(uuid, "Erhaltene Änderung: [" + Arrays.toString(answer.getChanges()) + "]");
 

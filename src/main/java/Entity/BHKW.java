@@ -87,14 +87,14 @@ public class BHKW implements Device {
 	 * Groesse des Waermespeichers
 	 */
 	@JsonView(View.Summary.class)
-	private double sizeHeatReservoir;
+	private double sizePowerStorage;
 
 	/**
 	 * Status des BHKW
 	 */
 	@JsonView(View.Summary.class)
 	private DeviceStatus status;
-	
+
 	/**
 	 * Startwert des BHKW in kWh
 	 */
@@ -142,22 +142,22 @@ public class BHKW implements Device {
 	 * @param consFuelPerKWh
 	 *            Benoetigter Brennstoff in Liter, um eine kWh Strom zu
 	 *            produzieren
-	 * @param sizeHeatReservoir
-	 *            Groesse des Waermespeichers
+	 * @param sizePowerStorage
+	 *            Groesse des Stromspeichers
 	 * @param maxLoad
 	 *            Maximale Last des Blockheizkraftwerks
 	 */
-	public BHKW(double chpCoefficient, double priceFuel, double consFuelPerKWh, double sizeHeatReservoir,
-			double maxLoad, double startLoad) {
+	public BHKW(double chpCoefficient, double priceFuel, double consFuelPerKWh, double sizePowerStorage, double maxLoad,
+			double startLoad) {
 		this();
 		this.chpCoefficient = chpCoefficient;
 		this.priceFuel = priceFuel;
 		this.consFuelPerKWh = consFuelPerKWh;
-		this.sizeHeatReservoir = sizeHeatReservoir;
+		this.sizePowerStorage = sizePowerStorage;
 		this.maxLoad = maxLoad;
 		this.startLoad = startLoad;
 
-		simulation = new SimulationBHKW(maxLoad, sizeHeatReservoir, startLoad);
+		simulation = new SimulationBHKW(maxLoad, sizePowerStorage, startLoad);
 
 		status = DeviceStatus.INITIALIZED;
 	}
@@ -243,11 +243,11 @@ public class BHKW implements Device {
 					// berechne anfallende Kosten
 					double powerProduced = value - powerGained;
 					double heatProduced = powerProduced / chpCoefficient;
-					if (currentLevel + heatProduced <= sizeHeatReservoir) {
+					if (currentLevel + heatProduced <= sizePowerStorage) {
 						currentLevel += heatProduced;
 					} else {
-						powerProduced = sizeHeatReservoir - currentLevel;
-						currentLevel = sizeHeatReservoir;
+						powerProduced = sizePowerStorage - currentLevel;
+						currentLevel = sizePowerStorage;
 					}
 					// Berechne, wie viel Energie tatsaechlich produziert werden
 					// konnte
@@ -358,7 +358,7 @@ public class BHKW implements Device {
 				// Prüfe ob geplante Werte bereits eine Grenze erreich haben,
 				// dann ist keine Änderung für diese Minute möglich
 				// und in den folgenden Minuten muss die Änderung größer sein
-				if ((changesPerMinute[0][n - 1] > 0) && (levelPlanned == sizeHeatReservoir || powerPlanned == maxLoad)
+				if ((changesPerMinute[0][n - 1] > 0) && (levelPlanned == sizePowerStorage || powerPlanned == maxLoad)
 						|| (changesPerMinute[0][n - 1] < 0) && (levelPlanned == 0 || powerPlanned == 0)) {
 
 					// Übernehme für das geplante Level das Level von der
@@ -394,9 +394,9 @@ public class BHKW implements Device {
 						newLevel = 0;
 						double changedLevel = planned[0][j - 1];
 						restrictionChangePower = chpCoefficient * changedLevel;
-					} else if (newLevel > sizeHeatReservoir) {
-						newLevel = sizeHeatReservoir;
-						double changedLevel = sizeHeatReservoir - planned[0][j];
+					} else if (newLevel > sizePowerStorage) {
+						newLevel = sizePowerStorage;
+						double changedLevel = sizePowerStorage - planned[0][j];
 						restrictionChangePower = chpCoefficient * changedLevel;
 					}
 
@@ -436,7 +436,6 @@ public class BHKW implements Device {
 					achievedPower += newPower;
 				}
 				totalPower += newPower;
-
 
 				if (repeat) {
 					if (repeatPowerAchieved == repeatPowerToChange || repeatLevelAchieved == repeatLevelToChange) {
@@ -591,7 +590,10 @@ public class BHKW implements Device {
 		if (plan == null) {
 			return;
 		}
+
 		powerPlanned = plan[1][minute];
+		Log.evaluate("Blockheizkraftwerk [" + uuid + "] Reservoirs", "" + plan[0][minute]);
+		Log.evaluate("Blockheizkraftwerk [" + uuid + "] Stromerzeugung", "" + plan[1][minute]);
 
 		powerScaled = simulation.getPower(currentTime);
 
@@ -686,7 +688,7 @@ public class BHKW implements Device {
 						change = true;
 					}
 				}
-				
+
 				if (change) {
 					Log.d(uuid, "Versende Deltalastprofil an den Consumer.");
 					Loadprofile deltaLoadprofile = new Loadprofile(deltaValues, start, Loadprofile.Type.DELTA);

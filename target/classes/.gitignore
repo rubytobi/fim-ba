@@ -1,5 +1,7 @@
-/Entity/
-/Util/
-/META-INF/
-/start/
 /Container/
+/Entity/
+/Event/
+/Packet/
+/Util/
+/start/
+/META-INF/

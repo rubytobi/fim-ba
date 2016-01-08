@@ -98,4 +98,20 @@ public class Log {
 		}
 		apendToFile(s);
 	}
+
+	public static void evaluate(String a, String b) {
+		String username = System.getProperty("user.name"); // platform
+		// independent
+
+		if (!username.equals("Tobias")) {
+			// nur für Tobi machen
+			return;
+		}
+
+		try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("c:/fim-ba/evaluate.log", true)))) {
+			out.println(DateTime.ToString(DateTime.now()) + "\t" + a + "\t" + b);
+		} catch (IOException e) {
+			// exception handling left as an exercise for the reader
+		}
+	}
 }
