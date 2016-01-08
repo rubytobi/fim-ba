@@ -19,7 +19,7 @@ public class SimulationBHKW {
 	@JsonIgnore
 	private GregorianCalendar firstStart;
 
-	public SimulationBHKW(double maxLoad, double sizeHeatReservoir, double startLoad) {
+	public SimulationBHKW(double maxLoad, double sizePowerStorage, double startLoad) {
 		GregorianCalendar now = DateTime.now();
 		now.set(Calendar.MINUTE, 0);
 		now.set(Calendar.SECOND, 0);
@@ -32,17 +32,17 @@ public class SimulationBHKW {
 		int rounds = 0;
 		double change = 0.1;
 		for (int i = 0; i < numSlots * 15; i++) {
-			schedule[0][i] = sizeHeatReservoir * 0.5;
+			schedule[0][i] = sizePowerStorage * 0.5;
 			schedule[1][i] = value;
 			if (rounds == 5) {
-				if ( (rising & value+change > maxLoad) || (!rising & value-change < maxLoad*0.5)) {
+				if ((rising & value + change > maxLoad) || (!rising & value - change < maxLoad * 0.5)) {
 					rising = !rising;
 				}
 				rounds = 0;
 				if (rising) {
-					value = Math.round(100.00 * (value+change)) / 100.00;
+					value = Math.round(100.00 * (value + change)) / 100.00;
 				} else {
-					value = Math.round(100.00 * (value-change)) / 100.00;
+					value = Math.round(100.00 * (value - change)) / 100.00;
 				}
 			} else {
 				rounds++;

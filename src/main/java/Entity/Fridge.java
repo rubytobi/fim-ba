@@ -192,13 +192,14 @@ public class Fridge implements Device {
 	public AnswerChangeRequestSchedule receiveChangeRequestSchedule(ChangeRequestSchedule cr) {
 		Log.d(uuid, "ChangeRequestSchedule erhalten: " + cr);
 
+		double[] zero = { 0, 0, 0, 0 };
+		AnswerChangeRequestSchedule zeroAnswer = new AnswerChangeRequestSchedule(cr.getUUID(), zero, 0, 0);
+
 		if (!cr.getStartLoadprofile().equals(timeFixed)) {
 			// ChangeRequest kann nur fuer scheduleMinutes mit Startzeit
 			// timeFixed angefragt werden. Sende daher Antwort ohne Änderungen
 			Log.e(uuid, "Änderungen sind für diesen Zeitslot nicht möglich.");
-			double[] zero = { 0, 0, 0, 0 };
-			AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), zero, 0, 0);
-			return answer;
+			return zeroAnswer;
 		}
 
 		try {
@@ -506,6 +507,7 @@ public class Fridge implements Device {
 					double[] newChangesKWH = { 0, 0, 0, 0 };
 					double factorForPrice = 0;
 					double sumPenalty = 0;
+					Log.d(uuid, "Keine Änderung möglich.");
 					AnswerChangeRequestSchedule answer = new AnswerChangeRequestSchedule(cr.getUUID(), newChangesKWH,
 							factorForPrice, sumPenalty);
 					return answer;
@@ -543,7 +545,7 @@ public class Fridge implements Device {
 					changed = chargeChangedSchedule(secondChange, minutePossibleChange, slot, true);
 				}
 				if (changed == null) {
-					return null;
+					return zeroAnswer;
 				}
 
 				int start = slot * 15;
@@ -626,10 +628,13 @@ public class Fridge implements Device {
 					factorForPrice, sumPenalty);
 			return answer;
 		} catch (IllegalArgumentException e) {
-			return null;
+			e.printStackTrace();
+			Log.e(uuid, Arrays.toString(e.getStackTrace()));
+			return zeroAnswer;
 		} catch (Exception e) {
 			e.printStackTrace();
-			return null;
+			Log.e(uuid, Arrays.toString(e.getStackTrace()));
+			return zeroAnswer;
 		}
 	}
 

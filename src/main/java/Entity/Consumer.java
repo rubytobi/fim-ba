@@ -120,7 +120,15 @@ public class Consumer implements Identifiable {
 		Log.d(uuid,
 				"Auf das Angebot [" + respondedOfferUUID + "] wurde eingegangen; folgendes Angebot erhalten: " + offer);
 
-		// TODO check offer at its location if valid, date and if it is better
+		Offer respondedOffer = getOfferIntern(respondedOfferUUID);
+		if (respondedOffer == null) {
+			Log.e(uuid, "Angebot, auf das eingegangen wurde existiert nicht mehr.");
+			Log.d(uuid, "Lehne nun das Angebot ab [" + offer.getUUID() + "]");
+			API<Void, Boolean> api2 = new API<Void, Boolean>(Boolean.class);
+			api2.consumers(offer.getAuthor()).offers(offer.getUUID()).cancel();
+			api2.call(this, HttpMethod.GET, null);
+			return;
+		}
 
 		Log.d(uuid, "Bestätige nun das Angebot [" + offer.getUUID() + "]");
 		API<Void, Boolean> api2 = new API<Void, Boolean>(Boolean.class);
@@ -144,7 +152,6 @@ public class Consumer implements Identifiable {
 		addOffer(offer);
 
 		// Angebot das initial verschickt wurde muss entfernt werden.
-		Offer respondedOffer = getOfferIntern(respondedOfferUUID);
 		removeOffer(respondedOfferUUID);
 
 		// Consumer des alten Angebots müssen mit dem neuen Angebot versorgt
@@ -310,6 +317,10 @@ public class Consumer implements Identifiable {
 	}
 
 	private void distributeNewOffer(Offer toBeReplaced, Offer newOffer) {
+		if (toBeReplaced == null || toBeReplaced.getAllLoadprofiles() == null) {
+			Log.e(uuid, "Der kann nicht ersetzt werden!?");
+		}
+
 		for (UUID consumerUUID : toBeReplaced.getAllLoadprofiles().keySet()) {
 			if (consumerUUID.equals(uuid)) {
 				// sich selber überspringen und den author des letzten vertrags
@@ -502,7 +513,6 @@ public class Consumer implements Identifiable {
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "Angebote konnten nicht verknüpft werden.");
 			} catch (IllegalArgumentException e) {
-				e.printStackTrace();
 				Log.e(uuid, "Angebote konnten nicht verknüpft werden. Kein Preisfehler!");
 			}
 		}
@@ -627,6 +637,8 @@ public class Consumer implements Identifiable {
 				allOfferContributions.put(newOffer.getUUID(), contributions);
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "OffersPriceborderException");
+			} catch (IllegalArgumentException e) {
+				Log.d(uuid, "IllegalArgumentException - unterschiedliche Zeiten der Angebote");
 			}
 		}
 
@@ -828,6 +840,10 @@ public class Consumer implements Identifiable {
 
 			// Informiere Autor über mögliche Änderungen
 			return answerOfChange;
+		}
+
+		if (answer == null) {
+			Log.e(uuid, "Keine Antwort erhalten?");
 		}
 
 		Log.d(uuid, "Angefragte Änderung: [" + Arrays.toString(cr.getChange()) + "]");
