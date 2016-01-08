@@ -121,7 +121,15 @@ public class Consumer implements Identifiable {
 		Log.d(uuid,
 				"Auf das Angebot [" + respondedOfferUUID + "] wurde eingegangen; folgendes Angebot erhalten: " + offer);
 
-		// TODO check offer at its location if valid, date and if it is better
+		Offer respondedOffer = getOfferIntern(respondedOfferUUID);
+		if (respondedOffer == null) {
+			Log.e(uuid, "Angebot, auf das eingegangen wurde existiert nicht mehr.");
+			Log.d(uuid, "Lehne nun das Angebot ab [" + offer.getUUID() + "]");
+			API<Void, Boolean> api2 = new API<Void, Boolean>(Boolean.class);
+			api2.consumers(offer.getAuthor()).offers(offer.getUUID()).cancel();
+			api2.call(this, HttpMethod.GET, null);
+			return;
+		}
 
 		Log.d(uuid, "Bestätige nun das Angebot [" + offer.getUUID() + "]");
 		API<Void, Boolean> api2 = new API<Void, Boolean>(Boolean.class);
@@ -145,7 +153,6 @@ public class Consumer implements Identifiable {
 		addOffer(offer);
 
 		// Angebot das initial verschickt wurde muss entfernt werden.
-		Offer respondedOffer = getOfferIntern(respondedOfferUUID);
 		removeOffer(respondedOfferUUID);
 
 		// Consumer des alten Angebots müssen mit dem neuen Angebot versorgt
@@ -633,6 +640,8 @@ public class Consumer implements Identifiable {
 				allOfferContributions.put(newOffer.getUUID(), contributions);
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "OffersPriceborderException");
+			} catch (IllegalArgumentException e) {
+				Log.d(uuid, "IllegalArgumentException - unterschiedliche Zeiten der Angebote");
 			}
 		}
 
