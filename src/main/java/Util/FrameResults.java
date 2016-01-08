@@ -93,12 +93,11 @@ public class FrameResults {
 		// Erstelle Fenster und Tabs
 		frame = new JFrame("Ergebnisse für " + calendarToString(this.time, false) + " - Szenario " + scenario);
 		tabs = new JTabbedPane();
-		
+
 		// Erstelle Tabs und deren Inhalt
 		if (technicalRequirements) {
 			fillTab1Technical();
-		}
-		else {
+		} else {
 			fillTab1Functional();
 		}
 		// fillTab1();
@@ -444,7 +443,11 @@ public class FrameResults {
 			countAll = justMatched.size();
 			int countSmaller = 0;
 			int countOk = 0;
-			testResult1.append("Es gab " + justMatched.size() + " Zusammenführungen.\n");
+			testResult1.append(
+					"Die Abweichungen in diesem Kriterium sind die Abweichungen aller zusammengeführten Angebote.\n");
+			testResult1.append(
+					"Die Abweichung wird stets pro Stunde angegeben. Hierfür werden die Beträge der viertelstündlichen Abweichungen aufsummiert.\n");
+			testResult1.append("\nEs gab " + justMatched.size() + " Zusammenführungen.\n");
 			for (MatchedOffers matched : justMatched) {
 				double before = Math.round(100.00 * matched.getDeviationBefore()) / 100.00;
 				double after = Math.round(100.00 * matched.getDeviationAfter()) / 100.00;
@@ -565,6 +568,9 @@ public class FrameResults {
 		int countMatchBad = 0;
 		int countChangeGood = 0;
 		int countChangeBad = 0;
+		double countSecondsUnit = 0;
+		double countSecondsMatch = 0;
+		double countSecondsChange = 0;
 		if (lastConfirmed.size() == 0) {
 			testResult3.append("Keine bestätigten Angebote für diesen Slot (" + calendarToString(time, true) + ")");
 		} else {
@@ -607,12 +613,15 @@ public class FrameResults {
 					result += Math.round(100.00 * (differenceInMilliSeconds * 0.001)) / 100.00 + 1;
 					if (type == "Zusammengeführt") {
 						countMatchBad++;
+						countSecondsMatch += result;
 					}
 					if (type == "Einheitspreis  ") {
 						countUnitBad++;
+						countSecondsUnit += result;
 					}
 					if (type == "Anpassung      ") {
 						countChangeBad++;
+						countSecondsChange += result;
 					}
 				}
 			}
@@ -621,15 +630,15 @@ public class FrameResults {
 			testResult3.append(
 					"\nVon den " + lastConfirmed.size() + " Bestätigungen waren " + countGood + " rechtzeitig.");
 			testResult3.append("\nZusammengeführt: 	Insgesamt " + (countMatchGood + countMatchBad) + ", davon "
-					+ countMatchGood + " rechtzeitig");
+					+ countMatchGood + " rechtzeitig.	Verspätung betrug gesamt: " + countSecondsMatch + " s\n");
 			testResult3.append("\nAnpassung:		Insgesamt " + (countChangeGood + countChangeBad) + ", davon "
-					+ countChangeGood + " rechtzeitig");
+					+ countChangeGood + " rechtzeitig.	Verspätung betrug gesamt: " + countSecondsChange + " s\n");
 			testResult3.append("\nEinheitspreis: 		Insgesamt " + (countUnitGood + countUnitBad) + ", davon "
-					+ countUnitGood + " rechtzeitig\n");
+					+ countUnitGood + " rechtzeitig.	Verspätung betrug gesamt: " + countSecondsUnit + " s\n");
 			testResult3.append("\n" + percentageGood + " % der Bestätigungen waren rechtzeitig\n");
 			testResult3.append((100 - percentageGood) + " % der Bestätigungen waren zu spät");
 
-			testResult3.append("\nDie Verspätung insgesamt betrug " + result + " sek, also im Durchschnitt "
+			testResult3.append("\nDie Verspätung insgesamt betrug " + result + " s, also im Durchschnitt "
 					+ result / countAll + " sek pro Angebot.");
 		}
 
@@ -650,7 +659,10 @@ public class FrameResults {
 		testResult4 = new JTextArea();
 		double result = 0;
 		if (changes) {
-			testResult4.append("Anzahl an Verbliebenen Angeboten: " + countRemainingOffers);
+			testResult4.append(
+					"Die Abweichungen in diesem Kriterium sind die Abweichungen aller sich auf dem Marktplatz befindlichen Angebote.\n");
+			testResult4.append("Die Abweichungen werden stets pro Viertelstunde angegeben.\n");
+			testResult4.append("\nAnzahl an Verbliebenen Angeboten: " + countRemainingOffers);
 			testResult4.append("\nAbweichung vor Anpassungen:\n	" + valuesToString(deviationWithoutChange));
 			testResult4.append("\nAbweichungen nach Anpassungen:\n	" + valuesToString(deviationWithChange));
 			testResult4.append("\nAlle " + allChanges.size() + " Anpassungen:");

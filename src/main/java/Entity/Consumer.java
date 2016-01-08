@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
-import com.sun.research.ws.wadl.Application;
 
 import Container.NegotiationContainer;
 import Packet.OfferNotification;
@@ -476,7 +475,6 @@ public class Consumer implements Identifiable {
 				contributionOffer = contributions.get(c).getLoadprofile().toOffer(c);
 			} else {
 				try {
-					System.out.println("Consumer 479: ImproveOwnOffer");
 					contributionOffer = new Offer(contributionOffer, contributions.get(c).getLoadprofile().toOffer(c));
 				} catch (OffersPriceborderException e) {
 					Log.d(uuid,
@@ -579,7 +577,6 @@ public class Consumer implements Identifiable {
 			Offer marketplace = getMarketplacePrediction();
 			for (Offer own : offerWithPrivileges) {
 				try {
-					System.out.println("Consumer 578: PING");
 					scorecard.add(new Score(new Offer(own, receivedOffer), marketplace, own, receivedOffer, null));
 				} catch (OffersPriceborderException e) {
 					Log.d(uuid, "Preisgrenzen stimmen nicht überein.");
@@ -807,16 +804,36 @@ public class Consumer implements Identifiable {
 		AnswerChangeRequestLoadprofile answerNoChange = new AnswerChangeRequestLoadprofile(cr.getOffer(), null);
 
 		Log.d(uuid, "Zeit für Änderungen passt, frage Devices");
+		
+		Loadprofile initialLoadprofile = getInitialLoadprofile();
 
 		// Frage eigenes Device nach Änderung
 		// (und passe noch benötigte Änderung an)
 		AnswerChangeRequestSchedule answer = askDeviceForChange(
 				new ChangeRequestSchedule(cr.getTime(), cr.getChange()));
+		
+		try {
+			answer.getChanges();
+		}
+		catch(NullPointerException e) {
+			double[] changes = new double[numSlots];
+			for (int i=0; i<numSlots; i++) {
+				changes[i] = 0;
+			}
+			// Erstelle Antwort auf Change Request
+			Loadprofile changedLoadprofile = new Loadprofile(changes, initialLoadprofile.getDate(),
+					0, 0, 0, Loadprofile.Type.CHANGE_REQUEST);
+			AnswerChangeRequestLoadprofile answerOfChange = new AnswerChangeRequestLoadprofile(cr.getOffer(),
+					changedLoadprofile);
+
+			// Informiere Autor über mögliche Änderungen
+			return answerOfChange;
+		}
 
 		Log.d(uuid, "Angefragte Änderung: [" + Arrays.toString(cr.getChange()) + "]");
 		Log.d(uuid, "Erhaltene Änderung: [" + Arrays.toString(answer.getChanges()) + "]");
 
-		Loadprofile initialLoadprofile = getInitialLoadprofile();
+		
 
 		// Prüfe, ob ein initiales Lastprofil gefunden werden kann und wenn ja,
 		// berechne dessen Summe
