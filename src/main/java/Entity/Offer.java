@@ -27,7 +27,7 @@ public class Offer implements Comparable<Offer>, Cloneable {
 	 * Speichert die vom Marktplatz bestätigten Anpassungen des Angebots
 	 */
 	@JsonIgnore
-	private double[] confirmedChanges = new double[4];
+	private double[] confirmedChanges = {0, 0, 0, 0};
 
 	/**
 	 * Gesamtsumme aller Lastprofile
@@ -98,7 +98,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		this.minPrice = loadprofile.getMinPrice();
 		this.maxPrice = loadprofile.getMaxPrice();
 		
-		System.out.println("Neues Angebot Lastprofil");
 		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
@@ -161,7 +160,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 			priceSugg = maxPrice;
 		}
 		
-		System.out.println("Offer: ChangeRequestAnswer");
 		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
@@ -265,7 +263,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 		}
 		this.priceSugg = newPriceSugg;
 		
-		System.out.println("Neues Angebot aus zwei Angeboten");
 		calculateAggLoadprofile();
 
 		status = OfferStatus.VALID;
@@ -307,7 +304,6 @@ public class Offer implements Comparable<Offer>, Cloneable {
 				if (this.aggLoadprofile == null) {
 					this.aggLoadprofile = lp;
 				} else {
-					System.out.println("Offer: calculateAggLoadprofile");
 					this.aggLoadprofile = new Loadprofile(this.aggLoadprofile, lp);
 				}
 			}

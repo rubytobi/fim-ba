@@ -43,7 +43,7 @@ public class Application {
 		static double[] predictionScenario1f = {0, 0, 0, 0};
 		static double[] predictionScenario2f = {-20, -20, -20, -20};
 		static double[] predictionScenario3f = {20, 20, 20, 20};
-		static double[] predictionScenario4f = {10, 10, 10, 10, 0, 0, 0, 0, -10, -10, -10, -10};
+		static double[] predictionScenario4f = {10, 10, 10, 10, -10, -10, -10, -10};
 		public static final double[] prediction = predictionScenario1f;
 		
 		// Setze die Anzahl an Devices der Simulation
@@ -61,7 +61,7 @@ public class Application {
 		// langsamer (<1) als die reale Zeit vergeht
 		// Beachte, dass bei einer sehr schnellen Simulationszeit die
 		// Ping-Zeiten angepasst werden müssen!
-		public static final double timeFactor = 4;
+		public static final double timeFactor = 6;
 
 		// Lege fest, in welcher Minute die zweite Phase des Marktplatzes
 		// starten soll
@@ -69,10 +69,13 @@ public class Application {
 
 		// Lege fest, ob mit DeltaLastprofilen gearbeitet werden soll
 		public static final boolean enableDeltaLoadprofiles = true;
+		
+		// Gibt den Wert an, welche Größe das Heat Reservoir haben soll
+		public static double sizeHeatReservoir = 12.95;
 
 		// Gibt den Wert an, mit welchem das jeweilige BHKW gestartet werden
 		// soll
-		public static double startLoad = 0.7;
+		public static double startLoad = 0.8;
 
 		public static final String URL = "http://localhost:8080";
 		public static final String VERSION = "";
@@ -127,8 +130,9 @@ public class Application {
 
 		if (DeviceContainer.instance().size() > 0 && DeviceContainer.instance().size() % Params.bhkwQuota == 0) {
 			API<BHKWCreation, UUID> api = new API<BHKWCreation, UUID>(UUID.class);
-			BHKWCreation bhkwCreation = new BHKWCreation(1, 1.02, 0.05, Params.startLoad);
+			BHKWCreation bhkwCreation = new BHKWCreation(1, 1.02, 0.05, Params.startLoad, Params.sizeHeatReservoir);
 			Params.startLoad = 0.4;
+			Params.sizeHeatReservoir = 9.36;
 			api.devices().bhkw();
 			api.call(Params.root, HttpMethod.POST, bhkwCreation);
 

@@ -120,8 +120,6 @@ public class Loadprofile {
 		this();
 
 		if (!lp1.getDate().equals(lp2.getDate())) {
-			System.out.println(lp1.getDate());
-			System.out.println(lp2.getDate());
 			throw new IllegalArgumentException();
 		}
 

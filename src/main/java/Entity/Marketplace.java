@@ -69,7 +69,7 @@ public class Marketplace implements Identifiable {
 	/**
 	 * Aktuell geduldete Abweichung in kWh
 	 */
-	private double maxDeviation = 20;
+	private double maxDeviation = 12;
 
 	/**
 	 * Map, die alle bisher zusammengefuehrten Angebote nach Zeitslot beinhaltet
@@ -100,7 +100,9 @@ public class Marketplace implements Identifiable {
 	/**
 	 * Map, die die Prognose fuer den jeweiligen Zeitslot beinhaltet
 	 */
-	private double[] prediction = { 0, 0, 0, 0 };
+	private double[] predictionNextSlot = { 0, 0, 0, 0 };
+	private double[] predictionEven = { 0, 0, 0, 0 };
+	private double[] predictionUneven = { 0, 0, 0, 0 };
 
 	/**
 	 * Boolean-Wert, der angibt, ob sich die Prognose pro Stunde ändert
@@ -140,12 +142,22 @@ public class Marketplace implements Identifiable {
 		double[] predictionApplkt = Application.Params.prediction;
 		if (predictionApplkt.length > numSlots) {
 			predictionChange = true;
+			int hour = DateTime.now().get(Calendar.HOUR_OF_DAY);
+			boolean hourEven = (hour % 2 == 0);
 			for (int i = 0; i < numSlots; i++) {
-				prediction[i] = predictionApplkt[i];
+				predictionEven[i] = predictionApplkt[i];
+				predictionUneven[i] = predictionApplkt[i] * (-1);
+			}
+			if (hourEven) {
+				predictionNextSlot = predictionUneven;
+			} else {
+				predictionNextSlot = predictionEven;
 			}
 		} else {
 			predictionChange = false;
-			prediction = predictionApplkt;
+			predictionEven = predictionApplkt;
+			predictionUneven = predictionApplkt;
+			predictionNextSlot = predictionApplkt;
 		}
 	}
 
@@ -187,12 +199,22 @@ public class Marketplace implements Identifiable {
 		// Wenn ja, matche den nächsten Slot.
 		int compare = now.get(Calendar.HOUR_OF_DAY);
 		if (compare == 23) {
+			System.out.println("NextSlot: " + nextSlot);
+			System.out.println("Zeit aktuell: " + DateTime.ToString(now));
 			compare = 0;
 		} else {
 			compare++;
 		}
+		
 		if (compare == DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY) && minute >= minuteOfSecondPhase
-				|| now.get(Calendar.HOUR_OF_DAY) + 1 > DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY)) {
+				|| now.after(nextSlot)) {
+			System.out.println("Compare: " +compare);
+			System.out.println("Vergleichsstunde:	" + DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY));
+			System.out.println("Minute:		" +minute);
+			System.out.println("MinuteOfSecondPhase:	" +minuteOfSecondPhase);
+			System.out.println("Jetzt:	" + DateTime.ToString(DateTime.now()));
+			System.out.println("Next Slot:	" +nextSlot);
+			System.out.println("LastMatched:	" +DateTime.ToString(slotLastMatched));
 			matchNextSlot();
 		}
 
@@ -209,8 +231,22 @@ public class Marketplace implements Identifiable {
 	 */
 	private double[] chargeDeviationConfirmed(String start) {
 		double[] deviation = new double[numSlots];
-		// double[] currentPrediction = prediction.get(start);
-		double[] currentPrediction = prediction;
+
+		// Hole die Prognose, die für die angefragte Stunde gilt
+		double[] usedPrediction;
+		if (predictionChange) {
+			int hour = DateTime.parse(start).get(Calendar.HOUR_OF_DAY);
+			boolean hourIsEven = (hour % 2 == 0);
+			if (hourIsEven) {
+				usedPrediction = predictionEven;
+			} else {
+				usedPrediction = predictionUneven;
+
+			}
+		} else {
+			usedPrediction = predictionEven;
+		}
+
 		double[] currentConfirmed = sumLoadprofilesConfirmedOffers.get(start);
 		if (currentConfirmed == null) {
 			currentConfirmed = new double[numSlots];
@@ -218,11 +254,11 @@ public class Marketplace implements Identifiable {
 				currentConfirmed[i] = 0;
 			}
 		}
-		if (currentPrediction == null || currentConfirmed == null) {
+		if (usedPrediction == null || currentConfirmed == null) {
 			return deviation;
 		}
 		for (int i = 0; i < numSlots; i++) {
-			deviation[i] = currentConfirmed[i] - currentPrediction[i];
+			deviation[i] = Math.round(100.00 * (currentConfirmed[i] - usedPrediction[i])) / 100.00;
 		}
 		return deviation;
 	}
@@ -237,14 +273,28 @@ public class Marketplace implements Identifiable {
 	 */
 	private double[] chargeDeviationAll(String start) {
 		double[] deviationAll = new double[numSlots];
-		// double[] currentPrediction = prediction.get(start);
-		double[] currentPrediction = prediction;
+
+		// Hole die Prognose, die für die angefragte Stunde gilt
+		double[] usedPrediction;
+		if (predictionChange) {
+			int hour = DateTime.parse(start).get(Calendar.HOUR_OF_DAY);
+			boolean hourIsEven = (hour % 2 == 0);
+			if (hourIsEven) {
+				usedPrediction = predictionEven;
+			} else {
+				usedPrediction = predictionUneven;
+
+			}
+		} else {
+			usedPrediction = predictionEven;
+		}
+
 		double[] currentAll = sumLoadprofilesAllOffers.get(start);
 
-		if (currentPrediction == null) {
-			currentPrediction = new double[4];
+		if (usedPrediction == null) {
+			usedPrediction = new double[4];
 			for (int i = 0; i < numSlots; i++) {
-				currentPrediction[i] = 0;
+				usedPrediction[i] = 0;
 			}
 		}
 
@@ -256,7 +306,7 @@ public class Marketplace implements Identifiable {
 		}
 
 		for (int i = 0; i < numSlots; i++) {
-			deviationAll[i] = Math.round(100.00 * (currentAll[i] - currentPrediction[i])) / 100.00;
+			deviationAll[i] = Math.round(100.00 * (currentAll[i] - usedPrediction[i])) / 100.00;
 		}
 		return deviationAll;
 	}
@@ -842,11 +892,8 @@ public class Marketplace implements Identifiable {
 
 		if (!supply.containsKey(dateString) || supply.get(dateString) == null) {
 			return new ResponseBuilder<Offer[]>(this)
-					.body(new Offer[] {
-							new Offer(uuid,
-									new Loadprofile(
-											/* prediction.get(dateString) */prediction,
-											DateTime.ToString(DateTime.currentTimeSlot()), Loadprofile.Type.MIXED)) })
+					.body(new Offer[] { new Offer(uuid, new Loadprofile(predictionNextSlot,
+							DateTime.ToString(DateTime.currentTimeSlot()), Loadprofile.Type.MIXED)) })
 					.build();
 		}
 
@@ -974,7 +1021,7 @@ public class Marketplace implements Identifiable {
 			// Öffne Fenster mit Ergebnissen
 			FrameResults results = new FrameResults(DateTime.parse(nextSlot), justMatched, lastConfirmed, maxDeviation,
 					false, countRemainingOffers, deviationWithoutChange, deviationWithoutChange, allChanges, demand,
-					supply, prediction, Application.Params.maxDevices);
+					supply, predictionNextSlot, Application.Params.maxDevices);
 			return;
 		}
 
@@ -1187,13 +1234,18 @@ public class Marketplace implements Identifiable {
 		// Öffne Fenster mit Ergebnissen
 		FrameResults results = new FrameResults(DateTime.parse(nextSlot), justMatched, lastConfirmed, maxDeviation,
 				changes, countRemainingOffers, deviationWithoutChange, deviationWithChange, allChanges, demand, supply,
-				prediction, Application.Params.maxDevices);
+				predictionNextSlot, Application.Params.maxDevices);
 
 		// Zaehle Variable nextSlot um eins hoch
 		nextSlot = DateTime.add(Calendar.HOUR_OF_DAY, 1, nextSlot);
+
+		int hour = DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY);
+		boolean hourEven = (hour % 2 == 0);
 		if (predictionChange) {
-			for (int i = 0; i < numSlots; i++) {
-				prediction[i] = prediction[i] * (-1);
+			if (hourEven) {
+				predictionNextSlot = predictionEven;
+			} else {
+				predictionNextSlot = predictionUneven;
 			}
 		}
 	}
@@ -1726,10 +1778,8 @@ public class Marketplace implements Identifiable {
 	}
 
 	public ResponseEntity<double[]> getPrediction() {
-		String dateString = DateTime.ToString(DateTime.currentTimeSlot());
-
 		return new ResponseBuilder<double[]>(this)
-				.body(prediction/* .get(dateString) */).build();
+				.body(predictionNextSlot/* .get(dateString) */).build();
 	}
 
 	public UUID getUUID() {
