@@ -640,8 +640,10 @@ public class Consumer implements Identifiable {
 				allOfferContributions.put(newOffer.getUUID(), contributions);
 			} catch (OffersPriceborderException e) {
 				Log.d(uuid, "OffersPriceborderException");
+				return;
 			} catch (IllegalArgumentException e) {
 				Log.d(uuid, "IllegalArgumentException - unterschiedliche Zeiten der Angebote");
+				return;
 			}
 		}
 
