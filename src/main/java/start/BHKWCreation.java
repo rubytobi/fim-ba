@@ -17,10 +17,9 @@ public class BHKWCreation {
 		this.chpCoefficient = chpCoefficient;
 		this.priceFuel = priceFuel;
 		this.consFuelPerKWh = consFuelPerKWh;
-		this.maxLoad = 0.8;
-		this.sizePowerStorage = Math.round(100.00 * (((double) (Math.random() * 10)) + 5)) / 100.00;
-		//sizePowerStorage = sizeHeatReservoir;
-		this.maxLoad = 0.7;
+		this.maxLoad = 0.85;
+		//this.sizePowerStorage = Math.round(100.00 * (((double) (Math.random() * 10)) + 5)) / 100.00;
+		sizePowerStorage = sizeHeatReservoir;
 		this.startLoad = startLoad;
 		// this.maxLoad = Math.round(100.00 * ((double) (Math.random() * 1)
 		// +0.1)) / 100.00;

@@ -40,7 +40,7 @@ public class DateTime {
 		if (programStart == null) {
 			programStart = realTime;
 		}
-
+		
 		GregorianCalendar simulationTime = (GregorianCalendar) realTime.clone();
 
 		// Berechne, wie viele Millisekunden seit dem Start des Programms

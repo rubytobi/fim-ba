@@ -199,8 +199,6 @@ public class Marketplace implements Identifiable {
 		// Wenn ja, matche den nächsten Slot.
 		int compare = now.get(Calendar.HOUR_OF_DAY);
 		if (compare == 23) {
-			System.out.println("NextSlot: " + nextSlot);
-			System.out.println("Zeit aktuell: " + DateTime.ToString(now));
 			compare = 0;
 		} else {
 			compare++;
@@ -208,13 +206,6 @@ public class Marketplace implements Identifiable {
 		
 		if (compare == DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY) && minute >= minuteOfSecondPhase
 				|| now.after(nextSlot)) {
-			System.out.println("Compare: " +compare);
-			System.out.println("Vergleichsstunde:	" + DateTime.parse(nextSlot).get(Calendar.HOUR_OF_DAY));
-			System.out.println("Minute:		" +minute);
-			System.out.println("MinuteOfSecondPhase:	" +minuteOfSecondPhase);
-			System.out.println("Jetzt:	" + DateTime.ToString(DateTime.now()));
-			System.out.println("Next Slot:	" +nextSlot);
-			System.out.println("LastMatched:	" +DateTime.ToString(slotLastMatched));
 			matchNextSlot();
 		}
 
@@ -590,11 +581,7 @@ public class Marketplace implements Identifiable {
 
 			// Lege zusammengefuehrte Angebote und Preise in der Historie ab
 			MatchedOffers matched = new MatchedOffers(newPrice1, newPrice2, offers[0], offers[1], sumDeviationBefore,
-					sumDeviationAfter);
-			Set<String> set = matchedOffers.keySet();
-			for (String s : set) {
-				System.out.println(s);
-			}
+					sumDeviationAfter);			
 			ArrayList<MatchedOffers> array = matchedOffers.get(date);
 			if (array == null) {
 				array = new ArrayList<MatchedOffers>();
@@ -987,6 +974,7 @@ public class Marketplace implements Identifiable {
 	 * oder eine Anpassung erfragt.
 	 */
 	private void matchNextSlot() {
+		System.out.println("Next Slot wird gestartet");
 		// Lege alle Variablen für Überprüftung von Kriterium 3-1 an
 		int countRemainingOffers = 0;
 		double[] deviationWithoutChange = new double[numSlots];
@@ -1696,7 +1684,6 @@ public class Marketplace implements Identifiable {
 	 *            Zeit, zu der alle Angebote der Liste beginnen
 	 */
 	public void confirmedOffersToString(ArrayList<ConfirmedOffer> list, GregorianCalendar time) {
-		System.out.println("Confirmed Offers at " + time + ":");
 		double countMatched = 0, countChanged = 0, countUnitPrice = 0;
 		for (ConfirmedOffer offer : list) {
 			// Zähle die jeweilige Variable hoch

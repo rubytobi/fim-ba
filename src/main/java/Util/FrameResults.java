@@ -2,6 +2,7 @@ package Util;
 
 import javax.swing.*;
 
+import Container.DeviceContainer;
 import Entity.Offer;
 
 import java.util.Calendar;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.awt.*;
 
 import Util.MatchedOffers;
+import start.Application;
 import Util.ConfirmedOffer;
 
 public class FrameResults {
@@ -55,7 +57,7 @@ public class FrameResults {
 		this.allChanges = allChanges;
 		this.demand = demand;
 		this.supply = supply;
-
+		
 		String scenario = "FEHLER";
 		if (countDevices == 51) {
 			double value = prediction[0];
@@ -77,16 +79,16 @@ public class FrameResults {
 			scenario = "1t - 50 Geräte";
 			technicalRequirements = true;
 		}
-		if (countDevices == 750) {
-			scenario = "2t - 750 Geräte";
+		if (countDevices == 200) {
+			scenario = "2t - 200 Geräte";
 			technicalRequirements = true;
 		}
-		if (countDevices == 11250) {
-			scenario = "3t - 11250 Geräte";
+		if (countDevices == 600) {
+			scenario = "3t - 600 Geräte";
 			technicalRequirements = true;
 		}
-		if (countDevices == 168750) {
-			scenario = "4t - 168750 Geräte";
+		if (countDevices == 2000) {
+			scenario = "4t - 2000 Geräte";
 			technicalRequirements = true;
 		}
 
@@ -571,6 +573,7 @@ public class FrameResults {
 		double countSecondsUnit = 0;
 		double countSecondsMatch = 0;
 		double countSecondsChange = 0;
+		double allDevices = 0;
 		if (lastConfirmed.size() == 0) {
 			testResult3.append("Keine bestätigten Angebote für diesen Slot (" + calendarToString(time, true) + ")");
 		} else {
@@ -586,11 +589,13 @@ public class FrameResults {
 				String type = confirmed.getTypeString();
 				if (good) {
 					countGood++;
+					double countDevices = confirmed.getOffer().getAllLoadprofiles().size();
+					allDevices += countDevices;
 					testResult3.append("Bestätigung vor Start: JA	(Bestätigung: "
 							+ calendarToString(timeConfirmed, false) + ", Beginn: "
 							+ calendarToString(timeRealStart, false) + ") " + type + "	"
 							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues())
-							+ "		Anzahl der beteiligten Geräte: " + confirmed.getOffer().getAllLoadprofiles().size()
+							+ "		Anzahl der beteiligten Geräte: " + countDevices
 							+ " ID Angebot: " + confirmed.getOffer().getUUID() + "\n");
 					if (type == "Zusammengeführt") {
 						countMatchGood++;
@@ -602,11 +607,13 @@ public class FrameResults {
 						countChangeGood++;
 					}
 				} else {
+					double countDevices = confirmed.getOffer().getAllLoadprofiles().size();
+					allDevices += countDevices;
 					testResult3.append("Bestätigung vor Start: NEIN	(Bestätigung: "
 							+ calendarToString(timeConfirmed, false) + ", Beginn: "
 							+ calendarToString(timeRealStart, false) + ") " + type + "	"
 							+ valuesToString(confirmed.getOffer().getAggLoadprofile().getValues())
-							+ "		Anzahl der beteiligten Geräte: " + confirmed.getOffer().getAllLoadprofiles().size()
+							+ "		Anzahl der beteiligten Geräte: " + countDevices
 							+ " ID Angebot: " + confirmed.getOffer().getUUID() + "\n");
 					int differenceInMilliSeconds = (int) (timeConfirmed.getTimeInMillis()
 							- timeRealStart.getTimeInMillis());
@@ -627,6 +634,8 @@ public class FrameResults {
 			}
 			// Gib prozentuales Ergebnis aus
 			double percentageGood = Math.round(100.00 * (countGood / countAll));
+			testResult3.append("\nGeräte initialisiert: " + DeviceContainer.instance().size());
+			testResult3.append("\nEs waren Angebote von " +allDevices+ " Geräten auf dem Marktplatz\n");
 			testResult3.append(
 					"\nVon den " + lastConfirmed.size() + " Bestätigungen waren " + countGood + " rechtzeitig.");
 			testResult3.append("\nZusammengeführt: 	Insgesamt " + (countMatchGood + countMatchBad) + ", davon "

@@ -47,12 +47,12 @@ public class Application {
 		public static final double[] prediction = predictionScenario1f;
 		
 		// Setze die Anzahl an Devices der Simulation
-		static int scenariof = 51;
-		static int scenario1t = 50;
-		static int scenario2t = 750;
-		static int scenario3t = 11250;
-		static int scenario4t = 168750;
-		public static final int maxDevices = scenariof;
+		public static int scenariof = 51;
+		public static int scenario1t = 50;
+		public static int scenario2t = 200;
+		public static int scenario3t = 600;
+		public static int scenario4t = 2000;
+		public static final int maxDevices = scenario2t;
 
 		// Jedes x-te Gerät ist ein BHKW
 		public static final int bhkwQuota = 25;
